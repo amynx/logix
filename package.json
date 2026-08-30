@@ -1,0 +1,17 @@
+{
+  "name": "logix",
+  "version": "0.1.0",
+  "description": "Editor de análisis de problemas para diseño de algoritmos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/app.css --watch",
+    "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/app.css --minify",
+    "serve": "npx --yes serve .",
+    "dev": "npm run build:css && npm run serve"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0",
+    "tailwindcss": "^4.0.0"
+  }
+}
