@@ -1,9 +1,16 @@
-// Punto de entrada de la aplicación.
-// Aquí se conectarán el modelo, la persistencia, el controlador y las vistas
-// a medida que se implementen de forma incremental.
+// Punto de entrada: obtiene los contenedores del DOM, construye las vistas y el
+// controlador, y arranca la aplicación.
+
+import { AnalysisView } from "./views/analysisView.js";
+import { AnalysisController } from "./controllers/analysisController.js";
 
 function main() {
-  // El arranque real se añade en los siguientes pasos.
+  const analysisView = new AnalysisView({
+    infoContainer: document.getElementById("analysis-info"),
+  });
+
+  const controller = new AnalysisController({ analysisView });
+  controller.start();
 }
 
 main();
