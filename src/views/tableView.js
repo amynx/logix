@@ -80,8 +80,12 @@ export class TableView {
   }
 
   #buildRow(row, index, handlers) {
-    const field = (changes) => handlers.onFieldChange(row.id, changes);
-    const structural = (changes) => handlers.onStructuralChange(row.id, changes);
+    // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
+    // que cada edición lea el estado fresco del modelo. Es clave para campos con
+    // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
+    // usando una copia capturada en el render anterior.
+    const field = (updater) => handlers.onFieldChange(row.id, updater);
+    const structural = (updater) => handlers.onStructuralChange(row.id, updater);
     const isDecision = row.purpose === "decision";
 
     const cells = [
@@ -108,13 +112,13 @@ export class TableView {
         ),
         el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
       ]),
-      cell(textField(row.problem, "Necesidad de este paso", (value) => field({ problem: value }))),
+      cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.inputs, field, structural)),
-      cell(textField(row.condition, "¿Qué debe responderse?", (value) => field({ condition: value }))),
-      cell(textField(row.operation, "Operación a realizar", (value) => field({ operation: value }))),
+      cell(textField(row.condition, "¿Qué debe responderse?", (value) => field(() => ({ condition: value })))),
+      cell(textField(row.operation, "Operación a realizar", (value) => field(() => ({ operation: value })))),
       cell(resultEditor(row.result, field)),
-      cell(purposeSelect(row.purpose, (value) => structural({ purpose: value }))),
-      cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field({ subsequentUse: value }))),
+      cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
+      cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
       cell(branchEditor(row.ifTrue, "ifTrue", field, !isDecision)),
       cell(branchEditor(row.ifFalse, "ifFalse", field, !isDecision)),
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -198,9 +202,9 @@ function resultEditor(result, field) {
       value: result.name ?? "",
       placeholder: "nombre",
       class: CONTROL_CLASS,
-      oninput: (event) => field({ result: { ...result, name: event.target.value } }),
+      oninput: (event) => field((row) => ({ result: { ...row.result, name: event.target.value } })),
     }),
-    selectField(optionsOf(DATA_TYPES), result.type, (value) => field({ result: { ...result, type: value } }), {
+    selectField(optionsOf(DATA_TYPES), result.type, (value) => field((row) => ({ result: { ...row.result, type: value } })), {
       placeholder: "Tipo…",
     }),
   ]);
@@ -216,11 +220,11 @@ function purposeSelect(purpose, onChange) {
 // muestra deshabilitado para orientar al estudiante.
 function branchEditor(branch, key, field, disabled) {
   const wrapper = el("div", { class: "space-y-1" }, [
-    selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field({ [key]: { ...branch, type: value } }), {
+    selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
       disabled,
     }),
-    textField(branch.value, "Detalle del camino", (value) => field({ [key]: { ...branch, value } }), { disabled }),
+    textField(branch.value, "Detalle del camino", (value) => field((row) => ({ [key]: { ...row[key], value } })), { disabled }),
   ]);
   if (disabled) wrapper.classList.add("opacity-50");
   return wrapper;
@@ -235,16 +239,18 @@ function inputsEditor(inputs, field, structural) {
         value: input.name ?? "",
         placeholder: "nombre",
         class: CONTROL_CLASS,
-        oninput: (event) => field({ inputs: replaceAt(inputs, index, { ...input, name: event.target.value }) }),
+        oninput: (event) =>
+          field((row) => ({ inputs: replaceAt(row.inputs, index, { ...row.inputs[index], name: event.target.value }) })),
       }),
-      selectField(optionsOf(DATA_TYPES), input.type, (value) => field({ inputs: replaceAt(inputs, index, { ...input, type: value }) }), {
+      selectField(optionsOf(DATA_TYPES), input.type, (value) =>
+        field((row) => ({ inputs: replaceAt(row.inputs, index, { ...row.inputs[index], type: value }) })), {
         placeholder: "Tipo…",
       }),
       el("button", {
         type: "button",
         class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
         title: "Quitar dato",
-        onclick: () => structural({ inputs: removeAt(inputs, index) }),
+        onclick: () => structural((row) => ({ inputs: removeAt(row.inputs, index) })),
       }, "×"),
     ]),
   );
@@ -252,7 +258,7 @@ function inputsEditor(inputs, field, structural) {
   const addButton = el("button", {
     type: "button",
     class: "text-xs font-medium text-slate-500 hover:text-slate-700",
-    onclick: () => structural({ inputs: [...inputs, { name: "", type: "" }] }),
+    onclick: () => structural((row) => ({ inputs: [...row.inputs, { name: "", type: "" }] })),
   }, "+ dato");
 
   return el("div", { class: "space-y-1" }, [...rows, addButton]);

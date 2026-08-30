@@ -57,15 +57,26 @@ export class AnalysisController {
     this.#scheduleSave();
   }
 
-  updateRowField(rowId, changes) {
+  updateRowField(rowId, updater) {
+    const changes = this.#resolveRowChanges(rowId, updater);
+    if (!changes) return;
     updateRow(this.analysis, rowId, changes);
     this.#scheduleSave();
   }
 
-  updateRowStructure(rowId, changes) {
+  updateRowStructure(rowId, updater) {
+    const changes = this.#resolveRowChanges(rowId, updater);
+    if (!changes) return;
     updateRow(this.analysis, rowId, changes);
     this.renderTable();
     this.#scheduleSave();
+  }
+
+  // Resuelve el actualizador contra la fila actual del modelo, de modo que cada
+  // cambio parta del estado fresco y no de una copia capturada en el render.
+  #resolveRowChanges(rowId, updater) {
+    const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
+    return row ? updater(row) : null;
   }
 
   addRow() {

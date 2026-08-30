@@ -160,6 +160,36 @@ test("adding an input datum grows the row's inputs and re-renders", async () => 
   assert.equal(doc.querySelectorAll("tbody tr td")[2].querySelectorAll("input").length, 1);
 });
 
+test("editing result name then type keeps both (no stale overwrite)", async () => {
+  const { doc, controller } = await mountApp();
+  const resultCell = doc.querySelectorAll("tbody tr td")[5];
+  const nameInput = resultCell.querySelector("input");
+  const typeSelect = resultCell.querySelector("select");
+
+  nameInput.value = "promedio";
+  fire(nameInput, "input");
+  typeSelect.value = "numeric";
+  fire(typeSelect, "change");
+
+  assert.equal(controller.analysis.rows[0].result.name, "promedio");
+  assert.equal(controller.analysis.rows[0].result.type, "numeric");
+});
+
+test("adding a datum after naming another preserves the first name", async () => {
+  const { doc, controller } = await mountApp();
+  const addDato = () =>
+    [...doc.querySelectorAll("tbody tr td")[2].querySelectorAll("button")].find((b) => b.textContent === "+ dato");
+
+  addDato().click(); // un dato de entrada
+  const nameInput = doc.querySelectorAll("tbody tr td")[2].querySelector("input");
+  nameInput.value = "nota1";
+  fire(nameInput, "input");
+  addDato().click(); // añadir otro no debe borrar el primero
+
+  assert.equal(controller.analysis.rows[0].inputs.length, 2);
+  assert.equal(controller.analysis.rows[0].inputs[0].name, "nota1");
+});
+
 test("recovers the most recently updated analysis on start", async () => {
   const older = createAnalysis({ title: "Viejo", updatedAt: "2026-01-01T00:00:00.000Z" });
   const newer = createAnalysis({ title: "Reciente", updatedAt: "2026-06-01T00:00:00.000Z" });
