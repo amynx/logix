@@ -3,7 +3,8 @@
 // El auto-guardado es con debounce para no escribir en IndexedDB en cada tecla.
 
 import { createAnalysis, addRow, removeRow, moveRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
-import { confirmDialog } from "../views/confirmDialog.js";
+import { confirmDialog, messageDialog } from "../views/dialogs.js";
+import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
@@ -19,7 +20,11 @@ export class AnalysisController {
   }
 
   async start() {
-    this.analysisView.renderToolbar();
+    this.analysisView.renderToolbar({
+      onNew: () => this.newAnalysis(),
+      onOpenFile: (file) => this.openFile(file),
+      onSaveFile: () => this.saveToFile(),
+    });
     this.analysis = await this.#recoverOrCreate();
     this.render();
   }
@@ -87,6 +92,34 @@ export class AnalysisController {
     moveRow(this.analysis, fromIndex, toIndex);
     this.renderTable();
     this.#scheduleSave();
+  }
+
+  // Reemplaza el análisis actual y refresca vista y persistencia. Es el punto
+  // único por el que entra un análisis nuevo, importado o recuperado.
+  loadAnalysis(analysis) {
+    this.analysis = analysis;
+    this.render();
+    this.#scheduleSave();
+  }
+
+  newAnalysis() {
+    const analysis = createAnalysis();
+    addRow(analysis);
+    this.loadAnalysis(analysis);
+  }
+
+  saveToFile() {
+    exportAnalysis(this.analysis);
+  }
+
+  async openFile(file) {
+    try {
+      const analysis = await importAnalysis(file);
+      this.loadAnalysis(analysis);
+    } catch (error) {
+      // Aviso informativo: no se bloquea el flujo esperando a que se cierre.
+      messageDialog({ title: "No se pudo abrir el análisis", message: error.message });
+    }
   }
 
   // Recupera el análisis más reciente guardado localmente; si no hay ninguno,

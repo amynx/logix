@@ -11,6 +11,20 @@ const INPUT_CLASS =
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
+function toolbarButton(label, onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class:
+        "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium " +
+        "text-slate-700 hover:bg-slate-50",
+      onclick: onClick,
+    },
+    label,
+  );
+}
+
 const SAVE_STATUS = {
   saving: { text: "Guardando…", class: "text-slate-500" },
   saved: { text: "✓ Guardado automáticamente", class: "text-emerald-600" },
@@ -24,10 +38,29 @@ export class AnalysisView {
     this.statusElement = null;
   }
 
-  renderToolbar() {
+  renderToolbar({ onNew, onOpenFile, onSaveFile }) {
     clear(this.toolbarContainer);
+
+    const fileInput = el("input", {
+      type: "file",
+      accept: ".analisis,application/json",
+      class: "hidden",
+      onchange: (event) => {
+        const [file] = event.target.files;
+        if (file) onOpenFile(file);
+        event.target.value = ""; // permite reabrir el mismo archivo
+      },
+    });
+
     this.statusElement = el("span", { class: "text-xs text-slate-400" }, "");
-    this.toolbarContainer.append(this.statusElement);
+
+    this.toolbarContainer.append(
+      toolbarButton("Nuevo análisis", onNew),
+      toolbarButton("Abrir análisis", () => fileInput.click()),
+      toolbarButton("Guardar archivo", onSaveFile),
+      fileInput,
+      this.statusElement,
+    );
   }
 
   setSaveStatus(state) {

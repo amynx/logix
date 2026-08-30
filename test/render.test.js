@@ -8,7 +8,8 @@ import { JSDOM } from "jsdom";
 import { AnalysisView } from "../src/views/analysisView.js";
 import { TableView } from "../src/views/tableView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
-import { createAnalysis } from "../src/models/analysisModel.js";
+import { createAnalysis, addRow } from "../src/models/analysisModel.js";
+import { serializeAnalysis } from "../src/services/file/fileService.js";
 
 // Storage falso en memoria para inyectar en el controlador sin IndexedDB.
 function fakeStorage(initial = []) {
@@ -38,6 +39,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
+  globalThis.FileReader = dom.window.FileReader;
 
   const doc = dom.window.document;
   const controller = new AnalysisController({
@@ -176,4 +178,47 @@ test("auto-saves the analysis after an edit", async () => {
   const lastSaved = storage.saved.at(-1);
   assert.equal(lastSaved.id, controller.analysis.id);
   assert.equal(lastSaved.title, "Calcular promedio");
+});
+
+test("toolbar exposes new, open and save actions", async () => {
+  const { doc } = await mountApp();
+  const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
+  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo"]);
+});
+
+test("creating a new analysis resets to a single empty row", async () => {
+  const { doc, controller } = await mountApp();
+  const previousId = controller.analysis.id;
+  controller.addRow(); // el actual tiene 2 filas
+
+  controller.newAnalysis();
+
+  assert.notEqual(controller.analysis.id, previousId);
+  assert.equal(controller.analysis.rows.length, 1);
+  assert.equal(doc.querySelectorAll("tbody tr").length, 1);
+});
+
+test("opening a valid file loads it into the editor", async () => {
+  const { dom, doc, controller } = await mountApp();
+  const source = createAnalysis({ title: "Importado" });
+  addRow(source);
+  addRow(source);
+  const file = new dom.window.File([serializeAnalysis(source)], "demo.analisis", { type: "application/json" });
+
+  await controller.openFile(file);
+
+  assert.equal(controller.analysis.id, source.id);
+  assert.equal(doc.getElementById("analysis-title").value, "Importado");
+  assert.equal(doc.querySelectorAll("tbody tr").length, 2);
+});
+
+test("opening an invalid file shows a friendly message and keeps the analysis", async () => {
+  const { dom, doc, controller } = await mountApp();
+  const currentId = controller.analysis.id;
+  const file = new dom.window.File(["{ not json"], "broken.analisis", { type: "application/json" });
+
+  await controller.openFile(file);
+
+  assert.equal(controller.analysis.id, currentId, "analysis unchanged after failed import");
+  assert.match(doc.body.textContent, /formato de análisis válido/);
 });
