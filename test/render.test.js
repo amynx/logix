@@ -40,6 +40,8 @@ async function mountApp({ storage = fakeStorage() } = {}) {
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
   globalThis.FileReader = dom.window.FileReader;
+  globalThis.URL.createObjectURL = () => "blob:mock"; // jsdom no lo implementa
+  globalThis.URL.revokeObjectURL = () => {};
 
   const doc = dom.window.document;
   const controller = new AnalysisController({
@@ -221,4 +223,22 @@ test("opening an invalid file shows a friendly message and keeps the analysis", 
 
   assert.equal(controller.analysis.id, currentId, "analysis unchanged after failed import");
   assert.match(doc.body.textContent, /formato de análisis válido/);
+});
+
+test("saving warns about incomplete analysis and can be cancelled", async () => {
+  const { doc, controller } = await mountApp(); // título vacío => hay advertencia
+  const saving = controller.saveToFile();
+
+  assert.match(doc.body.textContent, /puntos por completar/);
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "Revisar").click();
+  await saving;
+});
+
+test("saving a complete analysis exports without warnings", async () => {
+  const { doc, controller } = await mountApp();
+  controller.analysis.title = "Análisis listo"; // sin filas problemáticas
+
+  await controller.saveToFile();
+
+  assert.doesNotMatch(doc.body.textContent, /puntos por completar/);
 });

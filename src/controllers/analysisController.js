@@ -5,6 +5,7 @@
 import { createAnalysis, addRow, removeRow, moveRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
+import { collectAnalysisWarnings } from "../validation/analysisValidation.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
@@ -108,7 +109,18 @@ export class AnalysisController {
     this.loadAnalysis(analysis);
   }
 
-  saveToFile() {
+  async saveToFile() {
+    const warnings = collectAnalysisWarnings(this.analysis);
+    if (warnings.length > 0) {
+      const proceed = await confirmDialog({
+        title: "Revisa el análisis antes de guardar",
+        message: "Hay algunos puntos por completar. Puedes guardarlo igualmente:",
+        details: warnings,
+        confirmLabel: "Guardar de todos modos",
+        cancelLabel: "Revisar",
+      });
+      if (!proceed) return;
+    }
     exportAnalysis(this.analysis);
   }
 

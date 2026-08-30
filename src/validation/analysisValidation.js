@@ -20,3 +20,31 @@ export function validateImportedAnalysis(data) {
   }
   return true;
 }
+
+// Advertencias no bloqueantes para orientar al estudiante (sección 22).
+// No impiden editar ni guardar: solo señalan puntos por completar. La validación
+// es pura y no depende de la interfaz.
+export function collectAnalysisWarnings(analysis) {
+  const warnings = [];
+  if (!analysis.title.trim()) {
+    warnings.push("El análisis no tiene título.");
+  }
+
+  analysis.rows.forEach((row, index) => {
+    const position = index + 1;
+    if (row.operation.trim() && !row.result.name.trim()) {
+      warnings.push(`Fila ${position}: la operación produce un dato sin nombre.`);
+    }
+    if (row.result.name.trim() && !row.result.type) {
+      warnings.push(`Fila ${position}: el dato "${row.result.name}" no tiene tipo.`);
+    }
+    if (row.purpose === "decision" && !row.condition.trim()) {
+      warnings.push(`Fila ${position}: la decisión no tiene una condición (pregunta) definida.`);
+    }
+    if (row.purpose === "response" && !row.subsequentUse.trim()) {
+      warnings.push(`Fila ${position}: falta indicar qué información se proporcionará.`);
+    }
+  });
+
+  return warnings;
+}

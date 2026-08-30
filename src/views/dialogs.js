@@ -44,7 +44,7 @@ export function messageDialog({ title, message, acceptLabel = "Entendido" }) {
   });
 }
 
-export function confirmDialog({ title, message, confirmLabel = "Eliminar", cancelLabel = "Cancelar" }) {
+export function confirmDialog({ title, message, details = [], confirmLabel = "Eliminar", cancelLabel = "Cancelar" }) {
   return new Promise((resolve) => {
     const close = (result) => {
       overlay.remove();
@@ -73,6 +73,13 @@ export function confirmDialog({ title, message, confirmLabel = "Eliminar", cance
         el("div", { class: "w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
           el("h2", { class: "text-base font-semibold text-slate-900" }, title),
           el("p", { class: "mt-2 text-sm text-slate-600" }, message),
+          details.length > 0
+            ? el(
+                "ul",
+                { class: "mt-3 max-h-48 list-disc space-y-1 overflow-y-auto pl-5 text-sm text-slate-600" },
+                details.map((detail) => el("li", {}, detail)),
+              )
+            : null,
           el("div", { class: "mt-5 flex justify-end gap-2" }, [
             el(
               "button",

@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { serializeAnalysis, deserializeAnalysis, fileNameFor } from "../src/services/file/fileService.js";
-import { createAnalysis, addRow, ANALYSIS_VERSION } from "../src/models/analysisModel.js";
+import { collectAnalysisWarnings } from "../src/validation/analysisValidation.js";
+import { createAnalysis, createRow, addRow, ANALYSIS_VERSION } from "../src/models/analysisModel.js";
 
 test("serialize then deserialize preserves the analysis", () => {
   const analysis = createAnalysis({ title: "Calcular promedio" });
@@ -33,4 +34,27 @@ test("deserializing without rows throws a friendly error", () => {
 test("builds a slugged file name from the title", () => {
   assert.equal(fileNameFor({ title: "Cálculo del Promedio" }), "calculo_del_promedio.analisis");
   assert.equal(fileNameFor({ title: "" }), "analisis.analisis");
+});
+
+test("warns about an empty title", () => {
+  const analysis = createAnalysis();
+  addRow(analysis);
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /título/.test(w)));
+});
+
+test("warns when an operation produces an unnamed result", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  addRow(analysis, createRow({ operation: "Sumar las notas" }));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w)));
+});
+
+test("warns when a decision has no condition", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  addRow(analysis, createRow({ purpose: "decision" }));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /condición/.test(w)));
+});
+
+test("no warnings for a titled analysis without problematic rows", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  assert.deepEqual(collectAnalysisWarnings(analysis), []);
 });
