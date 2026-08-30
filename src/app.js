@@ -2,6 +2,7 @@
 // controlador, y arranca la aplicación.
 
 import { AnalysisView } from "./views/analysisView.js";
+import { TableView } from "./views/tableView.js";
 import { AnalysisController } from "./controllers/analysisController.js";
 
 function main() {
@@ -9,7 +10,11 @@ function main() {
     infoContainer: document.getElementById("analysis-info"),
   });
 
-  const controller = new AnalysisController({ analysisView });
+  const tableView = new TableView({
+    container: document.getElementById("table-container"),
+  });
+
+  const controller = new AnalysisController({ analysisView, tableView });
   controller.start();
 }
 
