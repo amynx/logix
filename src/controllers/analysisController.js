@@ -2,7 +2,7 @@
 // actual) y coordina el flujo acción → estado → (persistencia) → vista.
 // La persistencia y el auto-guardado se conectan en pasos posteriores.
 
-import { createAnalysis, addRow, removeRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
+import { createAnalysis, addRow, removeRow, moveRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
 import { confirmDialog } from "../views/confirmDialog.js";
 
 export class AnalysisController {
@@ -31,7 +31,17 @@ export class AnalysisController {
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
       onAddRow: () => this.addRow(),
       onDeleteRow: (rowId) => this.deleteRow(rowId),
+      onMoveRow: (fromRowId, toRowId) => this.moveRow(fromRowId, toRowId),
     });
+  }
+
+  moveRow(fromRowId, toRowId) {
+    const { rows } = this.analysis;
+    const fromIndex = rows.findIndex((row) => row.id === fromRowId);
+    const toIndex = rows.findIndex((row) => row.id === toRowId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    moveRow(this.analysis, fromIndex, toIndex);
+    this.renderTable();
   }
 
   addRow() {

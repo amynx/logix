@@ -85,7 +85,29 @@ export class TableView {
     const isDecision = row.purpose === "decision";
 
     const cells = [
-      el("td", { class: `${TD_CLASS} text-center text-slate-400` }, String(index + 1)),
+      el("td", { class: `${TD_CLASS} text-center` }, [
+        el(
+          "span",
+          {
+            class: "block cursor-move select-none text-slate-300 hover:text-slate-500",
+            title: "Arrastrar para reordenar",
+            draggable: "true",
+            "aria-label": "Reordenar fila",
+            ondragstart: (event) => {
+              this.draggedRowId = row.id;
+              if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", row.id);
+              }
+            },
+            ondragend: () => {
+              this.draggedRowId = null;
+            },
+          },
+          "⠿",
+        ),
+        el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
+      ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field({ problem: value }))),
       cell(inputsEditor(row.inputs, field, structural)),
       cell(textField(row.condition, "¿Qué debe responderse?", (value) => field({ condition: value }))),
@@ -110,7 +132,21 @@ export class TableView {
       ]),
     ];
 
-    return el("tr", { class: "hover:bg-slate-50/60", dataset: { rowId: row.id } }, cells);
+    return el(
+      "tr",
+      {
+        class: "hover:bg-slate-50/60",
+        dataset: { rowId: row.id },
+        ondragover: (event) => event.preventDefault(),
+        ondrop: (event) => {
+          event.preventDefault();
+          const fromId = this.draggedRowId;
+          this.draggedRowId = null;
+          if (fromId && fromId !== row.id) handlers.onMoveRow(fromId, row.id);
+        },
+      },
+      cells,
+    );
   }
 }
 

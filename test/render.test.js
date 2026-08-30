@@ -39,6 +39,23 @@ test("renders analysis info and a seeded row with all columns", () => {
   assert.equal(doc.querySelectorAll("tbody tr td").length, 11, "row has 11 cells");
 });
 
+test("dragging a row onto another reorders the analysis", () => {
+  const { doc, controller } = mountApp();
+  controller.addRow(); // dos filas
+  const [firstId, secondId] = controller.analysis.rows.map((row) => row.id);
+
+  const firstHandle = doc.querySelectorAll("tbody tr")[0].querySelector("span[draggable]");
+  const secondRow = doc.querySelectorAll("tbody tr")[1];
+  firstHandle.dispatchEvent(new globalThis.window.Event("dragstart"));
+  secondRow.dispatchEvent(new globalThis.window.Event("drop"));
+
+  assert.deepEqual(
+    controller.analysis.rows.map((row) => row.id),
+    [secondId, firstId],
+    "the first row moved below the second",
+  );
+});
+
 test("adding a row appends a new editable row", () => {
   const { doc, controller } = mountApp();
   const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila");
