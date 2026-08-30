@@ -8,28 +8,59 @@ import { JSDOM } from "jsdom";
 import { AnalysisView } from "../src/views/analysisView.js";
 import { TableView } from "../src/views/tableView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
+import { createAnalysis } from "../src/models/analysisModel.js";
 
-function mountApp() {
+// Storage falso en memoria para inyectar en el controlador sin IndexedDB.
+function fakeStorage(initial = []) {
+  const items = new Map(initial.map((analysis) => [analysis.id, analysis]));
+  return {
+    saved: [],
+    async getAllAnalyses() {
+      return [...items.values()];
+    },
+    async getAnalysis(id) {
+      return items.get(id);
+    },
+    async saveAnalysis(analysis) {
+      const copy = structuredClone(analysis);
+      items.set(copy.id, copy);
+      this.saved.push(copy);
+    },
+    async deleteAnalysis(id) {
+      items.delete(id);
+    },
+  };
+}
+
+async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="analysis-info"></div><div id="table-container"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="table-container"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
 
+  const doc = dom.window.document;
   const controller = new AnalysisController({
-    analysisView: new AnalysisView({ infoContainer: dom.window.document.getElementById("analysis-info") }),
-    tableView: new TableView({ container: dom.window.document.getElementById("table-container") }),
+    analysisView: new AnalysisView({
+      toolbarContainer: doc.getElementById("toolbar"),
+      infoContainer: doc.getElementById("analysis-info"),
+    }),
+    tableView: new TableView({ container: doc.getElementById("table-container") }),
+    storage,
+    saveDelay: 0,
   });
-  controller.start();
-  return { dom, controller, doc: dom.window.document };
+  await controller.start();
+  return { dom, controller, doc, storage };
 }
 
 function fire(node, type) {
   node.dispatchEvent(new globalThis.window.Event(type));
 }
 
-test("renders analysis info and a seeded row with all columns", () => {
-  const { doc } = mountApp();
+const flush = () => new Promise((resolve) => setTimeout(resolve));
+
+test("renders analysis info and a seeded row with all columns", async () => {
+  const { doc } = await mountApp();
 
   assert.ok(doc.getElementById("analysis-title"), "title input exists");
   assert.ok(doc.getElementById("analysis-description"), "description textarea exists");
@@ -39,8 +70,8 @@ test("renders analysis info and a seeded row with all columns", () => {
   assert.equal(doc.querySelectorAll("tbody tr td").length, 11, "row has 11 cells");
 });
 
-test("dragging a row onto another reorders the analysis", () => {
-  const { doc, controller } = mountApp();
+test("dragging a row onto another reorders the analysis", async () => {
+  const { doc, controller } = await mountApp();
   controller.addRow(); // dos filas
   const [firstId, secondId] = controller.analysis.rows.map((row) => row.id);
 
@@ -56,8 +87,8 @@ test("dragging a row onto another reorders the analysis", () => {
   );
 });
 
-test("adding a row appends a new editable row", () => {
-  const { doc, controller } = mountApp();
+test("adding a row appends a new editable row", async () => {
+  const { doc, controller } = await mountApp();
   const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila");
 
   addButton.click();
@@ -67,7 +98,7 @@ test("adding a row appends a new editable row", () => {
 });
 
 test("deleting a row removes it after confirmation", async () => {
-  const { doc, controller } = mountApp();
+  const { doc, controller } = await mountApp();
   controller.addRow(); // dos filas
   const firstRowId = controller.analysis.rows[0].id;
 
@@ -80,8 +111,8 @@ test("deleting a row removes it after confirmation", async () => {
   assert.notEqual(controller.analysis.rows[0].id, firstRowId, "se eliminó la primera fila");
 });
 
-test("editing the title updates the model without re-rendering", () => {
-  const { doc, controller } = mountApp();
+test("editing the title updates the model without re-rendering", async () => {
+  const { doc, controller } = await mountApp();
   const titleInput = doc.getElementById("analysis-title");
 
   titleInput.value = "Calcular promedio";
@@ -90,8 +121,8 @@ test("editing the title updates the model without re-rendering", () => {
   assert.equal(controller.analysis.title, "Calcular promedio");
 });
 
-test("changing purpose updates the model and re-renders the table", () => {
-  const { doc, controller } = mountApp();
+test("changing purpose updates the model and re-renders the table", async () => {
+  const { doc, controller } = await mountApp();
   const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
 
   purposeSelect.value = "decision";
@@ -101,8 +132,8 @@ test("changing purpose updates the model and re-renders the table", () => {
   assert.equal(doc.querySelectorAll("tbody tr").length, 1, "still one row after re-render");
 });
 
-test("branch fields are disabled unless the purpose is a decision", () => {
-  const { doc, controller } = mountApp();
+test("branch fields are disabled unless the purpose is a decision", async () => {
+  const { doc, controller } = await mountApp();
   const branchSelectsBefore = doc.querySelectorAll("tbody tr td")[8].querySelectorAll("select, textarea");
   assert.ok([...branchSelectsBefore].every((node) => node.disabled), "branches disabled by default");
 
@@ -114,8 +145,8 @@ test("branch fields are disabled unless the purpose is a decision", () => {
   assert.ok([...branchSelectsAfter].every((node) => !node.disabled), "branches enabled for decision");
 });
 
-test("adding an input datum grows the row's inputs and re-renders", () => {
-  const { doc, controller } = mountApp();
+test("adding an input datum grows the row's inputs and re-renders", async () => {
+  const { doc, controller } = await mountApp();
   const inputsCell = doc.querySelectorAll("tbody tr td")[2];
   const addButton = [...inputsCell.querySelectorAll("button")].find((b) => b.textContent === "+ dato");
 
@@ -123,4 +154,26 @@ test("adding an input datum grows the row's inputs and re-renders", () => {
 
   assert.equal(controller.analysis.rows[0].inputs.length, 1);
   assert.equal(doc.querySelectorAll("tbody tr td")[2].querySelectorAll("input").length, 1);
+});
+
+test("recovers the most recently updated analysis on start", async () => {
+  const older = createAnalysis({ title: "Viejo", updatedAt: "2026-01-01T00:00:00.000Z" });
+  const newer = createAnalysis({ title: "Reciente", updatedAt: "2026-06-01T00:00:00.000Z" });
+  const { controller } = await mountApp({ storage: fakeStorage([older, newer]) });
+
+  assert.equal(controller.analysis.id, newer.id);
+  assert.equal(controller.analysis.title, "Reciente");
+});
+
+test("auto-saves the analysis after an edit", async () => {
+  const { doc, controller, storage } = await mountApp();
+  const titleInput = doc.getElementById("analysis-title");
+
+  titleInput.value = "Calcular promedio";
+  fire(titleInput, "input");
+  await flush();
+
+  const lastSaved = storage.saved.at(-1);
+  assert.equal(lastSaved.id, controller.analysis.id);
+  assert.equal(lastSaved.title, "Calcular promedio");
 });

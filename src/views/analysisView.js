@@ -11,9 +11,30 @@ const INPUT_CLASS =
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
+const SAVE_STATUS = {
+  saving: { text: "Guardando…", class: "text-slate-500" },
+  saved: { text: "✓ Guardado automáticamente", class: "text-emerald-600" },
+  error: { text: "No se pudo guardar", class: "text-red-600" },
+};
+
 export class AnalysisView {
-  constructor({ infoContainer }) {
+  constructor({ toolbarContainer, infoContainer }) {
+    this.toolbarContainer = toolbarContainer;
     this.infoContainer = infoContainer;
+    this.statusElement = null;
+  }
+
+  renderToolbar() {
+    clear(this.toolbarContainer);
+    this.statusElement = el("span", { class: "text-xs text-slate-400" }, "");
+    this.toolbarContainer.append(this.statusElement);
+  }
+
+  setSaveStatus(state) {
+    if (!this.statusElement) return;
+    const status = SAVE_STATUS[state] ?? { text: "", class: "text-slate-400" };
+    this.statusElement.textContent = status.text;
+    this.statusElement.className = `text-xs ${status.class}`;
   }
 
   renderInfo(analysis, { onTitleChange, onDescriptionChange }) {
