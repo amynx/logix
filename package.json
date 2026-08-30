@@ -8,10 +8,12 @@
     "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/app.css --watch",
     "build:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/app.css --minify",
     "serve": "npx --yes serve .",
-    "dev": "npm run build:css && npm run serve"
+    "dev": "npm run build:css && npm run serve",
+    "test": "node --test"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.0.0",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4.0.0"
   }
 }
