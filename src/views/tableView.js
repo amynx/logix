@@ -45,6 +45,19 @@ export class TableView {
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
+      el("div", { class: "mt-3" }, [
+        el(
+          "button",
+          {
+            type: "button",
+            class:
+              "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium " +
+              "text-slate-700 hover:bg-slate-50",
+            onclick: () => handlers.onAddRow(),
+          },
+          "+ Agregar fila",
+        ),
+      ]),
     );
   }
 
@@ -58,6 +71,7 @@ export class TableView {
         ]),
       );
     }
+    cells.push(el("th", { class: `${TH_CLASS} w-12`, scope: "col" }, el("span", { class: "sr-only" }, "Acciones")));
     return el("thead", { class: "bg-slate-50" }, [el("tr", {}, cells)]);
   }
 
@@ -80,6 +94,19 @@ export class TableView {
       cell(textField(row.subsequentUse, "Cómo se usa el dato", (value) => field({ subsequentUse: value }))),
       cell(branchEditor(row.ifTrue, "ifTrue", field)),
       cell(branchEditor(row.ifFalse, "ifFalse", field)),
+      el("td", { class: `${TD_CLASS} text-center` }, [
+        el(
+          "button",
+          {
+            type: "button",
+            class: "rounded px-2 py-1 text-slate-400 hover:bg-red-50 hover:text-red-600",
+            title: "Eliminar fila",
+            "aria-label": "Eliminar fila",
+            onclick: () => handlers.onDeleteRow(row.id),
+          },
+          "🗑",
+        ),
+      ]),
     ];
 
     return el("tr", { class: "hover:bg-slate-50/60", dataset: { rowId: row.id } }, cells);

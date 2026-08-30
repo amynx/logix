@@ -2,7 +2,8 @@
 // actual) y coordina el flujo acción → estado → (persistencia) → vista.
 // La persistencia y el auto-guardado se conectan en pasos posteriores.
 
-import { createAnalysis, addRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
+import { createAnalysis, addRow, removeRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
+import { confirmDialog } from "../views/confirmDialog.js";
 
 export class AnalysisController {
   constructor({ analysisView, tableView }) {
@@ -28,7 +29,24 @@ export class AnalysisController {
     this.tableView.render(this.analysis, {
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
+      onAddRow: () => this.addRow(),
+      onDeleteRow: (rowId) => this.deleteRow(rowId),
     });
+  }
+
+  addRow() {
+    addRow(this.analysis);
+    this.renderTable();
+  }
+
+  async deleteRow(rowId) {
+    const confirmed = await confirmDialog({
+      title: "Eliminar fila",
+      message: "Se eliminará esta fila del análisis. Esta acción no se puede deshacer.",
+    });
+    if (!confirmed) return;
+    removeRow(this.analysis, rowId);
+    this.renderTable();
   }
 
   updateInfo(changes) {

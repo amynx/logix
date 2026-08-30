@@ -34,9 +34,33 @@ test("renders analysis info and a seeded row with all columns", () => {
   assert.ok(doc.getElementById("analysis-title"), "title input exists");
   assert.ok(doc.getElementById("analysis-description"), "description textarea exists");
 
-  assert.equal(doc.querySelectorAll("thead th").length, 10, "10 header cells (# + 9 columns)");
+  assert.equal(doc.querySelectorAll("thead th").length, 11, "11 header cells (# + 9 columns + actions)");
   assert.equal(doc.querySelectorAll("tbody tr").length, 1, "one seeded row");
-  assert.equal(doc.querySelectorAll("tbody tr td").length, 10, "row has 10 cells");
+  assert.equal(doc.querySelectorAll("tbody tr td").length, 11, "row has 11 cells");
+});
+
+test("adding a row appends a new editable row", () => {
+  const { doc, controller } = mountApp();
+  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila");
+
+  addButton.click();
+
+  assert.equal(controller.analysis.rows.length, 2);
+  assert.equal(doc.querySelectorAll("tbody tr").length, 2);
+});
+
+test("deleting a row removes it after confirmation", async () => {
+  const { doc, controller } = mountApp();
+  controller.addRow(); // dos filas
+  const firstRowId = controller.analysis.rows[0].id;
+
+  doc.querySelector("tbody tr td:last-child button").click(); // abre el diálogo
+  const confirmButton = [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar");
+  confirmButton.click();
+  await new Promise((resolve) => setTimeout(resolve)); // esperar la resolución de la promesa
+
+  assert.equal(controller.analysis.rows.length, 1);
+  assert.notEqual(controller.analysis.rows[0].id, firstRowId, "se eliminó la primera fila");
 });
 
 test("editing the title updates the model without re-rendering", () => {
