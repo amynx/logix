@@ -84,6 +84,19 @@ test("changing purpose updates the model and re-renders the table", () => {
   assert.equal(doc.querySelectorAll("tbody tr").length, 1, "still one row after re-render");
 });
 
+test("branch fields are disabled unless the purpose is a decision", () => {
+  const { doc, controller } = mountApp();
+  const branchSelectsBefore = doc.querySelectorAll("tbody tr td")[8].querySelectorAll("select, textarea");
+  assert.ok([...branchSelectsBefore].every((node) => node.disabled), "branches disabled by default");
+
+  const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  purposeSelect.value = "decision";
+  fire(purposeSelect, "change");
+
+  const branchSelectsAfter = doc.querySelectorAll("tbody tr td")[8].querySelectorAll("select, textarea");
+  assert.ok([...branchSelectsAfter].every((node) => !node.disabled), "branches enabled for decision");
+});
+
 test("adding an input datum grows the row's inputs and re-renders", () => {
   const { doc, controller } = mountApp();
   const inputsCell = doc.querySelectorAll("tbody tr td")[2];

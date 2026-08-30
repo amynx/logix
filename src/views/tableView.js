@@ -82,6 +82,7 @@ export class TableView {
   #buildRow(row, index, handlers) {
     const field = (changes) => handlers.onFieldChange(row.id, changes);
     const structural = (changes) => handlers.onStructuralChange(row.id, changes);
+    const isDecision = row.purpose === "decision";
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center text-slate-400` }, String(index + 1)),
@@ -91,9 +92,9 @@ export class TableView {
       cell(textField(row.operation, "Operación a realizar", (value) => field({ operation: value }))),
       cell(resultEditor(row.result, field)),
       cell(purposeSelect(row.purpose, (value) => structural({ purpose: value }))),
-      cell(textField(row.subsequentUse, "Cómo se usa el dato", (value) => field({ subsequentUse: value }))),
-      cell(branchEditor(row.ifTrue, "ifTrue", field)),
-      cell(branchEditor(row.ifFalse, "ifFalse", field)),
+      cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field({ subsequentUse: value }))),
+      cell(branchEditor(row.ifTrue, "ifTrue", field, !isDecision)),
+      cell(branchEditor(row.ifFalse, "ifFalse", field, !isDecision)),
       el("td", { class: `${TD_CLASS} text-center` }, [
         el(
           "button",
@@ -119,17 +120,19 @@ function cell(content) {
   return el("td", { class: TD_CLASS }, [content]);
 }
 
-function textField(value, placeholder, onInput) {
-  return el("textarea", {
+function textField(value, placeholder, onInput, { disabled = false } = {}) {
+  const textarea = el("textarea", {
     rows: 2,
     value: value ?? "",
     placeholder,
     class: `${CONTROL_CLASS} resize-y`,
     oninput: (event) => onInput(event.target.value),
   });
+  textarea.disabled = disabled;
+  return textarea;
 }
 
-function selectField(options, value, onChange, { placeholder } = {}) {
+function selectField(options, value, onChange, { placeholder, disabled = false } = {}) {
   const optionNodes = placeholder != null ? [el("option", { value: "" }, placeholder)] : [];
   for (const option of options) {
     optionNodes.push(el("option", { value: option.value }, option.label));
@@ -138,8 +141,17 @@ function selectField(options, value, onChange, { placeholder } = {}) {
     class: CONTROL_CLASS,
     onchange: (event) => onChange(event.target.value),
   }, optionNodes);
+  select.disabled = disabled;
   select.value = value ?? "";
   return select;
+}
+
+// El texto guía de "Uso posterior" cambia según el propósito elegido.
+function subsequentUsePlaceholder(purpose) {
+  if (purpose === "operation") return "Cómo alimenta la siguiente operación";
+  if (purpose === "response") return "Qué información se mostrará";
+  if (purpose === "decision") return "Cómo se integra el dato";
+  return "Cómo se usa el dato";
 }
 
 // Dato resultante: nombre + tipo.
@@ -164,13 +176,18 @@ function purposeSelect(purpose, onChange) {
 }
 
 // Camino de una decisión: cómo continúa (respuesta/operación/otra decisión) y su detalle.
-function branchEditor(branch, key, field) {
-  return el("div", { class: "space-y-1" }, [
+// Solo tiene sentido cuando el propósito de la fila es "Decisión"; en otro caso se
+// muestra deshabilitado para orientar al estudiante.
+function branchEditor(branch, key, field, disabled) {
+  const wrapper = el("div", { class: "space-y-1" }, [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field({ [key]: { ...branch, type: value } }), {
       placeholder: "Continúa con…",
+      disabled,
     }),
-    textField(branch.value, "Detalle del camino", (value) => field({ [key]: { ...branch, value } })),
+    textField(branch.value, "Detalle del camino", (value) => field({ [key]: { ...branch, value } }), { disabled }),
   ]);
+  if (disabled) wrapper.classList.add("opacity-50");
+  return wrapper;
 }
 
 // Lista de datos de entrada: cada uno con nombre y tipo, con añadir y quitar.
