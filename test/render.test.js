@@ -157,17 +157,28 @@ test("changing purpose updates the model and re-renders the table", async () => 
   assert.equal(doc.querySelectorAll("tbody tr").length, 1, "still one row after re-render");
 });
 
-test("branch fields are disabled unless the purpose is a decision", async () => {
-  const { doc, controller } = await mountApp();
-  const branchSelectsBefore = doc.querySelectorAll("tbody tr td")[8].querySelectorAll("select, textarea");
-  assert.ok([...branchSelectsBefore].every((node) => node.disabled), "branches disabled by default");
+test("condition and branches show as 'no aplica' outside of decisions", async () => {
+  const { doc } = await mountApp();
+  const conditionCell = () => doc.querySelectorAll("tbody tr td")[3];
+  const branchCell = () => doc.querySelectorAll("tbody tr td")[8];
+  const purposeSelect = () => doc.querySelectorAll("tbody tr td")[6].querySelector("select");
 
-  const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
-  purposeSelect.value = "decision";
-  fire(purposeSelect, "change");
+  // Sin propósito aún: la condición sigue disponible; las ramas no aplican.
+  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
+  assert.equal(branchCell().querySelectorAll("select, textarea").length, 0);
+  assert.match(branchCell().textContent, /—/);
 
-  const branchSelectsAfter = doc.querySelectorAll("tbody tr td")[8].querySelectorAll("select, textarea");
-  assert.ok([...branchSelectsAfter].every((node) => !node.disabled), "branches enabled for decision");
+  // Propósito no-decisión: la condición pasa a "no aplica".
+  purposeSelect().value = "operation";
+  fire(purposeSelect(), "change");
+  assert.equal(conditionCell().querySelectorAll("textarea").length, 0);
+  assert.match(conditionCell().textContent, /—/);
+
+  // Decisión: condición y ramas disponibles.
+  purposeSelect().value = "decision";
+  fire(purposeSelect(), "change");
+  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
+  assert.ok(branchCell().querySelectorAll("select, textarea").length > 0);
 });
 
 test("adding an input datum grows the row's inputs and re-renders", async () => {

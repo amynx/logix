@@ -12,10 +12,12 @@ import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 
+// Estilo discreto: sin borde ni fondo hasta pasar el cursor o enfocar, para que
+// las celdas vacías no hagan ruido. La caja editable aparece al interactuar.
 const CONTROL_CLASS =
-  "w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
-  "outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300 " +
-  "disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "w-full rounded border border-transparent bg-transparent px-2 py-1 text-sm text-slate-900 " +
+  "outline-none hover:border-slate-200 focus:border-slate-400 focus:bg-white focus:ring-1 focus:ring-slate-300 " +
+  "disabled:cursor-not-allowed disabled:text-slate-300";
 
 const TH_CLASS = "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left align-top";
 const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
@@ -108,6 +110,10 @@ export class TableView {
     const field = (updater) => handlers.onFieldChange(row.id, updater);
     const structural = (updater) => handlers.onStructuralChange(row.id, updater);
     const isDecision = row.purpose === "decision";
+    // La condición es una pregunta de decisión; solo se oculta ("no aplica")
+    // cuando la fila ya se declaró de otro propósito. Sin propósito aún, se deja
+    // editable para no bloquear al estudiante. Las ramas solo aplican a decisiones.
+    const conditionApplies = !row.purpose || isDecision;
     const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
     const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
     // Datos que esta fila puede reutilizar: los del catálogo que no consume ya
@@ -149,13 +155,17 @@ export class TableView {
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
-      cell(textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))),
+      cell(
+        conditionApplies
+          ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
+          : notApplicable(),
+      ),
       cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
-      cell(branchEditor(row.ifTrue, "ifTrue", field, !isDecision)),
-      cell(branchEditor(row.ifFalse, "ifFalse", field, !isDecision)),
+      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", field) : notApplicable()),
+      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", field) : notApplicable()),
       el("td", { class: `${TD_CLASS} text-center` }, [
         el(
           "button",
@@ -196,19 +206,17 @@ function cell(content) {
   return el("td", { class: TD_CLASS }, [content]);
 }
 
-function textField(value, placeholder, onInput, { disabled = false } = {}) {
-  const textarea = el("textarea", {
+function textField(value, placeholder, onInput) {
+  return el("textarea", {
     rows: 2,
     value: value ?? "",
     placeholder,
     class: `${CONTROL_CLASS} resize-y`,
     oninput: (event) => onInput(event.target.value),
   });
-  textarea.disabled = disabled;
-  return textarea;
 }
 
-function selectField(options, value, onChange, { placeholder, disabled = false } = {}) {
+function selectField(options, value, onChange, { placeholder } = {}) {
   const optionNodes = placeholder != null ? [el("option", { value: "" }, placeholder)] : [];
   for (const option of options) {
     optionNodes.push(el("option", { value: option.value }, option.label));
@@ -217,7 +225,6 @@ function selectField(options, value, onChange, { placeholder, disabled = false }
     class: CONTROL_CLASS,
     onchange: (event) => onChange(event.target.value),
   }, optionNodes);
-  select.disabled = disabled;
   select.value = value ?? "";
   return select;
 }
@@ -408,19 +415,21 @@ function purposeSelect(purpose, onChange) {
   return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
 }
 
-// Camino de una decisión: cómo continúa (respuesta/operación/otra decisión) y su detalle.
-// Solo tiene sentido cuando el propósito de la fila es "Decisión"; en otro caso se
-// muestra deshabilitado para orientar al estudiante.
-function branchEditor(branch, key, field, disabled) {
-  const wrapper = el("div", { class: "space-y-1" }, [
+// Camino de una decisión: cómo continúa (respuesta/operación/otra decisión) y su
+// detalle. Solo se muestra en filas cuyo propósito es "Decisión".
+function branchEditor(branch, key, field) {
+  return el("div", { class: "space-y-1" }, [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
-      disabled,
     }),
-    textField(branch.value, "Detalle del camino", (value) => field((row) => ({ [key]: { ...row[key], value } })), { disabled }),
+    textField(branch.value, "Detalle del camino", (value) => field((row) => ({ [key]: { ...row[key], value } }))),
   ]);
-  if (disabled) wrapper.classList.add("opacity-50");
-  return wrapper;
+}
+
+// Marcador discreto para una celda que no aplica en esta fila (p. ej. la condición
+// o las ramas cuando la fila no es una decisión).
+function notApplicable() {
+  return el("span", { class: "block px-2 py-1 text-xs text-slate-300", title: "No aplica en esta fila" }, "—");
 }
 
 // Lista de datos de entrada de la fila. Un dato que otra fila produce se muestra
