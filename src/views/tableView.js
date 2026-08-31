@@ -85,7 +85,7 @@ export class TableView {
     const cells = [el("th", { class: `${TH_CLASS} w-10 text-slate-400`, scope: "col" }, "#")];
     for (const column of COLUMNS) {
       cells.push(
-        el("th", { class: `${TH_CLASS} min-w-[13rem]`, scope: "col" }, [
+        el("th", { class: `${TH_CLASS} min-w-[9rem]`, scope: "col" }, [
           el("div", { class: "font-semibold text-slate-700" }, column.title),
           el("div", { class: "mt-0.5 text-xs font-normal text-slate-400" }, column.help),
         ]),
@@ -174,7 +174,8 @@ export class TableView {
     return el(
       "tr",
       {
-        class: "hover:bg-slate-50/60",
+        // Color alternado (zebra) para diferenciar visualmente cada fila.
+        class: `${index % 2 === 1 ? "bg-slate-50" : "bg-white"} hover:bg-sky-50/60`,
         dataset: { rowId: row.id },
         ondragover: (event) => event.preventDefault(),
         ondrop: (event) => {
