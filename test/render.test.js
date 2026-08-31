@@ -9,6 +9,7 @@ import { AnalysisView } from "../src/views/analysisView.js";
 import { StudentsView } from "../src/views/studentsView.js";
 import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
+import { CardsView } from "../src/views/cardsView.js";
 import { ChainView } from "../src/views/chainView.js";
 import { PdfView } from "../src/views/pdfView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
@@ -57,6 +58,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
+    cardsView: new CardsView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),
     pdfView: new PdfView({ container: doc.getElementById("print-area") }),
     storage,
@@ -128,9 +130,54 @@ test("dragging a row onto another reorders the analysis", async () => {
   );
 });
 
+test("switching to the cards view shows the same activities and preserves order", async () => {
+  const { doc, controller } = await mountApp();
+  controller.addRow();
+  const ids = controller.analysis.rows.map((r) => r.id);
+
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+  assert.equal(controller.viewMode, "cards");
+  assert.equal(doc.querySelectorAll("tbody tr").length, 0, "ya no hay tabla");
+  const cards = doc.querySelectorAll("#table-container [data-row-id]");
+  assert.equal(cards.length, 2, "una card por actividad");
+  assert.deepEqual([...cards].map((c) => c.dataset.rowId), ids, "mismo orden");
+
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tabla").click();
+  assert.equal(controller.viewMode, "table");
+  assert.deepEqual(controller.analysis.rows.map((r) => r.id), ids, "los datos y el orden no cambian");
+});
+
+test("editing in the cards view updates the same analysis", async () => {
+  const { doc, controller } = await mountApp();
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+
+  const resultName = doc.querySelector('[data-focus-key^="res-name:"]');
+  resultName.value = "promedio";
+  fire(resultName, "input");
+
+  const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
+  assert.equal(result.name, "promedio");
+
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tabla").click();
+  assert.equal(doc.querySelectorAll("tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
+});
+
+test("cards can be reordered by drag and drop", async () => {
+  const { doc, controller } = await mountApp();
+  controller.addRow();
+  const [firstId, secondId] = controller.analysis.rows.map((r) => r.id);
+
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+  const cards = doc.querySelectorAll("#table-container [data-row-id]");
+  cards[0].querySelector("span[draggable]").dispatchEvent(new globalThis.window.Event("dragstart"));
+  cards[1].dispatchEvent(new globalThis.window.Event("drop"));
+
+  assert.deepEqual(controller.analysis.rows.map((r) => r.id), [secondId, firstId], "el orden cambia igual que en la tabla");
+});
+
 test("adding a row appends a new editable row", async () => {
   const { doc, controller } = await mountApp();
-  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila");
+  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad");
 
   addButton.click();
 
@@ -236,7 +283,7 @@ test("a produced result is selectable in another row's input column", async () =
   const buenasId = controller.analysis.rows[0].resultId;
 
   // La fila 1 puede referenciarlo desde su columna "Datos de entrada".
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
   const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
   const picker = [...inputsCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === buenasId),
@@ -273,7 +320,7 @@ test("removing a declared input from its section deletes it and prunes reference
 
 test("naming a result refreshes other data pickers and keeps focus", async () => {
   const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
 
   const resultName = () => doc.querySelectorAll("tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
   resultName().focus();
@@ -312,7 +359,7 @@ test("deleting a row warns when its datum is used in another operation", async (
   const promedioId = controller.analysis.rows[0].resultId;
 
   // La fila 1 lo referencia en su operación.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
   const opCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[4];
   const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === promedioId),
@@ -525,7 +572,7 @@ test("a decision branch response can reference existing data", async () => {
   const promedioId = controller.analysis.rows[0].resultId;
 
   // Fila 1: decisión con rama "Si se cumple" de tipo Respuesta que referencia el dato.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
   const row1 = () => doc.querySelectorAll("tbody tr")[1];
   row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
   fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");

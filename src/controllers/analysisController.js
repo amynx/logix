@@ -34,11 +34,13 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, studentsView, inputsView, tableView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
     this.studentsView = studentsView;
     this.inputsView = inputsView;
     this.tableView = tableView;
+    this.cardsView = cardsView;
+    this.viewMode = "table"; // "table" | "cards"
     this.chainView = chainView;
     this.pdfView = pdfView;
     this.storage = storage;
@@ -139,18 +141,30 @@ export class AnalysisController {
     });
   }
 
-  renderTable() {
-    this.tableView.render(this.analysis, this.#tableHandlers());
+  // Vista activa de las actividades (tabla o tarjetas): ambas comparten handlers.
+  #activityView() {
+    return this.viewMode === "cards" ? this.cardsView : this.tableView;
   }
 
-  // Re-render de la tabla que conserva el foco y el cursor: para cambios de datos
-  // (crear/renombrar) que deben refrescar los selectores de otras celdas al vuelo.
+  setViewMode(mode) {
+    if (mode === this.viewMode) return;
+    this.viewMode = mode;
+    this.renderTable();
+  }
+
+  renderTable() {
+    this.#activityView().render(this.analysis, this.#tableHandlers(), this.viewMode);
+  }
+
+  // Re-render que conserva el foco y el cursor: para cambios de datos (crear/
+  // renombrar) que deben refrescar los selectores de otras celdas al vuelo.
   #renderTableKeepingFocus() {
-    this.tableView.renderKeepingFocus(this.analysis, this.#tableHandlers());
+    this.#activityView().renderKeepingFocus(this.analysis, this.#tableHandlers(), this.viewMode);
   }
 
   #tableHandlers() {
     return {
+      onSetViewMode: (mode) => this.setViewMode(mode),
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
       onAddRow: () => this.addRow(),
