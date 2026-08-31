@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* Área de impresión: oculta en pantalla; en la impresión (Guardar como PDF) se
+   muestra solo ella cuando el body tiene la clase "printing". */
+#print-area {
+  display: none;
+}
+
+@media print {
+  body.printing > *:not(#print-area) {
+    display: none !important;
+  }
+  body.printing #print-area {
+    display: block !important;
+  }
+}

@@ -22,7 +22,8 @@ import {
   updateStudent,
   removeStudent,
 } from "../models/analysisModel.js";
-import { confirmDialog, messageDialog } from "../views/dialogs.js";
+import { confirmDialog, messageDialog, selectSectionsDialog } from "../views/dialogs.js";
+import { PDF_SECTIONS } from "../views/pdfView.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
 import { collectAnalysisWarnings, migrateAnalysis } from "../validation/analysisValidation.js";
 import { buildChain } from "../models/chainModel.js";
@@ -33,12 +34,13 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, studentsView, inputsView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, tableView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
     this.studentsView = studentsView;
     this.inputsView = inputsView;
     this.tableView = tableView;
     this.chainView = chainView;
+    this.pdfView = pdfView;
     this.storage = storage;
     this.saveDelay = saveDelay;
     this.analysis = null;
@@ -49,6 +51,7 @@ export class AnalysisController {
       onNew: () => this.newAnalysis(),
       onOpenFile: (file) => this.openFile(file),
       onSaveFile: () => this.saveToFile(),
+      onExportPdf: () => this.exportPdf(),
     });
     this.analysis = await this.#recoverOrCreate();
     this.render();
@@ -308,6 +311,13 @@ export class AnalysisController {
       if (!proceed) return;
     }
     exportAnalysis(this.analysis);
+  }
+
+  // Exporta a PDF: el usuario elige las secciones; la fecha/hora es automática.
+  async exportPdf() {
+    const sections = await selectSectionsDialog(PDF_SECTIONS, { title: "Exportar a PDF" });
+    if (!sections) return;
+    this.pdfView.print(this.analysis, { sections, exportedAt: new Date().toISOString() });
   }
 
   async openFile(file) {

@@ -6,6 +6,7 @@ import { StudentsView } from "./views/studentsView.js";
 import { InputsView } from "./views/inputsView.js";
 import { TableView } from "./views/tableView.js";
 import { ChainView } from "./views/chainView.js";
+import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
 
@@ -31,12 +32,17 @@ function main() {
     container: document.getElementById("chain-container"),
   });
 
+  const pdfView = new PdfView({
+    container: document.getElementById("print-area"),
+  });
+
   const controller = new AnalysisController({
     analysisView,
     studentsView,
     inputsView,
     tableView,
     chainView,
+    pdfView,
     storage: new StorageService(),
   });
 

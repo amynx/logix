@@ -10,6 +10,7 @@ import { StudentsView } from "../src/views/studentsView.js";
 import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { ChainView } from "../src/views/chainView.js";
+import { PdfView } from "../src/views/pdfView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
 import { createAnalysis, addRow, findData } from "../src/models/analysisModel.js";
 import { serializeAnalysis } from "../src/services/file/fileService.js";
@@ -45,6 +46,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
   globalThis.FileReader = dom.window.FileReader;
   globalThis.URL.createObjectURL = () => "blob:mock"; // jsdom no lo implementa
   globalThis.URL.revokeObjectURL = () => {};
+  dom.window.print = () => {}; // jsdom no implementa la impresión
 
   const doc = dom.window.document;
   const controller = new AnalysisController({
@@ -56,6 +58,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),
+    pdfView: new PdfView({ container: doc.getElementById("print-area") }),
     storage,
     saveDelay: 0,
   });
@@ -588,10 +591,34 @@ test("auto-saves the analysis after an edit", async () => {
   assert.equal(lastSaved.title, "Calcular promedio");
 });
 
-test("toolbar exposes new, open and save actions", async () => {
+test("exporting to PDF includes only the selected sections plus the timestamp", async () => {
+  const { doc, controller } = await mountApp();
+  controller.analysis.title = "Mi análisis";
+  controller.addStudent();
+  controller.analysis.students[0].fullName = "Ana Pérez";
+
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Exportar PDF").click();
+
+  // Desmarca todo excepto "Información de los estudiantes".
+  const checks = [...doc.querySelectorAll('input[type="checkbox"]')];
+  assert.ok(checks.every((c) => c.checked), "todas marcadas por defecto");
+  checks.forEach((c) => {
+    if (c.dataset.key !== "students") c.checked = false;
+  });
+  [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Generar PDF").click();
+  await flush();
+
+  const printText = doc.getElementById("print-area").textContent;
+  assert.match(printText, /Información de los estudiantes/);
+  assert.match(printText, /Ana Pérez/);
+  assert.match(printText, /Exportado:/, "muestra la fecha y hora automática");
+  assert.doesNotMatch(printText, /Tabla de datos/, "no incluye lo no seleccionado");
+});
+
+test("toolbar exposes new, open, save and export actions", async () => {
   const { doc } = await mountApp();
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
-  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo"]);
+  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF"]);
 });
 
 test("creating a new analysis resets to a single empty row", async () => {
