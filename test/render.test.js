@@ -221,6 +221,28 @@ test("editing result name then type keeps both (no stale overwrite)", async () =
   assert.equal(result.type, "numeric");
 });
 
+test("a produced result is selectable in another row's input column", async () => {
+  const { doc, controller } = await mountApp();
+
+  // La fila 0 produce "buenas".
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "buenas";
+  fire(resultName, "input");
+  const buenasId = controller.analysis.rows[0].resultId;
+
+  // La fila 1 puede referenciarlo desde su columna "Datos de entrada".
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
+  const picker = [...inputsCell.querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === buenasId),
+  );
+  assert.ok(picker, "el resultado aparece en el selector de datos de entrada");
+
+  picker.value = buenasId;
+  fire(picker, "change");
+  assert.ok(controller.analysis.rows[1].inputIds.includes(buenasId));
+});
+
 test("detaching an input from a row keeps it declared globally", async () => {
   const { doc, controller } = await mountApp();
   const inputId = declareInput(doc, controller, "nota1", "numeric");

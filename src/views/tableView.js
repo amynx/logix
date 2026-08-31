@@ -45,10 +45,9 @@ export class TableView {
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     // Datos que alguna fila produce como resultado (los demás son datos de entrada).
     const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
-    const declaredInputs = analysis.data.filter((entry) => !producedIds.has(entry.id));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      this.#buildBody(analysis.rows, { dataById, producedIds, declaredInputs }, handlers),
+      this.#buildBody(analysis.rows, { dataById, producedIds }, handlers),
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
@@ -111,7 +110,7 @@ export class TableView {
   }
 
   #buildRow(row, index, catalog, handlers) {
-    const { dataById, producedIds, declaredInputs } = catalog;
+    const { dataById, producedIds } = catalog;
     // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
     // que cada edición lea el estado fresco del modelo. Es clave para campos con
     // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
@@ -125,8 +124,11 @@ export class TableView {
     const conditionApplies = !row.purpose || isDecision;
     const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
     const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
-    // Datos de entrada declarados que la fila aún no referencia (para su selector).
-    const availableInputs = declaredInputs.filter((entry) => !row.inputIds.includes(entry.id));
+    // Datos seleccionables como entrada de la fila: las entradas declaradas y los
+    // resultados producidos por otras filas, que la fila aún no referencie.
+    const availableInputs = [...dataById.values()].filter(
+      (entry) => entry.id !== row.resultId && !row.inputIds.includes(entry.id),
+    );
     // Datos que la operación puede referenciar: las entradas de esta fila y los
     // resultados ya producidos por otras filas.
     const availableRefs = dedupeById([
