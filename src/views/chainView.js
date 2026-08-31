@@ -49,7 +49,7 @@ function zone(title, subtitle, items) {
 function processZone(proceso, producidos) {
   const cards =
     proceso.length > 0
-      ? el("div", { class: "space-y-2" }, proceso.map(stepCard))
+      ? el("div", { class: "space-y-3" }, proceso.map(stepCard))
       : el("div", { class: "text-sm text-slate-300" }, "—");
 
   const children = [
@@ -166,23 +166,23 @@ function stepCard(step) {
     fields.push(
       fieldRow(
         "Caminos",
-        el("div", { class: "space-y-0.5" }, [pathLine("Sí", step.ifTrue), pathLine("No", step.ifFalse)]),
+        el("div", { class: "space-y-1" }, [pathLine("Sí", step.ifTrue), pathLine("No", step.ifFalse)]),
       ),
     );
   }
 
-  return el("div", { class: "space-y-1.5 rounded-md border border-slate-200 bg-white p-2.5" }, [
+  return el("div", { class: "space-y-2.5 rounded-md border border-slate-200 bg-white p-3.5" }, [
     el("div", { class: "flex items-baseline gap-2" }, [
       el("span", { class: "text-xs font-semibold text-slate-400" }, `#${step.position}`),
       step.description ? el("span", { class: "text-sm font-medium text-slate-800" }, step.description) : null,
     ]),
-    fields.length > 0 ? el("div", { class: "space-y-0.5" }, fields) : null,
+    fields.length > 0 ? el("div", { class: "space-y-2" }, fields) : null,
   ]);
 }
 
 // Línea "Etiqueta: valor" dentro de una tarjeta. `value` puede ser texto o un nodo.
 function fieldRow(label, value) {
-  return el("div", { class: "flex gap-1.5 text-xs leading-snug" }, [
+  return el("div", { class: "flex gap-2 text-xs leading-relaxed" }, [
     el("span", { class: "shrink-0 font-medium text-slate-400" }, `${label}:`),
     el("div", { class: "min-w-0 text-slate-700" }, value),
   ]);
