@@ -1,8 +1,8 @@
-// Vista de tarjetas: cada actividad es una card vertical con su información de
-// arriba hacia abajo, encadenadas en el orden de ejecución. Comparte con la tabla
-// los mismos constructores de campos (rowEditor), así que ofrece las mismas
-// funciones (editar, reordenar por arrastre, agregar y eliminar) sobre el mismo
-// análisis. Solo se ocupa del DOM.
+// Vista de tarjetas: cada actividad es una card con su información de arriba hacia
+// abajo, y las cards se encadenan HORIZONTALMENTE en el orden de ejecución. Cada
+// card puede expandirse (más ancha, para leer operaciones largas) o encogerse.
+// Comparte con la tabla los mismos constructores de campos (rowEditor), así que
+// ofrece las mismas funciones sobre el mismo análisis. Solo se ocupa del DOM.
 
 import { el, clear } from "../utils/dom.js";
 import {
@@ -15,24 +15,27 @@ import {
   addActivityButton,
 } from "./rowEditor.js";
 
+const COLLAPSED_WIDTH = "w-80"; // ~20rem
+const EXPANDED_WIDTH = "w-[46rem]"; // ~46rem, para operaciones largas
+
 export class CardsView {
   constructor({ container }) {
     this.container = container;
+    this.expanded = new Set(); // ids de actividades expandidas (estado de vista)
   }
 
   render(analysis, handlers, viewMode) {
+    this.context = { analysis, handlers, viewMode };
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers));
 
     this.container.append(
       el("div", { class: "mb-3" }, [viewToggle(viewMode, handlers.onSetViewMode)]),
-      el("div", { class: "mx-auto max-w-2xl" }, [
-        cards.length > 0
-          ? el("div", {}, chained(cards))
-          : el("p", { class: "text-sm text-slate-400" }, "Aún no hay actividades."),
-        addActivityButton(handlers.onAddRow),
-      ]),
+      cards.length > 0
+        ? el("div", { class: "overflow-x-auto pb-2" }, [el("div", { class: "flex items-start" }, chained(cards))])
+        : el("p", { class: "text-sm text-slate-400" }, "Aún no hay actividades."),
+      addActivityButton(handlers.onAddRow),
     );
   }
 
@@ -40,8 +43,17 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers, viewMode));
   }
 
+  // Expandir/encoger es estado de la vista: se re-renderiza con el contexto actual.
+  #toggleExpand(rowId) {
+    if (this.expanded.has(rowId)) this.expanded.delete(rowId);
+    else this.expanded.add(rowId);
+    const { analysis, handlers, viewMode } = this.context;
+    this.render(analysis, handlers, viewMode);
+  }
+
   #card(row, index, dataById, handlers) {
     const fields = buildRowFields(row, dataById, handlers);
+    const isExpanded = this.expanded.has(row.id);
     const setDragged = (id) => {
       this.draggedRowId = id;
     };
@@ -53,11 +65,22 @@ export class CardsView {
       ]),
     );
 
+    const expandButton = el(
+      "button",
+      {
+        type: "button",
+        class: "rounded px-2 py-0.5 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+        title: isExpanded ? "Encoger" : "Expandir",
+        onclick: () => this.#toggleExpand(row.id),
+      },
+      isExpanded ? "⤡ Encoger" : "⤢ Expandir",
+    );
+
     return el(
       "div",
       {
-        class: "rounded-lg border border-slate-200 bg-white p-4 shadow-sm",
-        dataset: { rowId: row.id },
+        class: `${isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH} shrink-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm`,
+        dataset: { rowId: row.id, expanded: String(isExpanded) },
         ondragover: (event) => event.preventDefault(),
         ondrop: (event) => {
           event.preventDefault();
@@ -70,7 +93,7 @@ export class CardsView {
         el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2" }, [
           dragHandle(row.id, setDragged),
           el("span", { class: "text-sm font-semibold text-slate-600" }, `Actividad ${index + 1}`),
-          el("div", { class: "ml-auto" }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
+          el("div", { class: "ml-auto flex items-center gap-1" }, [expandButton, deleteButton(() => handlers.onDeleteRow(row.id))]),
         ]),
         el("div", { class: "mt-3 space-y-3" }, sections),
       ],
@@ -78,7 +101,7 @@ export class CardsView {
   }
 }
 
-// Encadena las tarjetas con un conector visual entre pasos consecutivos.
+// Encadena las tarjetas con un conector horizontal entre pasos consecutivos.
 function chained(cards) {
   const nodes = [];
   cards.forEach((card, index) => {
@@ -89,5 +112,5 @@ function chained(cards) {
 }
 
 function connector() {
-  return el("div", { class: "flex justify-center py-1 text-lg leading-none text-slate-300" }, "↓");
+  return el("div", { class: "flex shrink-0 items-start px-2 pt-16 text-xl text-slate-300" }, "→");
 }

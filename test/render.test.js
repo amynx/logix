@@ -162,6 +162,26 @@ test("editing in the cards view updates the same analysis", async () => {
   assert.equal(doc.querySelectorAll("tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
 });
 
+test("a card can be expanded and collapsed", async () => {
+  const { doc, controller } = await mountApp();
+  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+
+  const card = () => doc.querySelector("#table-container [data-row-id]");
+  const rowId = card().dataset.rowId;
+  const expandBtn = () => [...card().querySelectorAll("button")].find((b) => /Expandir|Encoger/.test(b.textContent));
+
+  assert.equal(card().dataset.expanded, "false");
+  assert.match(expandBtn().textContent, /Expandir/);
+
+  expandBtn().click();
+  assert.ok(controller.cardsView.expanded.has(rowId), "queda registrada como expandida");
+  assert.equal(card().dataset.expanded, "true");
+  assert.match(expandBtn().textContent, /Encoger/);
+
+  expandBtn().click();
+  assert.equal(card().dataset.expanded, "false", "se puede encoger de nuevo");
+});
+
 test("cards can be reordered by drag and drop", async () => {
   const { doc, controller } = await mountApp();
   controller.addRow();
