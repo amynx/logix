@@ -71,7 +71,17 @@ export class AnalysisController {
   }
 
   renderTable() {
-    this.tableView.render(this.analysis, {
+    this.tableView.render(this.analysis, this.#tableHandlers());
+  }
+
+  // Re-render de la tabla que conserva el foco y el cursor: para cambios de datos
+  // (crear/renombrar) que deben refrescar los selectores de otras celdas al vuelo.
+  #renderTableKeepingFocus() {
+    this.tableView.renderKeepingFocus(this.analysis, this.#tableHandlers());
+  }
+
+  #tableHandlers() {
+    return {
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
       onAddRow: () => this.addRow(),
@@ -83,7 +93,7 @@ export class AnalysisController {
       onReuseInput: (rowId, dataId) => this.reuseInput(rowId, dataId),
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
-    });
+    };
   }
 
   // Cambia la operación (lista de tokens) y sugiere el tipo del dato resultante
@@ -97,44 +107,32 @@ export class AnalysisController {
     this.#afterChange();
   }
 
-  // Sugiere y aplica el tipo del dato resultante si aún no tiene uno. Devuelve el
-  // tipo aplicado (o null) para que el llamador pueda reflejarlo en la vista.
+  // Sugiere y aplica el tipo del dato resultante si aún no tiene uno.
   #suggestResultType(row) {
-    if (!row.resultId) return null;
+    if (!row.resultId) return;
     const result = findData(this.analysis, row.resultId);
-    if (!result || result.type) return null; // no sobrescribir un tipo ya elegido
+    if (!result || result.type) return; // no sobrescribir un tipo ya elegido
     const inferred = inferResultType(row.operation);
-    if (inferred) {
-      updateData(this.analysis, row.resultId, { type: inferred });
-      return inferred;
-    }
-    return null;
+    if (inferred) updateData(this.analysis, row.resultId, { type: inferred });
   }
 
-  // Edición de nombre/tipo de un dato: el valor ya está en el DOM del control que
-  // se edita; solo se sincronizan las fichas de solo lectura que lo reutilizan.
+  // Edición de nombre/tipo de un dato: se re-renderiza la tabla conservando el
+  // foco, de modo que las referencias y selectores de otras celdas se actualicen
+  // al instante (nombre en fichas reutilizadas, opciones de "+ dato", etc.).
   updateData(dataId, changes) {
     updateData(this.analysis, dataId, changes);
-    this.#syncDataReferences(dataId);
+    this.#renderTableKeepingFocus();
     this.#afterChange();
   }
 
-  // El dato resultante se crea de forma diferida leyendo el resultId actual de la fila.
+  // El dato resultante se crea de forma diferida leyendo el resultId actual de la
+  // fila. Al crearlo, otras celdas ya pueden referenciarlo (re-render con foco).
   updateResult(rowId, changes) {
     updateRowResult(this.analysis, rowId, changes);
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
-    if (row?.resultId) {
-      const suggested = this.#suggestResultType(row);
-      if (suggested) this.tableView.syncResultType(rowId, suggested);
-      this.#syncDataReferences(row.resultId);
-    }
+    if (row) this.#suggestResultType(row);
+    this.#renderTableKeepingFocus();
     this.#afterChange();
-  }
-
-  // Propaga nombre/tipo de un dato a sus fichas reutilizadas sin re-renderizar.
-  #syncDataReferences(dataId) {
-    const datum = findData(this.analysis, dataId);
-    if (datum) this.tableView.syncDataReferences(datum);
   }
 
   // Añadir/quitar una entrada cambia los controles visibles: se re-renderiza.

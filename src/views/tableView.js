@@ -68,19 +68,28 @@ export class TableView {
     );
   }
 
-  // Actualiza el texto de las fichas que reutilizan un dato, sin re-renderizar,
-  // para que un renombrado en el origen se refleje al instante.
-  syncDataReferences(datum) {
-    const label = dataReferenceLabel(datum);
-    this.container.querySelectorAll(`[data-ref-id="${datum.id}"]`).forEach((node) => {
-      node.textContent = label;
-    });
-  }
+  // Re-renderiza preservando el control enfocado y la posición del cursor. Se usa
+  // al crear o renombrar un dato para que los selectores, fichas y tipos de las
+  // demás celdas se actualicen al instante sin interrumpir la escritura.
+  renderKeepingFocus(analysis, handlers) {
+    const active = document.activeElement;
+    const focusKey = active?.dataset?.focusKey;
+    const start = active?.selectionStart ?? null;
+    const end = active?.selectionEnd ?? null;
 
-  // Refleja en el select del tipo el valor sugerido, sin re-renderizar la fila.
-  syncResultType(rowId, type) {
-    const select = this.container.querySelector(`[data-result-type="${rowId}"]`);
-    if (select) select.value = type;
+    this.render(analysis, handlers);
+
+    if (!focusKey) return;
+    const restored = this.container.querySelector(`[data-focus-key="${focusKey}"]`);
+    if (!restored) return;
+    restored.focus();
+    if (start != null && typeof restored.setSelectionRange === "function") {
+      try {
+        restored.setSelectionRange(start, end);
+      } catch {
+        // Algunos tipos de input no admiten setSelectionRange; el foco basta.
+      }
+    }
   }
 
   #buildHeader() {
@@ -394,8 +403,7 @@ function resultEditor(rowId, result, handlers) {
     (value) => handlers.onResultChange(rowId, { type: value }),
     { placeholder: "Tipo…" },
   );
-  // Permite que el controlador refleje el tipo sugerido sin re-renderizar la fila.
-  typeSelect.dataset.resultType = rowId;
+  typeSelect.dataset.focusKey = `res-type:${rowId}`;
 
   return el("div", { class: "space-y-1" }, [
     el("input", {
@@ -403,6 +411,7 @@ function resultEditor(rowId, result, handlers) {
       value: result?.name ?? "",
       placeholder: "nombre",
       class: CONTROL_CLASS,
+      dataset: { focusKey: `res-name:${rowId}` },
       oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
     }),
     typeSelect,
@@ -454,7 +463,6 @@ function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
           {
             class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
             title: "Dato reutilizado (se edita en su fila de origen)",
-            dataset: { refId: entry.id },
           },
           dataReferenceLabel(entry),
         ),
@@ -462,17 +470,21 @@ function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
       ]);
     }
 
+    const typeSelect = selectField(optionsOf(DATA_TYPES), entry.type, (value) => handlers.onDataChange(entry.id, { type: value }), {
+      placeholder: "Tipo…",
+    });
+    typeSelect.dataset.focusKey = `in-type:${entry.id}`;
+
     return el("div", { class: "flex items-center gap-1" }, [
       el("input", {
         type: "text",
         value: entry.name ?? "",
         placeholder: "nombre",
         class: CONTROL_CLASS,
+        dataset: { focusKey: `in-name:${entry.id}` },
         oninput: (event) => handlers.onDataChange(entry.id, { name: event.target.value }),
       }),
-      selectField(optionsOf(DATA_TYPES), entry.type, (value) => handlers.onDataChange(entry.id, { type: value }), {
-        placeholder: "Tipo…",
-      }),
+      typeSelect,
       detachButton(entry.id, "Quitar dato"),
     ]);
   });

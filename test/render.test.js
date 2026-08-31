@@ -251,6 +251,24 @@ test("reusing a produced result adds it as a read-only reference in another row"
   assert.equal(inputsCell().querySelectorAll("input").length, 0, "sin campo editable para el dato reutilizado");
 });
 
+test("naming a result refreshes other data pickers and keeps focus", async () => {
+  const { doc, controller } = await mountApp();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+
+  const resultName = () => doc.querySelectorAll("tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
+  resultName().focus();
+  resultName().value = "promedio";
+  fire(resultName(), "input");
+
+  const promedioId = controller.analysis.rows[0].resultId;
+  const opCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[4];
+  assert.ok(
+    [...opCell.querySelectorAll("select option")].some((o) => o.value === promedioId),
+    "otra fila ya puede referenciar el resultado recién nombrado",
+  );
+  assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
+});
+
 test("renaming a produced result updates its reused reference live", async () => {
   const { doc, controller } = await mountApp();
   const dataId = reuseFirstResultInNewRow(doc, controller, "promedio");
@@ -259,8 +277,10 @@ test("renaming a produced result updates its reused reference live", async () =>
   resultInput.value = "promedioFinal";
   fire(resultInput, "input");
 
-  const chip = doc.querySelectorAll("tbody tr")[1].querySelector(`[data-ref-id="${dataId}"]`);
-  assert.match(chip.textContent, /promedioFinal/, "la ficha reutilizada se actualiza sin re-render manual");
+  // La ficha reutilizada (dato producido) de la segunda fila refleja el nuevo nombre.
+  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
+  assert.match(inputsCell.textContent, /promedioFinal/, "la ficha reutilizada se actualiza al instante");
+  assert.ok(controller.analysis.rows[1].inputIds.includes(dataId));
 });
 
 test("deleting a row whose datum is reused warns and prunes the reference", async () => {
@@ -394,7 +414,8 @@ test("the result type is suggested when the result is named after the operation"
 
   const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
   assert.equal(result.type, "numeric");
-  assert.equal(doc.querySelector("[data-result-type]").value, "numeric", "el select refleja la sugerencia");
+  const typeSelect = doc.querySelectorAll("tbody tr td")[5].querySelector("select");
+  assert.equal(typeSelect.value, "numeric", "el select refleja la sugerencia");
 });
 
 test("the condition is a free-text natural-language question", async () => {
