@@ -436,25 +436,53 @@ test("the condition is a free-text natural-language question", async () => {
   assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
 });
 
-test("the final response can reference existing data", async () => {
+test("the branch builder appears only when the path is a response", async () => {
+  const { doc } = await mountApp();
+  const purpose = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  purpose.value = "decision";
+  fire(purpose, "change");
+
+  const branchCell = () => doc.querySelectorAll("tbody tr td")[8];
+  const typeSelect = () => branchCell().querySelector("select");
+
+  assert.equal(branchCell().querySelectorAll("select").length, 1, "sin tipo: solo el selector");
+
+  typeSelect().value = "operation";
+  fire(typeSelect(), "change");
+  assert.equal(branchCell().querySelectorAll("select").length, 1, "operación: sin constructor");
+
+  typeSelect().value = "response";
+  fire(typeSelect(), "change");
+  assert.ok(branchCell().querySelectorAll("select").length > 1, "respuesta: aparece el constructor");
+});
+
+test("a decision branch response can reference existing data", async () => {
   const { doc, controller } = await mountApp();
 
-  // La fila 1 produce "promedio".
+  // La fila 0 produce "promedio".
   const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
   resultName.value = "promedio";
   fire(resultName, "input");
   const promedioId = controller.analysis.rows[0].resultId;
 
-  // Segunda fila: en "Uso posterior" (la respuesta) se referencia el dato en vez de escribirlo.
+  // Fila 1: decisión con rama "Si se cumple" de tipo Respuesta que referencia el dato.
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
-  const usoCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[7];
-  const dataSelect = [...usoCell.querySelectorAll("select")].find((s) =>
+  const row1 = () => doc.querySelectorAll("tbody tr")[1];
+  row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
+  fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");
+
+  const branchCell = () => row1().querySelectorAll("td")[8];
+  branchCell().querySelector("select").value = "response"; // el tipo de la rama
+  fire(branchCell().querySelector("select"), "change");
+
+  // Ahora aparece el constructor de la respuesta: se referencia el dato.
+  const dataSelect = [...branchCell().querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === promedioId),
   );
   dataSelect.value = promedioId;
   fire(dataSelect, "change");
 
-  const tokens = controller.analysis.rows[1].subsequentUse;
+  const tokens = controller.analysis.rows[1].ifTrue.value;
   assert.deepEqual(tokens.map((t) => t.kind), ["ref"]);
   assert.equal(tokens[0].dataId, promedioId);
 });
@@ -470,10 +498,10 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   purposeSelect.value = "response";
   fire(purposeSelect, "change");
 
-  // El uso posterior (la respuesta) se construye con el mismo editor de expresiones.
-  const usoCell = () => doc.querySelectorAll("tbody tr td")[7];
-  usoCell().querySelector('input[placeholder="valor"]').value = "Mostrar el resultado";
-  [...usoCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+  // El comentario es texto libre.
+  const comment = doc.querySelectorAll("tbody tr td")[7].querySelector("textarea");
+  comment.value = "Mostrar el resultado";
+  fire(comment, "input");
 
   const text = chainText();
   assert.match(text, /Entradas/);

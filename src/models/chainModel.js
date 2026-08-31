@@ -82,7 +82,7 @@ function buildStep(row, index, resolve, producedIds) {
     operation,
     result,
     purpose: row.purpose,
-    purposeDetail: expressionParts(row.subsequentUse, resolve),
+    comment: row.subsequentUse.trim(),
     // Caminos de la decisión (para visualizar cómo la condición afecta el flujo).
     ifTrue: path(row.ifTrue),
     ifFalse: path(row.ifFalse),
@@ -96,10 +96,13 @@ function collectOutputs(analysis, resolve) {
   const outputs = [];
   for (const row of analysis.rows) {
     if (row.purpose === "response") {
-      const parts =
-        row.subsequentUse.length > 0
-          ? expressionParts(row.subsequentUse, resolve)
-          : responseFallback(resolve(row.resultId));
+      const result = resolve(row.resultId);
+      const comment = row.subsequentUse.trim();
+      const parts = result
+        ? [{ kind: "ref", text: result.name || "(sin nombre)", type: result.type }]
+        : comment
+          ? [{ kind: "literal", text: comment }]
+          : [{ kind: "literal", text: "Respuesta" }];
       outputs.push({ parts, branch: null, condition: "" });
     }
     const condition = row.condition.trim();
@@ -110,10 +113,4 @@ function collectOutputs(analysis, resolve) {
     }
   }
   return outputs;
-}
-
-// Si una respuesta no tiene texto propio, se muestra el dato producido (si lo hay).
-function responseFallback(result) {
-  if (result && result.name.trim()) return [{ kind: "ref", text: result.name, type: result.type }];
-  return [{ kind: "literal", text: "Respuesta" }];
 }

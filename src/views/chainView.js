@@ -150,17 +150,8 @@ function stepCard(step) {
   if (step.condition) fields.push(fieldRow("Condición", step.condition));
   if (step.operation.length > 0) fields.push(fieldRow("Operación", expressionEl(step.operation)));
   if (step.result) fields.push(fieldRow("Resultado", smallChip(step.result)));
-  if (step.purpose) {
-    fields.push(
-      fieldRow(
-        "Propósito",
-        el("span", { class: "inline-flex flex-wrap items-center gap-1" }, [
-          purposeBadge(step.purpose),
-          step.purposeDetail.length > 0 ? expressionEl(step.purposeDetail) : null,
-        ]),
-      ),
-    );
-  }
+  if (step.purpose) fields.push(fieldRow("Propósito", purposeBadge(step.purpose)));
+  if (step.comment) fields.push(fieldRow("Comentario", step.comment));
   // Cuando la actividad decide, se muestran los dos caminos posibles del flujo.
   if (step.purpose === "decision" || step.condition) {
     fields.push(

@@ -72,7 +72,7 @@ test("a produced datum reused downstream is not an external input", () => {
 
   const consumer = addRow(analysis).rows.at(-1);
   addExistingRowInput(analysis, consumer.id, producer.resultId);
-  updateRow(analysis, consumer.id, { purpose: "response", subsequentUse: msg("Mostrar el promedio") });
+  updateRow(analysis, consumer.id, { purpose: "response", subsequentUse: "Mostrar el promedio" });
 
   const chain = buildChain(analysis);
   assert.equal(chain.entradas.length, 0, "el promedio se produce, no es entrada externa");
@@ -106,7 +106,7 @@ test("a process step exposes description, inputs, result and purpose", () => {
   updateRow(analysis, row.id, {
     problem: "Obtener el promedio",
     purpose: "operation",
-    subsequentUse: msg("Usarlo para decidir"),
+    subsequentUse: "Usarlo para decidir",
   });
 
   const [step] = buildChain(analysis).proceso;
@@ -114,5 +114,5 @@ test("a process step exposes description, inputs, result and purpose", () => {
   assert.equal(step.inputs[0].name, "nota1");
   assert.equal(step.result.name, "promedio");
   assert.equal(step.purpose, "operation");
-  assert.equal(partsText(step.purposeDetail), "Usarlo para decidir");
+  assert.equal(step.comment, "Usarlo para decidir");
 });

@@ -32,7 +32,20 @@ export function migrateAnalysis(data) {
   if (current.version < 4) current = migrateV3toV4(current);
   if (current.version < 5) current = migrateV4toV5(current);
   if (current.version < 6) current = migrateV5toV6(current);
+  if (current.version < 7) current = migrateV6toV7(current);
   return current;
+}
+
+// v7: el uso posterior (comentario) vuelve a texto libre. Si venía como tokens
+// (v6), se deriva a su texto legible. Las ramas siguen siendo expresiones.
+function migrateV6toV7(old) {
+  const byId = new Map((old.data ?? []).map((entry) => [entry.id, entry]));
+  const resolve = (id) => byId.get(id) ?? null;
+  const rows = old.rows.map((row) => ({
+    ...row,
+    subsequentUse: Array.isArray(row.subsequentUse) ? operationToText(row.subsequentUse, resolve) : row.subsequentUse ?? "",
+  }));
+  return { ...old, version: 7, rows };
 }
 
 // v6: el uso posterior y el detalle de cada camino pasan a lista de tokens, para
@@ -154,7 +167,7 @@ export function collectAnalysisWarnings(analysis) {
     if (row.purpose === "decision" && !row.condition.trim()) {
       warnings.push(`Fila ${position}: la decisión no tiene una condición definida.`);
     }
-    if (row.purpose === "response" && row.subsequentUse.length === 0) {
+    if (row.purpose === "response" && !row.resultId && !row.subsequentUse.trim()) {
       warnings.push(`Fila ${position}: falta indicar qué información se proporcionará.`);
     }
   });

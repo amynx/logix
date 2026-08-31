@@ -93,7 +93,7 @@ test("keeps the condition as natural-language text through migration", () => {
   assert.equal(migrated.rows[0].condition, "¿el promedio es alto?");
 });
 
-test("migrates v5 response and path text into token expressions", () => {
+test("migrates old files: comment stays text, path detail becomes an expression", () => {
   const v5 = {
     version: 5,
     id: "a",
@@ -121,8 +121,8 @@ test("migrates v5 response and path text into token expressions", () => {
   const migrated = deserializeAnalysis(JSON.stringify(v5));
 
   assert.equal(migrated.version, ANALYSIS_VERSION);
-  assert.deepEqual(migrated.rows[0].subsequentUse, [{ kind: "literal", value: "Mostrar el promedio" }]);
-  assert.deepEqual(migrated.rows[0].ifTrue.value, [{ kind: "literal", value: "Aprobó" }]);
+  assert.equal(migrated.rows[0].subsequentUse, "Mostrar el promedio", "el comentario vuelve a texto");
+  assert.deepEqual(migrated.rows[0].ifTrue.value, [{ kind: "literal", value: "Aprobó" }], "el detalle de la rama es expresión");
   assert.deepEqual(migrated.rows[0].ifFalse.value, []);
 });
 

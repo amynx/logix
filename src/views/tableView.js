@@ -30,7 +30,7 @@ const COLUMNS = [
   { key: "operation", title: "Operación", help: "Constrúyela referenciando datos y operadores." },
   { key: "result", title: "Dato resultante", help: "Dato producido tras realizar una operación." },
   { key: "purpose", title: "Propósito", help: "Para qué se utilizará el dato producido." },
-  { key: "subsequentUse", title: "Uso posterior", help: "Cómo se integra el dato en la siguiente operación o información." },
+  { key: "subsequentUse", title: "Comentario", help: "Nota libre para anotar qué sigue (opcional)." },
   { key: "ifTrue", title: "Si se cumple", help: "Camino cuando la condición se cumple (decisiones)." },
   { key: "ifFalse", title: "Si no se cumple", help: "Camino cuando la condición no se cumple (decisiones)." },
 ];
@@ -172,13 +172,9 @@ export class TableView {
       cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
-      cell(
-        expressionEditor(row.subsequentUse, allRefs, resolveData, (updater) =>
-          structural((current) => ({ subsequentUse: updater(current.subsequentUse) })),
-        ),
-      ),
-      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", { field, structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
-      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", { field, structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
+      cell(textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })))),
+      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
+      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
       el("td", { class: `${TD_CLASS} text-center` }, [
         el(
           "button",
@@ -420,18 +416,24 @@ function purposeSelect(purpose, onChange) {
   return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
 }
 
-// Camino de una decisión: cómo continúa (respuesta/operación/otra decisión) y su
-// detalle. El detalle se construye como expresión para poder referenciar datos.
-// Solo se muestra en filas cuyo propósito es "Decisión".
-function branchEditor(branch, key, { field, structural, refs, resolve }) {
-  return el("div", { class: "space-y-1" }, [
-    selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field((row) => ({ [key]: { ...row[key], type: value } })), {
+// Camino de una decisión: a dónde continúa. El constructor de la respuesta solo
+// se muestra cuando el camino es "Respuesta"; para los demás tipos basta el
+// selector (la operación/decisión siguiente se define en otra fila).
+// Solo aparece en filas cuyo propósito es "Decisión".
+function branchEditor(branch, key, { structural, refs, resolve }) {
+  const children = [
+    selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => structural((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
     }),
-    expressionEditor(branch.value, refs, resolve, (updater) =>
-      structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
-    ),
-  ]);
+  ];
+  if (branch.type === "response") {
+    children.push(
+      expressionEditor(branch.value, refs, resolve, (updater) =>
+        structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
+      ),
+    );
+  }
+  return el("div", { class: "space-y-1" }, children);
 }
 
 // Marcador discreto para una celda que no aplica en esta fila (p. ej. la condición
