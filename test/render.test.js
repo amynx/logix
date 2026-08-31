@@ -409,6 +409,29 @@ test("the condition is a free-text natural-language question", async () => {
   assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
 });
 
+test("the final response can reference existing data", async () => {
+  const { doc, controller } = await mountApp();
+
+  // La fila 1 produce "promedio".
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "promedio";
+  fire(resultName, "input");
+  const promedioId = controller.analysis.rows[0].resultId;
+
+  // Segunda fila: en "Uso posterior" (la respuesta) se referencia el dato en vez de escribirlo.
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  const usoCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[7];
+  const dataSelect = [...usoCell.querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === promedioId),
+  );
+  dataSelect.value = promedioId;
+  fire(dataSelect, "change");
+
+  const tokens = controller.analysis.rows[1].subsequentUse;
+  assert.deepEqual(tokens.map((t) => t.kind), ["ref"]);
+  assert.equal(tokens[0].dataId, promedioId);
+});
+
 test("the chain panel reflects external inputs and final outputs live", async () => {
   const { doc } = await mountApp();
   const chainText = () => doc.getElementById("chain-container").textContent;
@@ -423,9 +446,11 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
   purposeSelect.value = "response";
   fire(purposeSelect, "change");
-  const subsequent = doc.querySelectorAll("tbody tr td")[7].querySelector("textarea");
-  subsequent.value = "Mostrar el resultado";
-  fire(subsequent, "input");
+
+  // El uso posterior (la respuesta) se construye con el mismo editor de expresiones.
+  const usoCell = () => doc.querySelectorAll("tbody tr td")[7];
+  usoCell().querySelector('input[placeholder="valor"]').value = "Mostrar el resultado";
+  [...usoCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
 
   const text = chainText();
   assert.match(text, /Entradas/);

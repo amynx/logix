@@ -31,7 +31,24 @@ export function migrateAnalysis(data) {
   if (current.version < 3) current = migrateV2toV3(current);
   if (current.version < 4) current = migrateV3toV4(current);
   if (current.version < 5) current = migrateV4toV5(current);
+  if (current.version < 6) current = migrateV5toV6(current);
   return current;
+}
+
+// v6: el uso posterior y el detalle de cada camino pasan a lista de tokens, para
+// poder referenciar datos. El texto anterior se conserva como literal.
+function migrateV5toV6(old) {
+  const migrateBranch = (branch) => {
+    const source = branch ?? { type: "", value: "" };
+    return { type: source.type ?? "", value: textToTokens(source.value) };
+  };
+  const rows = old.rows.map((row) => ({
+    ...row,
+    subsequentUse: textToTokens(row.subsequentUse),
+    ifTrue: migrateBranch(row.ifTrue),
+    ifFalse: migrateBranch(row.ifFalse),
+  }));
+  return { ...old, version: 6, rows };
 }
 
 // v5: la condición vuelve a ser texto libre (la pregunta en lenguaje natural).
@@ -137,7 +154,7 @@ export function collectAnalysisWarnings(analysis) {
     if (row.purpose === "decision" && !row.condition.trim()) {
       warnings.push(`Fila ${position}: la decisión no tiene una condición definida.`);
     }
-    if (row.purpose === "response" && !row.subsequentUse.trim()) {
+    if (row.purpose === "response" && row.subsequentUse.length === 0) {
       warnings.push(`Fila ${position}: falta indicar qué información se proporcionará.`);
     }
   });

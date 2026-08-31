@@ -93,6 +93,39 @@ test("keeps the condition as natural-language text through migration", () => {
   assert.equal(migrated.rows[0].condition, "¿el promedio es alto?");
 });
 
+test("migrates v5 response and path text into token expressions", () => {
+  const v5 = {
+    version: 5,
+    id: "a",
+    title: "Demo",
+    description: "",
+    data: [],
+    rows: [
+      {
+        id: "r",
+        problem: "",
+        inputIds: [],
+        condition: "",
+        operation: [],
+        resultId: null,
+        purpose: "response",
+        subsequentUse: "Mostrar el promedio",
+        ifTrue: { type: "response", value: "Aprobó" },
+        ifFalse: { type: "", value: "" },
+      },
+    ],
+    createdAt: "x",
+    updatedAt: "y",
+  };
+
+  const migrated = deserializeAnalysis(JSON.stringify(v5));
+
+  assert.equal(migrated.version, ANALYSIS_VERSION);
+  assert.deepEqual(migrated.rows[0].subsequentUse, [{ kind: "literal", value: "Mostrar el promedio" }]);
+  assert.deepEqual(migrated.rows[0].ifTrue.value, [{ kind: "literal", value: "Aprobó" }]);
+  assert.deepEqual(migrated.rows[0].ifFalse.value, []);
+});
+
 test("deserializing a future version throws a friendly error", () => {
   const payload = JSON.stringify({ version: ANALYSIS_VERSION + 1, id: "x", rows: [] });
   assert.throws(() => deserializeAnalysis(payload), /versión distinta/);

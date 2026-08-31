@@ -4,6 +4,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildChain } from "../src/models/chainModel.js";
+
+// Una respuesta/detalle construido como expresión con un solo texto literal.
+const msg = (value) => [{ kind: "literal", value }];
 import {
   createAnalysis,
   addRow,
@@ -24,8 +27,8 @@ test("a decision step exposes both paths (Sí/No)", () => {
   const row = addRow(analysis).rows.at(-1);
   updateRow(analysis, row.id, {
     purpose: "decision",
-    ifTrue: { type: "response", value: "Aprobó" },
-    ifFalse: { type: "operation", value: "Recalcular" },
+    ifTrue: { type: "response", value: msg("Aprobó") },
+    ifFalse: { type: "operation", value: msg("Recalcular") },
   });
 
   const [step] = buildChain(analysis).proceso;
@@ -62,7 +65,7 @@ test("a produced datum reused downstream is not an external input", () => {
 
   const consumer = addRow(analysis).rows.at(-1);
   addExistingRowInput(analysis, consumer.id, producer.resultId);
-  updateRow(analysis, consumer.id, { purpose: "response", subsequentUse: "Mostrar el promedio" });
+  updateRow(analysis, consumer.id, { purpose: "response", subsequentUse: msg("Mostrar el promedio") });
 
   const chain = buildChain(analysis);
   assert.equal(chain.entradas.length, 0, "el promedio se produce, no es entrada externa");
@@ -76,8 +79,8 @@ test("decision branches that respond become outputs tagged Sí/No", () => {
   updateRow(analysis, row.id, {
     purpose: "decision",
     condition: "¿promedio >= 3?",
-    ifTrue: { type: "response", value: "Mostrar 'aprobó'" },
-    ifFalse: { type: "response", value: "Mostrar 'reprobó'" },
+    ifTrue: { type: "response", value: msg("Mostrar 'aprobó'") },
+    ifFalse: { type: "response", value: msg("Mostrar 'reprobó'") },
   });
 
   const chain = buildChain(analysis);
@@ -95,7 +98,7 @@ test("a process step exposes description, inputs, result and purpose", () => {
   updateRow(analysis, row.id, {
     problem: "Obtener el promedio",
     purpose: "operation",
-    subsequentUse: "Usarlo para decidir",
+    subsequentUse: msg("Usarlo para decidir"),
   });
 
   const [step] = buildChain(analysis).proceso;

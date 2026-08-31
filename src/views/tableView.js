@@ -121,12 +121,15 @@ export class TableView {
     const reusable = [...dataById.values()].filter(
       (entry) => !row.inputIds.includes(entry.id) && entry.id !== row.resultId,
     );
-    // Datos que una expresión (operación o condición) puede referenciar: las
-    // entradas de esta fila y los resultados ya producidos por otras filas.
+    // Datos que la operación puede referenciar: las entradas de esta fila y los
+    // resultados ya producidos por otras filas.
     const availableRefs = dedupeById([
       ...inputEntries,
       ...[...dataById.values()].filter((entry) => producedIds.has(entry.id) && entry.id !== row.resultId),
     ]);
+    // Para construir la respuesta final están disponibles todos los datos del
+    // análisis (entradas y resultados de operaciones).
+    const allRefs = [...dataById.values()];
     const resolveData = (id) => dataById.get(id) ?? null;
 
     const cells = [
@@ -163,9 +166,13 @@ export class TableView {
       cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
-      cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
-      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", field) : notApplicable()),
-      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", field) : notApplicable()),
+      cell(
+        expressionEditor(row.subsequentUse, allRefs, resolveData, (updater) =>
+          structural((current) => ({ subsequentUse: updater(current.subsequentUse) })),
+        ),
+      ),
+      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", { field, structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
+      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", { field, structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
       el("td", { class: `${TD_CLASS} text-center` }, [
         el(
           "button",
@@ -378,14 +385,6 @@ function dedupeById(entries) {
   return [...new Map(entries.map((entry) => [entry.id, entry])).values()];
 }
 
-// El texto guía de "Uso posterior" cambia según el propósito elegido.
-function subsequentUsePlaceholder(purpose) {
-  if (purpose === "operation") return "Cómo alimenta la siguiente operación";
-  if (purpose === "response") return "Qué información se mostrará";
-  if (purpose === "decision") return "Cómo se integra el dato";
-  return "Cómo se usa el dato";
-}
-
 // Dato resultante: nombre + tipo. El dato se crea de forma diferida en el modelo
 // la primera vez que se escribe algo (handlers.onResultChange).
 function resultEditor(rowId, result, handlers) {
@@ -416,13 +415,16 @@ function purposeSelect(purpose, onChange) {
 }
 
 // Camino de una decisión: cómo continúa (respuesta/operación/otra decisión) y su
-// detalle. Solo se muestra en filas cuyo propósito es "Decisión".
-function branchEditor(branch, key, field) {
+// detalle. El detalle se construye como expresión para poder referenciar datos.
+// Solo se muestra en filas cuyo propósito es "Decisión".
+function branchEditor(branch, key, { field, structural, refs, resolve }) {
   return el("div", { class: "space-y-1" }, [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => field((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
     }),
-    textField(branch.value, "Detalle del camino", (value) => field((row) => ({ [key]: { ...row[key], value } }))),
+    expressionEditor(branch.value, refs, resolve, (updater) =>
+      structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
+    ),
   ]);
 }
 

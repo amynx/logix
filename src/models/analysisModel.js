@@ -6,17 +6,17 @@
 import { createId } from "../utils/id.js";
 
 // Versión del formato del análisis. v2: catálogo de datos con ids. v3: la
-// operación pasa a lista de tokens. v4 (revertida): la condición volvió a ser
-// texto libre en v5 — es la pregunta en lenguaje natural que valida el programa;
-// la expresión relacional/lógica que la responde vive en la operación.
-export const ANALYSIS_VERSION = 5;
+// operación pasa a lista de tokens. v5: la condición es texto libre (pregunta en
+// lenguaje natural). v6: el uso posterior y el detalle de cada camino se
+// construyen como expresiones (tokens) para referenciar datos existentes.
+export const ANALYSIS_VERSION = 6;
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
 }
 
 export function createBranch(overrides = {}) {
-  return { type: "", value: "", ...overrides };
+  return { type: "", value: [], ...overrides };
 }
 
 export function createRow(overrides = {}) {
@@ -28,7 +28,7 @@ export function createRow(overrides = {}) {
     operation: [],
     resultId: null,
     purpose: "",
-    subsequentUse: "",
+    subsequentUse: [],
     ifTrue: createBranch(),
     ifFalse: createBranch(),
     ...overrides,

@@ -80,10 +80,10 @@ function buildStep(row, index, resolve, producedIds) {
     operation,
     result,
     purpose: row.purpose,
-    purposeDetail: row.subsequentUse.trim(),
+    purposeDetail: operationToText(row.subsequentUse, resolve),
     // Caminos de la decisión (para visualizar cómo la condición afecta el flujo).
-    ifTrue: { type: row.ifTrue.type, text: row.ifTrue.value.trim() },
-    ifFalse: { type: row.ifFalse.type, text: row.ifFalse.value.trim() },
+    ifTrue: { type: row.ifTrue.type, text: operationToText(row.ifTrue.value, resolve) },
+    ifFalse: { type: row.ifFalse.type, text: operationToText(row.ifFalse.value, resolve) },
   };
 }
 
@@ -95,13 +95,14 @@ function collectOutputs(analysis, resolve) {
   for (const row of analysis.rows) {
     if (row.purpose === "response") {
       const result = resolve(row.resultId);
-      const label = (result && result.name.trim()) || row.subsequentUse.trim() || "Respuesta";
-      outputs.push({ label, detail: result ? row.subsequentUse.trim() : "", branch: null, condition: "" });
+      const info = operationToText(row.subsequentUse, resolve);
+      const label = (result && result.name.trim()) || info || "Respuesta";
+      outputs.push({ label, detail: result ? info : "", branch: null, condition: "" });
     }
     const condition = row.condition.trim();
     for (const [branchCase, branch] of [["Sí", row.ifTrue], ["No", row.ifFalse]]) {
-      if (branch.type === "response" && branch.value.trim()) {
-        outputs.push({ label: branch.value.trim(), detail: "", branch: branchCase, condition });
+      if (branch.type === "response" && branch.value.length > 0) {
+        outputs.push({ label: operationToText(branch.value, resolve), detail: "", branch: branchCase, condition });
       }
     }
   }
