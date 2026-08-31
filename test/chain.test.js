@@ -16,7 +16,16 @@ import {
 
 test("an empty analysis yields an empty chain", () => {
   const chain = buildChain(createAnalysis());
-  assert.deepEqual(chain, { entradas: [], proceso: [], salidas: [] });
+  assert.deepEqual(chain, { entradas: [], proceso: [], producidos: [], salidas: [] });
+});
+
+test("produced data are listed for reuse in the process", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const row = addRow(analysis).rows.at(-1);
+  updateRowResult(analysis, row.id, { name: "promedio", type: "numeric" });
+
+  const chain = buildChain(analysis);
+  assert.deepEqual(chain.producidos.map((d) => d.name), ["promedio"]);
 });
 
 test("external inputs are those consumed but never produced", () => {

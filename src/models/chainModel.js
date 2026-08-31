@@ -16,8 +16,26 @@ export function buildChain(analysis) {
     proceso: analysis.rows
       .map((row, index) => buildStep(row, index, resolve, producedIds))
       .filter(Boolean),
+    producidos: collectProduced(analysis, resolve),
     salidas: collectOutputs(analysis, resolve),
   };
+}
+
+// Datos producidos por las operaciones, en orden y sin repetir. Quedan
+// disponibles para identificarse y reutilizarse en operaciones posteriores.
+function collectProduced(analysis, resolve) {
+  const produced = [];
+  const seen = new Set();
+  for (const row of analysis.rows) {
+    if (row.resultId && !seen.has(row.resultId)) {
+      const datum = resolve(row.resultId);
+      if (datum) {
+        produced.push(datum);
+        seen.add(row.resultId);
+      }
+    }
+  }
+  return produced;
 }
 
 // Entradas externas: datos que alguna fila consume pero que ninguna produce.

@@ -20,7 +20,7 @@ export class ChainView {
       : el("div", { class: "flex flex-col gap-3 md:flex-row md:items-stretch" }, [
           zone("Entradas", "Datos que recibe el programa", chain.entradas.map(dataChip)),
           connector(),
-          zone("Proceso", "Actividades en orden", chain.proceso.map(stepCard)),
+          processZone(chain.proceso, chain.producidos),
           connector(),
           zone("Salida", "Información final", chain.salidas.map(outputChip)),
         ]);
@@ -42,6 +42,32 @@ function zone(title, subtitle, items) {
       ? el("div", { class: "space-y-2" }, items)
       : el("div", { class: "text-sm text-slate-300" }, "—"),
   ]);
+}
+
+// Zona de proceso: las actividades y, debajo, los datos producidos disponibles
+// para reutilizar en operaciones posteriores.
+function processZone(proceso, producidos) {
+  const cards =
+    proceso.length > 0
+      ? el("div", { class: "space-y-2" }, proceso.map(stepCard))
+      : el("div", { class: "text-sm text-slate-300" }, "—");
+
+  const children = [
+    el("div", { class: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, "Proceso"),
+    el("div", { class: "mb-2 text-[11px] text-slate-400" }, "Actividades en orden"),
+    cards,
+  ];
+
+  if (producidos.length > 0) {
+    children.push(
+      el("div", { class: "mt-3 border-t border-slate-200 pt-2" }, [
+        el("div", { class: "mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500" }, "Datos producidos"),
+        el("div", { class: "flex flex-wrap gap-1" }, producidos.map(smallChip)),
+      ]),
+    );
+  }
+
+  return el("div", { class: "flex-1 rounded-md border border-slate-200 bg-slate-50/60 p-3" }, children);
 }
 
 // Conector entre zonas: flecha hacia la derecha en fila, hacia abajo apilado.
