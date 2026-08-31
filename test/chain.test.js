@@ -7,6 +7,9 @@ import { buildChain } from "../src/models/chainModel.js";
 
 // Una respuesta/detalle construido como expresión con un solo texto literal.
 const msg = (value) => [{ kind: "literal", value }];
+
+// Texto plano de una expresión ya derivada a partes.
+const partsText = (parts) => parts.map((p) => p.text).join(" ");
 import {
   createAnalysis,
   addRow,
@@ -32,8 +35,12 @@ test("a decision step exposes both paths (Sí/No)", () => {
   });
 
   const [step] = buildChain(analysis).proceso;
-  assert.deepEqual(step.ifTrue, { type: "response", text: "Aprobó" });
-  assert.deepEqual(step.ifFalse, { type: "operation", text: "Recalcular" });
+  assert.equal(step.ifTrue.type, "response");
+  assert.equal(step.ifTrue.flow, "finaliza");
+  assert.equal(partsText(step.ifTrue.parts), "Aprobó");
+  assert.equal(step.ifFalse.type, "operation");
+  assert.equal(step.ifFalse.flow, "continúa");
+  assert.equal(partsText(step.ifFalse.parts), "Recalcular");
 });
 
 test("produced data are listed for reuse in the process", () => {
@@ -70,7 +77,7 @@ test("a produced datum reused downstream is not an external input", () => {
   const chain = buildChain(analysis);
   assert.equal(chain.entradas.length, 0, "el promedio se produce, no es entrada externa");
   assert.equal(chain.salidas.length, 1);
-  assert.equal(chain.salidas[0].label, "Mostrar el promedio");
+  assert.equal(partsText(chain.salidas[0].parts), "Mostrar el promedio");
 });
 
 test("decision branches that respond become outputs tagged Sí/No", () => {
@@ -84,7 +91,7 @@ test("decision branches that respond become outputs tagged Sí/No", () => {
   });
 
   const chain = buildChain(analysis);
-  assert.deepEqual(chain.salidas.map((o) => o.label), ["Mostrar 'aprobó'", "Mostrar 'reprobó'"]);
+  assert.deepEqual(chain.salidas.map((o) => partsText(o.parts)), ["Mostrar 'aprobó'", "Mostrar 'reprobó'"]);
   assert.deepEqual(chain.salidas.map((o) => o.branch), ["Sí", "No"]);
   assert.equal(chain.salidas[0].condition, "¿promedio >= 3?");
 });
@@ -106,5 +113,5 @@ test("a process step exposes description, inputs, result and purpose", () => {
   assert.equal(step.inputs[0].name, "nota1");
   assert.equal(step.result.name, "promedio");
   assert.equal(step.purpose, "operation");
-  assert.equal(step.purposeDetail, "Usarlo para decidir");
+  assert.equal(partsText(step.purposeDetail), "Usarlo para decidir");
 });

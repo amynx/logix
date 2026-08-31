@@ -4,7 +4,14 @@
 // reutilizando la identidad por id para distinguir datos externos, intermedios y
 // finales. Es la base para futuras representaciones (pseudocódigo, diagramas).
 
-import { operationToText } from "./operators.js";
+import { expressionParts } from "./operators.js";
+
+// Un camino de decisión continúa el proceso (nueva operación/otra decisión) o lo
+// finaliza (una respuesta). Sirve para representar la bifurcación.
+function branchFlow(type) {
+  if (type === "response") return "finaliza";
+  return type ? "continúa" : null;
+}
 
 export function buildChain(analysis) {
   const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
@@ -63,13 +70,19 @@ function buildStep(row, index, resolve, producedIds) {
     .filter(Boolean)
     .map((datum) => ({ ...datum, produced: producedIds.has(datum.id) }));
   const result = resolve(row.resultId);
-  const operation = operationToText(row.operation, resolve);
+  const operation = expressionParts(row.operation, resolve);
   const condition = row.condition.trim();
   const description = row.problem.trim();
 
   const hasContent =
-    description || operation || condition || result || inputs.length > 0 || row.purpose;
+    description || operation.length > 0 || condition || result || inputs.length > 0 || row.purpose;
   if (!hasContent) return null;
+
+  const path = (branch) => ({
+    type: branch.type,
+    flow: branchFlow(branch.type),
+    parts: expressionParts(branch.value, resolve),
+  });
 
   return {
     rowId: row.id,
@@ -80,10 +93,10 @@ function buildStep(row, index, resolve, producedIds) {
     operation,
     result,
     purpose: row.purpose,
-    purposeDetail: operationToText(row.subsequentUse, resolve),
+    purposeDetail: expressionParts(row.subsequentUse, resolve),
     // Caminos de la decisión (para visualizar cómo la condición afecta el flujo).
-    ifTrue: { type: row.ifTrue.type, text: operationToText(row.ifTrue.value, resolve) },
-    ifFalse: { type: row.ifFalse.type, text: operationToText(row.ifFalse.value, resolve) },
+    ifTrue: path(row.ifTrue),
+    ifFalse: path(row.ifFalse),
   };
 }
 
@@ -94,17 +107,24 @@ function collectOutputs(analysis, resolve) {
   const outputs = [];
   for (const row of analysis.rows) {
     if (row.purpose === "response") {
-      const result = resolve(row.resultId);
-      const info = operationToText(row.subsequentUse, resolve);
-      const label = (result && result.name.trim()) || info || "Respuesta";
-      outputs.push({ label, detail: result ? info : "", branch: null, condition: "" });
+      const parts =
+        row.subsequentUse.length > 0
+          ? expressionParts(row.subsequentUse, resolve)
+          : responseFallback(resolve(row.resultId));
+      outputs.push({ parts, branch: null, condition: "" });
     }
     const condition = row.condition.trim();
     for (const [branchCase, branch] of [["Sí", row.ifTrue], ["No", row.ifFalse]]) {
       if (branch.type === "response" && branch.value.length > 0) {
-        outputs.push({ label: operationToText(branch.value, resolve), detail: "", branch: branchCase, condition });
+        outputs.push({ parts: expressionParts(branch.value, resolve), branch: branchCase, condition });
       }
     }
   }
   return outputs;
+}
+
+// Si una respuesta no tiene texto propio, se muestra el dato producido (si lo hay).
+function responseFallback(result) {
+  if (result && result.name.trim()) return [{ kind: "ref", text: result.name, type: result.type }];
+  return [{ kind: "literal", text: "Respuesta" }];
 }

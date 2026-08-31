@@ -21,21 +21,27 @@ export const OPERATOR_SYMBOLS = Object.values(OPERATOR_GROUPS).reduce(
   {},
 );
 
-// Texto legible de una expresión (operación o condición). `resolve` mapea un id
+// Descompone una expresión en partes tipadas para presentarla resaltando los
+// datos. Cada parte: { kind: "ref"|"op"|"literal", text, type? } — para "ref",
+// `type` es el tipo del dato (o "" si el dato ya no existe). `resolve` mapea un id
 // de dato a su entrada del catálogo.
-export function operationToText(tokens, resolve) {
-  if (!Array.isArray(tokens)) return "";
-  return tokens.map((token) => tokenToText(token, resolve)).join(" ");
+export function expressionParts(tokens, resolve) {
+  if (!Array.isArray(tokens)) return [];
+  return tokens.map((token) => {
+    if (token.kind === "ref") {
+      const datum = resolve(token.dataId);
+      return { kind: "ref", text: datum ? datum.name || "(sin nombre)" : "?", type: datum?.type ?? "" };
+    }
+    if (token.kind === "op") return { kind: "op", text: OPERATOR_SYMBOLS[token.op] ?? "?" };
+    return { kind: "literal", text: token.value ?? "" };
+  });
 }
 
-function tokenToText(token, resolve) {
-  if (token.kind === "ref") {
-    const datum = resolve(token.dataId);
-    return datum ? datum.name || "(sin nombre)" : "?";
-  }
-  if (token.kind === "op") return OPERATOR_SYMBOLS[token.op] ?? "?";
-  if (token.kind === "literal") return token.value ?? "";
-  return "";
+// Texto legible de una expresión (une las partes con espacios).
+export function operationToText(tokens, resolve) {
+  return expressionParts(tokens, resolve)
+    .map((part) => part.text)
+    .join(" ");
 }
 
 const ARITHMETIC_OPS = Object.keys(OPERATOR_GROUPS.arithmetic.operators);

@@ -88,28 +88,24 @@ function dataChip(datum) {
 
 function outputChip(output) {
   const children = [
-    el("div", { class: "flex items-center gap-1.5" }, [
+    el("div", { class: "flex flex-wrap items-center gap-1.5" }, [
       output.branch ? caseBadge(output.branch) : null,
-      el("span", { class: "font-medium" }, output.label),
+      expressionEl(output.parts, "emerald"),
     ]),
   ];
   if (output.condition) {
     children.push(el("div", { class: "text-[11px] text-emerald-700/80" }, `cuando: ${output.condition}`));
   }
-  if (output.detail) {
-    children.push(el("div", { class: "text-[11px] text-emerald-700/80" }, output.detail));
-  }
   return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-emerald-800" }, children);
 }
 
-// Un camino de la decisión: badge Sí/No + a dónde conduce (tipo y detalle).
+// Un camino de la decisión: caso Sí/No, si continúa o finaliza, y a dónde conduce.
 function pathLine(caseLabel, branch) {
-  return el("div", { class: "flex items-start gap-1.5 text-xs text-slate-600" }, [
+  return el("div", { class: "flex flex-wrap items-center gap-1.5 text-xs text-slate-600" }, [
     caseBadge(caseLabel),
-    el("span", {}, [
-      branch.type ? el("span", { class: "text-slate-400" }, `${labelOf(BRANCH_TYPES, branch.type)}: `) : null,
-      branch.text || "…",
-    ]),
+    branch.flow ? flowBadge(branch.flow) : null,
+    branch.type ? el("span", { class: "text-slate-400" }, `${labelOf(BRANCH_TYPES, branch.type)}:`) : null,
+    branch.parts.length > 0 ? expressionEl(branch.parts) : el("span", { class: "text-slate-400" }, "…"),
   ]);
 }
 
@@ -119,6 +115,32 @@ function caseBadge(branchCase) {
   return el("span", { class: `shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${style}` }, branchCase);
 }
 
+// Indica si el camino continúa el proceso o lo finaliza.
+function flowBadge(flow) {
+  const isEnd = flow === "finaliza";
+  const style = isEnd ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700";
+  return el("span", { class: `shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${style}` }, isEnd ? "Finaliza" : "Continúa");
+}
+
+// Renderiza una expresión resaltando los datos (ref) frente a operadores y texto.
+function expressionEl(parts, tone = "sky") {
+  const children = [];
+  parts.forEach((part, index) => {
+    if (index > 0) children.push(" ");
+    children.push(partNode(part, tone));
+  });
+  return el("span", {}, children);
+}
+
+function partNode(part, tone) {
+  if (part.kind === "ref") {
+    const style = tone === "emerald" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-700";
+    return el("span", { class: `rounded px-1 py-0.5 text-xs font-medium ${style}`, title: "Dato utilizado" }, part.text);
+  }
+  if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
+  return el("span", {}, part.text);
+}
+
 // Tarjeta de actividad: cada parte en su propia línea etiquetada para leerse de un vistazo.
 function stepCard(step) {
   const fields = [];
@@ -126,15 +148,15 @@ function stepCard(step) {
     fields.push(fieldRow("Entradas", el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(smallChip))));
   }
   if (step.condition) fields.push(fieldRow("Condición", step.condition));
-  if (step.operation) fields.push(fieldRow("Operación", step.operation));
-  if (step.result) fields.push(fieldRow("Resultado", dataLabel(step.result)));
+  if (step.operation.length > 0) fields.push(fieldRow("Operación", expressionEl(step.operation)));
+  if (step.result) fields.push(fieldRow("Resultado", smallChip(step.result)));
   if (step.purpose) {
     fields.push(
       fieldRow(
         "Propósito",
         el("span", { class: "inline-flex flex-wrap items-center gap-1" }, [
           purposeBadge(step.purpose),
-          step.purposeDetail ? el("span", {}, step.purposeDetail) : null,
+          step.purposeDetail.length > 0 ? expressionEl(step.purposeDetail) : null,
         ]),
       ),
     );

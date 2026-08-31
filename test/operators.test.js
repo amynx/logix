@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { operationToText, inferResultType } from "../src/models/operators.js";
+import { operationToText, expressionParts, inferResultType } from "../src/models/operators.js";
 
 const resolve = (id) => ({ n1: { name: "nota1" }, n2: { name: "nota2" } }[id] ?? null);
 
@@ -24,6 +24,15 @@ test("a reference to a removed datum renders as ?", () => {
 
 test("an empty operation is empty text", () => {
   assert.equal(operationToText([], resolve), "");
+});
+
+test("expressionParts marks data references distinctly from operators and text", () => {
+  const parts = expressionParts(
+    [{ kind: "ref", dataId: "n1" }, { kind: "op", op: "add" }, { kind: "literal", value: "3" }],
+    resolve,
+  );
+  assert.deepEqual(parts.map((p) => p.kind), ["ref", "op", "literal"]);
+  assert.equal(parts[0].text, "nota1");
 });
 
 test("inferResultType suggests a type from the operators used", () => {
