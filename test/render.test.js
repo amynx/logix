@@ -330,6 +330,18 @@ test("deleting a row warns when its datum is used in another operation", async (
   );
 });
 
+test("the operation builder offers all data, not only the row's inputs", async () => {
+  const { doc, controller } = await mountApp();
+  const inputId = declareInput(doc, controller, "nota1", "numeric");
+
+  // Sin referenciarlo en la columna de entrada, ya está disponible en la operación.
+  const opCell = doc.querySelectorAll("tbody tr td")[4];
+  const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === inputId),
+  );
+  assert.ok(dataSelect, "la operación ofrece el dato aunque la fila no lo consuma como entrada");
+});
+
 test("building an operation references data and shows it in the chain", async () => {
   const { doc, controller } = await mountApp();
 

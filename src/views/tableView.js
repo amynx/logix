@@ -43,11 +43,9 @@ export class TableView {
   render(analysis, handlers) {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
-    // Datos que alguna fila produce como resultado (los demás son datos de entrada).
-    const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      this.#buildBody(analysis.rows, { dataById, producedIds }, handlers),
+      this.#buildBody(analysis.rows, { dataById }, handlers),
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
@@ -110,7 +108,7 @@ export class TableView {
   }
 
   #buildRow(row, index, catalog, handlers) {
-    const { dataById, producedIds } = catalog;
+    const { dataById } = catalog;
     // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
     // que cada edición lea el estado fresco del modelo. Es clave para campos con
     // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
@@ -124,20 +122,11 @@ export class TableView {
     const conditionApplies = !row.purpose || isDecision;
     const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
     const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
-    // Datos seleccionables como entrada de la fila: las entradas declaradas y los
-    // resultados producidos por otras filas, que la fila aún no referencie.
-    const availableInputs = [...dataById.values()].filter(
-      (entry) => entry.id !== row.resultId && !row.inputIds.includes(entry.id),
-    );
-    // Datos que la operación puede referenciar: las entradas de esta fila y los
-    // resultados ya producidos por otras filas.
-    const availableRefs = dedupeById([
-      ...inputEntries,
-      ...[...dataById.values()].filter((entry) => producedIds.has(entry.id) && entry.id !== row.resultId),
-    ]);
-    // Para construir la respuesta final están disponibles todos los datos del
-    // análisis (entradas y resultados de operaciones).
-    const allRefs = [...dataById.values()];
+    // Todos los datos del análisis, excepto el propio resultado de la fila (para no
+    // referenciarlo antes de producirlo). Disponibles en operación, ramas y entradas.
+    const allData = [...dataById.values()].filter((entry) => entry.id !== row.resultId);
+    // En "Datos de entrada", además, no se ofrecen los que la fila ya referencia.
+    const availableInputs = allData.filter((entry) => !row.inputIds.includes(entry.id));
     const resolveData = (id) => dataById.get(id) ?? null;
 
     const cells = [
@@ -171,12 +160,12 @@ export class TableView {
           ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
           : notApplicable(),
       ),
-      cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
+      cell(expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })))),
-      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
-      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allRefs, resolve: resolveData }) : notApplicable()),
+      cell(isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData }) : notApplicable()),
+      cell(isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData }) : notApplicable()),
       el("td", { class: `${TD_CLASS} text-center` }, [
         el(
           "button",
@@ -383,10 +372,6 @@ function operatorSelect(onPick) {
   );
   select.value = "";
   return select;
-}
-
-function dedupeById(entries) {
-  return [...new Map(entries.map((entry) => [entry.id, entry])).values()];
 }
 
 // Dato resultante: nombre + tipo. El dato se crea de forma diferida en el modelo
