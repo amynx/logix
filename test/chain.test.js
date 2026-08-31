@@ -52,7 +52,6 @@ test("decision branches that respond become outputs", () => {
   const row = addRow(analysis).rows.at(-1);
   updateRow(analysis, row.id, {
     purpose: "decision",
-    condition: "¿promedio >= 3?",
     ifTrue: { type: "response", value: "Mostrar 'aprobó'" },
     ifFalse: { type: "response", value: "Mostrar 'reprobó'" },
   });

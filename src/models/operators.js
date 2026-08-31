@@ -20,9 +20,11 @@ export const OPERATOR_SYMBOLS = Object.values(OPERATOR_GROUPS).reduce(
   {},
 );
 
-// Texto legible de una operación. `resolve` mapea un id de dato a su entrada.
+// Texto legible de una expresión (operación o condición). `resolve` mapea un id
+// de dato a su entrada del catálogo.
 export function operationToText(tokens, resolve) {
-  return (tokens ?? []).map((token) => tokenToText(token, resolve)).join(" ");
+  if (!Array.isArray(tokens)) return "";
+  return tokens.map((token) => tokenToText(token, resolve)).join(" ");
 }
 
 function tokenToText(token, resolve) {

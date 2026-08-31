@@ -5,10 +5,10 @@
 
 import { createId } from "../utils/id.js";
 
-// Versión del formato del análisis. La v2 introdujo el catálogo de datos con
-// identidad propia (ids); la v3 convierte la operación en una lista de tokens
-// (referencias a datos, operadores y literales) en vez de texto libre.
-export const ANALYSIS_VERSION = 3;
+// Versión del formato del análisis. v2: catálogo de datos con ids. v3: la
+// operación pasa a lista de tokens. v4: la condición también se construye como
+// expresión (misma lista de tokens) en vez de texto libre.
+export const ANALYSIS_VERSION = 4;
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
@@ -23,7 +23,7 @@ export function createRow(overrides = {}) {
     id: createId(),
     problem: "",
     inputIds: [],
-    condition: "",
+    condition: [],
     operation: [],
     resultId: null,
     purpose: "",

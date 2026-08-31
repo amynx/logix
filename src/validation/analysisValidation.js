@@ -28,16 +28,27 @@ export function migrateAnalysis(data) {
   let current = data;
   if (current.version < 2) current = migrateV1toV2(current);
   if (current.version < 3) current = migrateV2toV3(current);
+  if (current.version < 4) current = migrateV3toV4(current);
   return current;
+}
+
+// Convierte un campo de texto libre en lista de tokens, preservando el texto
+// anterior como literal para no perder el trabajo del estudiante.
+function textToTokens(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text ? [{ kind: "literal", value: text }] : [];
+}
+
+// v4: la condición pasa de texto libre a lista de tokens (como la operación).
+function migrateV3toV4(old) {
+  const rows = old.rows.map((row) => ({ ...row, condition: textToTokens(row.condition) }));
+  return { ...old, version: 4, rows };
 }
 
 // v3: la operación pasa de texto libre a lista de tokens. El texto anterior se
 // conserva como un literal para no perder el trabajo del estudiante.
 function migrateV2toV3(old) {
-  const rows = old.rows.map((row) => {
-    const text = typeof row.operation === "string" ? row.operation.trim() : "";
-    return { ...row, operation: text ? [{ kind: "literal", value: text }] : [] };
-  });
+  const rows = old.rows.map((row) => ({ ...row, operation: textToTokens(row.operation) }));
   return { ...old, version: 3, rows };
 }
 
@@ -108,8 +119,8 @@ export function collectAnalysisWarnings(analysis) {
     if (result && result.name.trim() && !result.type) {
       warnings.push(`Fila ${position}: el dato "${result.name}" no tiene tipo.`);
     }
-    if (row.purpose === "decision" && !row.condition.trim()) {
-      warnings.push(`Fila ${position}: la decisión no tiene una condición (pregunta) definida.`);
+    if (row.purpose === "decision" && row.condition.length === 0) {
+      warnings.push(`Fila ${position}: la decisión no tiene una condición definida.`);
     }
     if (row.purpose === "response" && !row.subsequentUse.trim()) {
       warnings.push(`Fila ${position}: falta indicar qué información se proporcionará.`);

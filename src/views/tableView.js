@@ -24,7 +24,7 @@ const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
 const COLUMNS = [
   { key: "problem", title: "Problema / Necesidad", help: "Sub-necesidad de este paso (opcional)." },
   { key: "inputs", title: "Datos de entrada", help: "Datos que el programa recibe para este paso." },
-  { key: "condition", title: "Condición", help: "Pregunta que debe responderse para decidir el camino." },
+  { key: "condition", title: "Condición", help: "Constrúyela con datos y operadores (p. ej. promedio ≥ 3)." },
   { key: "operation", title: "Operación", help: "Constrúyela referenciando datos y operadores." },
   { key: "result", title: "Dato resultante", help: "Dato producido tras realizar una operación." },
   { key: "purpose", title: "Propósito", help: "Para qué se utilizará el dato producido." },
@@ -109,13 +109,15 @@ export class TableView {
     const reusable = [...dataById.values()].filter(
       (entry) => !row.inputIds.includes(entry.id) && entry.id !== row.resultId,
     );
-    // Datos que la operación puede referenciar: las entradas de esta fila y los
-    // resultados ya producidos por otras filas.
-    const operationRefs = dedupeById([
+    // Datos que una expresión (operación o condición) puede referenciar: las
+    // entradas de esta fila y los resultados ya producidos por otras filas.
+    const availableRefs = dedupeById([
       ...inputEntries,
       ...[...dataById.values()].filter((entry) => producedIds.has(entry.id) && entry.id !== row.resultId),
     ]);
     const resolveData = (id) => dataById.get(id) ?? null;
+    const editExpression = (fieldName) => (updater) =>
+      structural((current) => ({ [fieldName]: updater(current[fieldName]) }));
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -143,8 +145,8 @@ export class TableView {
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
-      cell(textField(row.condition, "¿Qué debe responderse?", (value) => field(() => ({ condition: value })))),
-      cell(operationEditor(row.operation, operationRefs, resolveData, structural)),
+      cell(expressionEditor(row.condition, availableRefs, resolveData, editExpression("condition"))),
+      cell(expressionEditor(row.operation, availableRefs, resolveData, editExpression("operation"))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
@@ -220,12 +222,13 @@ function dataReferenceLabel(entry) {
   return `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`;
 }
 
-// Constructor de la operación: sus piezas (referencias a datos, operadores y
-// literales) se seleccionan, no se escriben como texto. Así la operación usa los
-// datos identificados y sus resultados quedan disponibles para operaciones posteriores.
-function operationEditor(tokens, refs, resolve, structural) {
-  const append = (token) => structural((row) => ({ operation: [...row.operation, token] }));
-  const removeAt = (index) => structural((row) => ({ operation: row.operation.filter((_, i) => i !== index) }));
+// Constructor de expresiones (operación o condición): sus piezas (referencias a
+// datos, operadores y literales) se seleccionan, no se escriben como texto. Así
+// se usan los datos identificados y sus resultados quedan disponibles para pasos
+// posteriores. `onChange` recibe un actualizador (tokens actuales) => nuevos tokens.
+function expressionEditor(tokens, refs, resolve, onChange) {
+  const append = (token) => onChange((current) => [...current, token]);
+  const removeAt = (index) => onChange((current) => current.filter((_, i) => i !== index));
 
   const chips = tokens.map((token, index) => operationTokenChip(token, resolve, () => removeAt(index)));
 

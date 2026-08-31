@@ -302,6 +302,38 @@ test("building an operation references data and shows it in the chain", async ()
   assert.match(doc.getElementById("chain-container").textContent, /nota1 ÷ 3/);
 });
 
+test("the condition is built as an expression referencing data", async () => {
+  const { doc, controller } = await mountApp();
+
+  const inputsCell = () => doc.querySelectorAll("tbody tr td")[2];
+  [...inputsCell().querySelectorAll("button")].find((b) => b.textContent === "+ dato").click();
+  const nameInput = inputsCell().querySelector("input");
+  nameInput.value = "x";
+  fire(nameInput, "input");
+  const dataId = controller.analysis.rows[0].inputIds[0];
+
+  const condCell = () => doc.querySelectorAll("tbody tr td")[3];
+  const dataSelect = [...condCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === dataId),
+  );
+  dataSelect.value = dataId;
+  fire(dataSelect, "change");
+
+  const opSelect = [...condCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === "ge"),
+  );
+  opSelect.value = "ge";
+  fire(opSelect, "change");
+
+  const literal = condCell().querySelector('input[placeholder="valor"]');
+  literal.value = "3";
+  [...condCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+
+  const condition = controller.analysis.rows[0].condition;
+  assert.deepEqual(condition.map((t) => t.kind), ["ref", "op", "literal"]);
+  assert.equal(condition[1].op, "ge");
+});
+
 test("the chain panel reflects external inputs and final outputs live", async () => {
   const { doc } = await mountApp();
   const chainText = () => doc.getElementById("chain-container").textContent;

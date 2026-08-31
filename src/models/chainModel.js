@@ -45,9 +45,9 @@ function buildStep(row, index, resolve, producedIds) {
     .map((datum) => ({ ...datum, produced: producedIds.has(datum.id) }));
   const result = resolve(row.resultId);
   const operation = operationToText(row.operation, resolve);
+  const condition = operationToText(row.condition, resolve);
 
-  const hasContent =
-    operation || row.condition.trim() || result || inputs.length > 0 || row.purpose;
+  const hasContent = operation || condition || result || inputs.length > 0 || row.purpose;
   if (!hasContent) return null;
 
   return {
@@ -55,7 +55,7 @@ function buildStep(row, index, resolve, producedIds) {
     position: index + 1,
     inputs,
     operation,
-    condition: row.condition.trim(),
+    condition,
     purpose: row.purpose,
     result,
     ifTrue: row.ifTrue,
