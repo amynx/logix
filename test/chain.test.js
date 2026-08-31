@@ -13,7 +13,7 @@ const partsText = (parts) => parts.map((p) => p.text).join(" ");
 import {
   createAnalysis,
   addRow,
-  addRowInput,
+  addInput,
   addExistingRowInput,
   updateRow,
   updateData,
@@ -52,10 +52,10 @@ test("produced data are listed for reuse in the process", () => {
   assert.deepEqual(chain.producidos.map((d) => d.name), ["promedio"]);
 });
 
-test("external inputs are those consumed but never produced", () => {
+test("external inputs are the declared data, never the produced ones", () => {
   const analysis = createAnalysis({ title: "Promedio" });
   const row = addRow(analysis).rows.at(-1);
-  const nota = addRowInput(analysis, row.id);
+  const nota = addInput(analysis);
   updateData(analysis, nota.id, { name: "nota1", type: "numeric" });
   updateRowResult(analysis, row.id, { name: "promedio", type: "numeric" });
 
@@ -99,8 +99,9 @@ test("decision branches that respond become outputs tagged Sí/No", () => {
 test("a process step exposes description, inputs, result and purpose", () => {
   const analysis = createAnalysis({ title: "Demo" });
   const row = addRow(analysis).rows.at(-1);
-  const nota = addRowInput(analysis, row.id);
+  const nota = addInput(analysis);
   updateData(analysis, nota.id, { name: "nota1", type: "numeric" });
+  addExistingRowInput(analysis, row.id, nota.id);
   updateRowResult(analysis, row.id, { name: "promedio", type: "numeric" });
   updateRow(analysis, row.id, {
     problem: "Obtener el promedio",

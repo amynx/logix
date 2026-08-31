@@ -61,22 +61,16 @@ export function addRow(analysis, row = createRow()) {
   return touch(analysis);
 }
 
-// Elimina una fila y limpia el catálogo: el dato que producía deja de tener
-// origen, así que se quita junto con sus referencias; las entradas propias que
-// queden huérfanas también se descartan. Los datos reutilizados de otras filas
-// solo pierden la referencia (su origen los conserva).
+// Elimina una fila. El dato que producía deja de tener origen, así que se quita
+// del catálogo junto con sus referencias. Las entradas declaradas son globales y
+// persisten (solo se quitan sus referencias al desaparecer la fila).
 export function removeRow(analysis, rowId) {
   const row = analysis.rows.find((candidate) => candidate.id === rowId);
   if (!row) return analysis;
 
   const producedId = row.resultId;
-  const inputIds = [...row.inputIds];
   analysis.rows = analysis.rows.filter((candidate) => candidate.id !== rowId);
-
   if (producedId) removeData(analysis, producedId);
-  for (const dataId of inputIds) {
-    if (dataId !== producedId && !isDataReferenced(analysis, dataId)) removeData(analysis, dataId);
-  }
   return touch(analysis);
 }
 
@@ -128,39 +122,57 @@ export function updateData(analysis, dataId, changes) {
   return touch(analysis);
 }
 
-// Elimina un dato del catálogo y todas sus referencias en las filas.
+function withoutRef(tokens, dataId) {
+  return Array.isArray(tokens) ? tokens.filter((token) => !(token.kind === "ref" && token.dataId === dataId)) : tokens;
+}
+
+// Elimina un dato del catálogo y todas sus referencias en las filas: entradas,
+// resultado y las que aparezcan en operación, uso posterior o ramas.
 export function removeData(analysis, dataId) {
   analysis.data = analysis.data.filter((entry) => entry.id !== dataId);
   for (const row of analysis.rows) {
     row.inputIds = row.inputIds.filter((id) => id !== dataId);
     if (row.resultId === dataId) row.resultId = null;
+    row.operation = withoutRef(row.operation, dataId);
+    row.subsequentUse = withoutRef(row.subsequentUse, dataId);
+    row.ifTrue.value = withoutRef(row.ifTrue.value, dataId);
+    row.ifFalse.value = withoutRef(row.ifFalse.value, dataId);
   }
   return touch(analysis);
 }
 
-// Un dato es huérfano si ninguna fila lo consume como entrada ni lo produce.
-function isDataReferenced(analysis, dataId) {
-  return analysis.rows.some((row) => row.inputIds.includes(dataId) || row.resultId === dataId);
+// Datos de entrada declarados: los del catálogo que ninguna operación produce.
+// Se declaran una vez (en su sección) y las filas solo los referencian.
+export function listInputs(analysis) {
+  const produced = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
+  return analysis.data.filter((entry) => !produced.has(entry.id));
 }
 
-// Filas que consumen un dato como entrada (para avisar antes de borrar su origen).
+// Agrega un nuevo dato de entrada (vacío) al catálogo.
+export function addInput(analysis) {
+  return addData(analysis);
+}
+
+function tokensReference(tokens, dataId) {
+  return Array.isArray(tokens) && tokens.some((token) => token.kind === "ref" && token.dataId === dataId);
+}
+
+// Filas que usan un dato: como entrada declarada, o referenciado en su operación,
+// uso posterior o el detalle de una rama (para avisar antes de borrar su origen).
 export function rowsUsingData(analysis, dataId) {
-  return analysis.rows.filter((row) => row.inputIds.includes(dataId));
+  return analysis.rows.filter(
+    (row) =>
+      row.inputIds.includes(dataId) ||
+      tokensReference(row.operation, dataId) ||
+      tokensReference(row.subsequentUse, dataId) ||
+      tokensReference(row.ifTrue.value, dataId) ||
+      tokensReference(row.ifFalse.value, dataId),
+  );
 }
 
 // --- Referencias fila ↔ dato ---
 
-// Añade un nuevo dato de entrada (vacío) a la fila y lo registra en el catálogo.
-export function addRowInput(analysis, rowId) {
-  const row = analysis.rows.find((candidate) => candidate.id === rowId);
-  if (!row) return null;
-  const entry = addData(analysis);
-  row.inputIds.push(entry.id);
-  touch(analysis);
-  return entry;
-}
-
-// Reutiliza un dato existente del catálogo como entrada de la fila (comparte id).
+// Reutiliza un dato de entrada declarado como entrada de la fila (comparte id).
 export function addExistingRowInput(analysis, rowId, dataId) {
   const row = analysis.rows.find((candidate) => candidate.id === rowId);
   if (!row) return analysis;
@@ -171,12 +183,12 @@ export function addExistingRowInput(analysis, rowId, dataId) {
   return analysis;
 }
 
-// Quita un dato de entrada de la fila; si queda huérfano, lo elimina del catálogo.
+// Quita la referencia a un dato de entrada de la fila. El dato declarado persiste;
+// solo se elimina desde su sección.
 export function removeRowInput(analysis, rowId, dataId) {
   const row = analysis.rows.find((candidate) => candidate.id === rowId);
   if (!row) return analysis;
   row.inputIds = row.inputIds.filter((id) => id !== dataId);
-  if (!isDataReferenced(analysis, dataId)) removeData(analysis, dataId);
   return touch(analysis);
 }
 

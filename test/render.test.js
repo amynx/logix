@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 import { AnalysisView } from "../src/views/analysisView.js";
+import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { ChainView } from "../src/views/chainView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
@@ -36,7 +37,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="table-container"></div><div id="chain-container"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -50,6 +51,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
       toolbarContainer: doc.getElementById("toolbar"),
       infoContainer: doc.getElementById("analysis-info"),
     }),
+    inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),
     storage,
@@ -65,23 +67,32 @@ function fire(node, type) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve));
 
-// Produce un dato en la fila 0 y lo reutiliza como entrada en una nueva fila 1.
-// Devuelve el id del dato reutilizado.
-function reuseFirstResultInNewRow(doc, controller, name) {
-  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
-  resultInput.value = name;
-  fire(resultInput, "input");
+// Declara un dato de entrada en la sección y devuelve su id.
+function declareInput(doc, controller, name = "", type = "") {
+  const before = new Set(controller.analysis.data.map((d) => d.id));
+  [...doc.querySelectorAll("#inputs-container button")].find((b) => b.textContent === "+ Agregar dato").click();
+  const entry = controller.analysis.data.find((d) => !before.has(d.id));
+  const names = doc.querySelectorAll("#inputs-container input");
+  const nameInput = names[names.length - 1];
+  if (name) {
+    nameInput.value = name;
+    fire(nameInput, "input");
+  }
+  if (type) {
+    const selects = doc.querySelectorAll("#inputs-container select");
+    const sel = selects[selects.length - 1];
+    sel.value = type;
+    fire(sel, "change");
+  }
+  return entry.id;
+}
 
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
-
-  const dataId = controller.analysis.rows[0].resultId;
-  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
-  const reuseSelect = [...inputsCell.querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === dataId),
-  );
-  reuseSelect.value = dataId;
-  fire(reuseSelect, "change");
-  return dataId;
+// Referencia un dato de entrada (por id) en la columna de la fila indicada.
+function referenceInput(doc, rowIndex, dataId) {
+  const cell = doc.querySelectorAll("tbody tr")[rowIndex].querySelectorAll("td")[2];
+  const picker = [...cell.querySelectorAll("select")].find((s) => [...s.options].some((o) => o.value === dataId));
+  picker.value = dataId;
+  fire(picker, "change");
 }
 
 test("renders analysis info and a seeded row with all columns", async () => {
@@ -181,15 +192,17 @@ test("condition and branches show as 'no aplica' outside of decisions", async ()
   assert.ok(branchCell().querySelectorAll("select, textarea").length > 0);
 });
 
-test("adding an input datum grows the row's inputs and re-renders", async () => {
+test("a row references a declared input, shown as a read-only chip", async () => {
   const { doc, controller } = await mountApp();
-  const inputsCell = doc.querySelectorAll("tbody tr td")[2];
-  const addButton = [...inputsCell.querySelectorAll("button")].find((b) => b.textContent === "+ dato");
+  const inputId = declareInput(doc, controller, "nota1", "numeric");
+  assert.equal(controller.analysis.rows[0].inputIds.length, 0, "declararlo no lo agrega a la fila");
 
-  addButton.click();
+  referenceInput(doc, 0, inputId);
 
-  assert.equal(controller.analysis.rows[0].inputIds.length, 1);
-  assert.equal(doc.querySelectorAll("tbody tr td")[2].querySelectorAll("input").length, 1);
+  assert.deepEqual(controller.analysis.rows[0].inputIds, [inputId]);
+  const cell = doc.querySelectorAll("tbody tr td")[2];
+  assert.match(cell.textContent, /nota1/);
+  assert.equal(cell.querySelectorAll("input").length, 0, "no hay campo editable en la celda");
 });
 
 test("editing result name then type keeps both (no stale overwrite)", async () => {
@@ -208,47 +221,27 @@ test("editing result name then type keeps both (no stale overwrite)", async () =
   assert.equal(result.type, "numeric");
 });
 
-test("adding a datum after naming another preserves the first name", async () => {
+test("detaching an input from a row keeps it declared globally", async () => {
   const { doc, controller } = await mountApp();
-  const addDato = () =>
-    [...doc.querySelectorAll("tbody tr td")[2].querySelectorAll("button")].find((b) => b.textContent === "+ dato");
+  const inputId = declareInput(doc, controller, "nota1", "numeric");
+  referenceInput(doc, 0, inputId);
 
-  addDato().click(); // un dato de entrada
-  const nameInput = doc.querySelectorAll("tbody tr td")[2].querySelector("input");
-  nameInput.value = "nota1";
-  fire(nameInput, "input");
-  addDato().click(); // añadir otro no debe borrar el primero
+  const cell = () => doc.querySelectorAll("tbody tr td")[2];
+  [...cell().querySelectorAll("button")].find((b) => b.textContent === "×").click();
 
-  const { inputIds } = controller.analysis.rows[0];
-  assert.equal(inputIds.length, 2);
-  assert.equal(findData(controller.analysis, inputIds[0]).name, "nota1");
+  assert.equal(controller.analysis.rows[0].inputIds.length, 0, "se quita la referencia");
+  assert.ok(findData(controller.analysis, inputId), "el dato declarado persiste");
 });
 
-test("reusing a produced result adds it as a read-only reference in another row", async () => {
+test("removing a declared input from its section deletes it and prunes references", async () => {
   const { doc, controller } = await mountApp();
+  const inputId = declareInput(doc, controller, "nota1", "numeric");
+  referenceInput(doc, 0, inputId);
 
-  // La fila 0 produce "promedio".
-  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
-  resultInput.value = "promedio";
-  fire(resultInput, "input");
+  [...doc.querySelectorAll("#inputs-container button")].find((b) => b.title === "Eliminar dato de entrada").click();
 
-  // Segunda fila y su selector de reutilización.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
-  const inputsCell = () => doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
-  const reuseSelect = [...inputsCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => /promedio/.test(o.textContent)),
-  );
-  assert.ok(reuseSelect, "el selector ofrece el dato producido");
-
-  const option = [...reuseSelect.options].find((o) => /promedio/.test(o.textContent));
-  reuseSelect.value = option.value;
-  fire(reuseSelect, "change");
-
-  const promedioId = controller.analysis.rows[0].resultId;
-  assert.ok(controller.analysis.rows[1].inputIds.includes(promedioId), "la fila 2 referencia el dato");
-  const chip = [...inputsCell().querySelectorAll("span")].find((s) => /promedio/.test(s.textContent));
-  assert.ok(chip, "se muestra como ficha de solo lectura");
-  assert.equal(inputsCell().querySelectorAll("input").length, 0, "sin campo editable para el dato reutilizado");
+  assert.equal(findData(controller.analysis, inputId), null);
+  assert.ok(!controller.analysis.rows[0].inputIds.includes(inputId), "la referencia se poda");
 });
 
 test("naming a result refreshes other data pickers and keeps focus", async () => {
@@ -269,48 +262,61 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
   assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
 });
 
-test("renaming a produced result updates its reused reference live", async () => {
+test("renaming a declared input updates its references in the rows live", async () => {
   const { doc, controller } = await mountApp();
-  const dataId = reuseFirstResultInNewRow(doc, controller, "promedio");
+  const inputId = declareInput(doc, controller, "promedio", "numeric");
+  referenceInput(doc, 0, inputId);
 
-  const resultInput = doc.querySelectorAll("tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
-  resultInput.value = "promedioFinal";
-  fire(resultInput, "input");
+  const nameInput = doc.querySelectorAll("#inputs-container input")[0];
+  nameInput.value = "promedioFinal";
+  fire(nameInput, "input");
 
-  // La ficha reutilizada (dato producido) de la segunda fila refleja el nuevo nombre.
-  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
-  assert.match(inputsCell.textContent, /promedioFinal/, "la ficha reutilizada se actualiza al instante");
-  assert.ok(controller.analysis.rows[1].inputIds.includes(dataId));
+  const cell = doc.querySelectorAll("tbody tr td")[2];
+  assert.match(cell.textContent, /promedioFinal/, "la ficha de la fila se actualiza al instante");
 });
 
-test("deleting a row whose datum is reused warns and prunes the reference", async () => {
+test("deleting a row warns when its datum is used in another operation", async () => {
   const { doc, controller } = await mountApp();
-  const dataId = reuseFirstResultInNewRow(doc, controller, "promedio");
+
+  // La fila 0 produce "promedio".
+  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultInput.value = "promedio";
+  fire(resultInput, "input");
+  const promedioId = controller.analysis.rows[0].resultId;
+
+  // La fila 1 lo referencia en su operación.
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  const opCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[4];
+  const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === promedioId),
+  );
+  dataSelect.value = promedioId;
+  fire(dataSelect, "change");
+  const secondRowId = controller.analysis.rows[1].id;
 
   doc.querySelectorAll("tbody tr")[0].querySelector("td:last-child button").click();
   assert.match(doc.body.textContent, /reutilizado en/, "el aviso menciona la reutilización");
-
   [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
   await flush();
 
   assert.equal(controller.analysis.rows.length, 1);
-  assert.equal(findData(controller.analysis, dataId), null, "el dato se elimina con la fila de origen");
-  assert.ok(!controller.analysis.rows[0].inputIds.includes(dataId), "la referencia colgante se poda");
+  assert.equal(findData(controller.analysis, promedioId), null);
+  const remaining = controller.analysis.rows.find((r) => r.id === secondRowId);
+  assert.ok(
+    !remaining.operation.some((t) => t.kind === "ref" && t.dataId === promedioId),
+    "la referencia en la operación se poda",
+  );
 });
 
 test("building an operation references data and shows it in the chain", async () => {
   const { doc, controller } = await mountApp();
 
-  // Identifica un dato de entrada "nota1".
-  const inputsCell = () => doc.querySelectorAll("tbody tr td")[2];
-  [...inputsCell().querySelectorAll("button")].find((b) => b.textContent === "+ dato").click();
-  const nameInput = inputsCell().querySelector("input");
-  nameInput.value = "nota1";
-  fire(nameInput, "input");
+  // Declara "nota1" y lo referencia en la fila.
+  const dataId = declareInput(doc, controller, "nota1", "numeric");
+  referenceInput(doc, 0, dataId);
 
   // Construye la operación: referencia nota1, operador ÷ y literal 3.
   const opCell = () => doc.querySelectorAll("tbody tr td")[4];
-  const dataId = controller.analysis.rows[0].inputIds[0];
   const dataSelect = [...opCell().querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === dataId),
   );
@@ -454,15 +460,11 @@ test("the final response can reference existing data", async () => {
 });
 
 test("the chain panel reflects external inputs and final outputs live", async () => {
-  const { doc } = await mountApp();
+  const { doc, controller } = await mountApp();
   const chainText = () => doc.getElementById("chain-container").textContent;
 
-  const addDato = () =>
-    [...doc.querySelectorAll("tbody tr td")[2].querySelectorAll("button")].find((b) => b.textContent === "+ dato");
-  addDato().click();
-  const nameInput = doc.querySelectorAll("tbody tr td")[2].querySelector("input");
-  nameInput.value = "nota1";
-  fire(nameInput, "input");
+  // "nota1" declarado como dato de entrada aparece en las ENTRADAS de la cadena.
+  declareInput(doc, controller, "nota1", "numeric");
 
   const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
   purposeSelect.value = "response";

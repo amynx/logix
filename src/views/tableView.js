@@ -43,12 +43,12 @@ export class TableView {
   render(analysis, handlers) {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
-    // Datos que alguna fila produce como resultado: se editan en su celda de
-    // origen y se reutilizan como referencia de solo lectura en otras filas.
+    // Datos que alguna fila produce como resultado (los demás son datos de entrada).
     const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
+    const declaredInputs = analysis.data.filter((entry) => !producedIds.has(entry.id));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      this.#buildBody(analysis.rows, { dataById, producedIds }, handlers),
+      this.#buildBody(analysis.rows, { dataById, producedIds, declaredInputs }, handlers),
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
@@ -111,7 +111,7 @@ export class TableView {
   }
 
   #buildRow(row, index, catalog, handlers) {
-    const { dataById, producedIds } = catalog;
+    const { dataById, producedIds, declaredInputs } = catalog;
     // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
     // que cada edición lea el estado fresco del modelo. Es clave para campos con
     // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
@@ -125,11 +125,8 @@ export class TableView {
     const conditionApplies = !row.purpose || isDecision;
     const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
     const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
-    // Datos que esta fila puede reutilizar: los del catálogo que no consume ya
-    // ni produce ella misma.
-    const reusable = [...dataById.values()].filter(
-      (entry) => !row.inputIds.includes(entry.id) && entry.id !== row.resultId,
-    );
+    // Datos de entrada declarados que la fila aún no referencia (para su selector).
+    const availableInputs = declaredInputs.filter((entry) => !row.inputIds.includes(entry.id));
     // Datos que la operación puede referenciar: las entradas de esta fila y los
     // resultados ya producidos por otras filas.
     const availableRefs = dedupeById([
@@ -166,7 +163,7 @@ export class TableView {
         el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
-      cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
+      cell(inputsEditor(row.id, inputEntries, availableInputs, handlers)),
       cell(
         conditionApplies
           ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
@@ -443,70 +440,42 @@ function notApplicable() {
   return el("span", { class: "block px-2 py-1 text-xs text-slate-300", title: "No aplica en esta fila" }, "—");
 }
 
-// Lista de datos de entrada de la fila. Un dato que otra fila produce se muestra
-// como ficha de solo lectura (se renombra en su origen); uno propio es editable.
-// Al pie: reutilizar un dato existente o crear uno nuevo.
-function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
-  const detachButton = (dataId, title) =>
-    el("button", {
-      type: "button",
-      class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
-      title,
-      onclick: () => handlers.onRemoveRowInput(rowId, dataId),
-    }, "×");
+// Datos de entrada de la fila: solo se REUTILIZAN los datos declarados en la
+// sección "Datos de entrada". Se muestran como fichas de solo lectura (se editan
+// en su sección) y un selector agrega los que aún no se referencian.
+function inputsEditor(rowId, entries, availableInputs, handlers) {
+  const chips = entries.map((entry) =>
+    el("div", { class: "flex items-center gap-1" }, [
+      el(
+        "span",
+        {
+          class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
+          title: "Se edita en la sección «Datos de entrada»",
+        },
+        dataReferenceLabel(entry),
+      ),
+      el("button", {
+        type: "button",
+        class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
+        title: "Quitar referencia",
+        onclick: () => handlers.onRemoveRowInput(rowId, entry.id),
+      }, "×"),
+    ]),
+  );
 
-  const rows = entries.map((entry) => {
-    if (producedIds.has(entry.id)) {
-      return el("div", { class: "flex items-center gap-1" }, [
-        el(
-          "span",
-          {
-            class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
-            title: "Dato reutilizado (se edita en su fila de origen)",
-          },
-          dataReferenceLabel(entry),
-        ),
-        detachButton(entry.id, "Quitar referencia"),
-      ]);
-    }
-
-    const typeSelect = selectField(optionsOf(DATA_TYPES), entry.type, (value) => handlers.onDataChange(entry.id, { type: value }), {
-      placeholder: "Tipo…",
-    });
-    typeSelect.dataset.focusKey = `in-type:${entry.id}`;
-
-    return el("div", { class: "flex items-center gap-1" }, [
-      el("input", {
-        type: "text",
-        value: entry.name ?? "",
-        placeholder: "nombre",
-        class: CONTROL_CLASS,
-        dataset: { focusKey: `in-name:${entry.id}` },
-        oninput: (event) => handlers.onDataChange(entry.id, { name: event.target.value }),
-      }),
-      typeSelect,
-      detachButton(entry.id, "Quitar dato"),
-    ]);
-  });
-
-  const actions = [
-    el("button", {
-      type: "button",
-      class: "text-xs font-medium text-slate-500 hover:text-slate-700",
-      onclick: () => handlers.onAddRowInput(rowId),
-    }, "+ dato"),
-  ];
-
-  if (reusable.length > 0) {
-    const reuse = selectField(
-      reusable.map((entry) => ({ value: entry.id, label: dataReferenceLabel(entry) })),
+  const children = [...chips];
+  if (availableInputs.length > 0) {
+    const picker = selectField(
+      availableInputs.map((entry) => ({ value: entry.id, label: dataReferenceLabel(entry) })),
       "",
       (dataId) => dataId && handlers.onReuseInput(rowId, dataId),
-      { placeholder: "Reutilizar dato…" },
+      { placeholder: "Agregar dato…" },
     );
-    reuse.classList.add("text-xs");
-    actions.push(reuse);
+    picker.classList.add("text-xs");
+    children.push(picker);
+  } else if (chips.length === 0) {
+    children.push(el("span", { class: "text-xs text-slate-300" }, "Declara datos arriba"));
   }
 
-  return el("div", { class: "space-y-1" }, [...rows, el("div", { class: "space-y-1" }, actions)]);
+  return el("div", { class: "space-y-1" }, children);
 }

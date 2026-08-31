@@ -6,7 +6,8 @@ import assert from "node:assert/strict";
 import {
   createAnalysis,
   addRow,
-  addRowInput,
+  addInput,
+  listInputs,
   addExistingRowInput,
   removeRowInput,
   removeRow,
@@ -34,29 +35,29 @@ test("updateRowResult creates the datum lazily and then updates the same one", (
   assert.equal(findData(analysis, row.resultId).type, "numeric");
 });
 
-test("addRowInput registers a datum and removeRowInput cleans up the orphan", () => {
+test("input data are declared globally; rows only reference them", () => {
   const { analysis, row } = analysisWithRow();
 
-  const entry = addRowInput(analysis, row.id);
-  assert.equal(row.inputIds.length, 1);
+  const entry = addInput(analysis);
   assert.equal(analysis.data.length, 1);
+  assert.equal(row.inputIds.length, 0, "declararlo no lo agrega a ninguna fila");
+
+  addExistingRowInput(analysis, row.id, entry.id);
+  assert.equal(row.inputIds.length, 1);
 
   removeRowInput(analysis, row.id, entry.id);
   assert.equal(row.inputIds.length, 0);
-  assert.equal(analysis.data.length, 0, "el dato huérfano se elimina del catálogo");
+  assert.equal(analysis.data.length, 1, "el dato declarado persiste al quitar la referencia");
 });
 
-test("a datum shared by two rows survives removal from one row", () => {
+test("listInputs returns the data that no operation produces", () => {
   const analysis = createAnalysis({ title: "Demo" });
-  const rowA = addRow(analysis).rows.at(-1);
-  const rowB = addRow(analysis).rows.at(-1);
+  const row = addRow(analysis).rows.at(-1);
+  const input = addInput(analysis);
+  updateRowResult(analysis, row.id, { name: "promedio", type: "numeric" });
 
-  const entry = addRowInput(analysis, rowA.id);
-  rowB.inputIds.push(entry.id); // ambas filas comparten el mismo dato
-
-  removeRowInput(analysis, rowA.id, entry.id);
-  assert.equal(analysis.data.length, 1, "sigue referenciado por la otra fila");
-  assert.ok(rowB.inputIds.includes(entry.id));
+  const inputs = listInputs(analysis);
+  assert.deepEqual(inputs.map((d) => d.id), [input.id], "el resultado producido no es entrada");
 });
 
 test("addExistingRowInput reuses a datum without duplicating it", () => {

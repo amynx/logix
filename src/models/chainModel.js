@@ -19,7 +19,7 @@ export function buildChain(analysis) {
   const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
 
   return {
-    entradas: collectInputs(analysis, resolve, producedIds),
+    entradas: collectInputs(analysis, producedIds),
     proceso: analysis.rows
       .map((row, index) => buildStep(row, index, resolve, producedIds))
       .filter(Boolean),
@@ -45,21 +45,10 @@ function collectProduced(analysis, resolve) {
   return produced;
 }
 
-// Entradas externas: datos que alguna fila consume pero que ninguna produce.
-function collectInputs(analysis, resolve, producedIds) {
-  const inputs = [];
-  const seen = new Set();
-  for (const row of analysis.rows) {
-    for (const id of row.inputIds) {
-      if (producedIds.has(id) || seen.has(id)) continue;
-      const datum = resolve(id);
-      if (datum) {
-        inputs.push(datum);
-        seen.add(id);
-      }
-    }
-  }
-  return inputs;
+// Entradas del programa: los datos de entrada declarados (los del catálogo que
+// ninguna operación produce).
+function collectInputs(analysis, producedIds) {
+  return analysis.data.filter((entry) => !producedIds.has(entry.id));
 }
 
 // Una actividad por fila con contenido, en el orden del análisis. Se expone cada

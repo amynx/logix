@@ -10,7 +10,9 @@ import {
   updateRow,
   updateAnalysisInfo,
   updateData,
-  addRowInput,
+  addInput,
+  removeData,
+  listInputs,
   addExistingRowInput,
   removeRowInput,
   updateRowResult,
@@ -28,8 +30,9 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, inputsView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
+    this.inputsView = inputsView;
     this.tableView = tableView;
     this.chainView = chainView;
     this.storage = storage;
@@ -49,8 +52,40 @@ export class AnalysisController {
 
   render() {
     this.renderInfo();
+    this.renderInputs();
     this.renderTable();
     this.renderChain();
+  }
+
+  renderInputs() {
+    this.inputsView.render(listInputs(this.analysis), {
+      onAddInput: () => this.addInput(),
+      onInputChange: (dataId, changes) => this.updateInput(dataId, changes),
+      onRemoveInput: (dataId) => this.removeInput(dataId),
+    });
+  }
+
+  // Alta de un dato de entrada: aparece en la sección y en los selectores de las filas.
+  addInput() {
+    addInput(this.analysis);
+    this.renderInputs();
+    this.renderTable();
+    this.#afterChange();
+  }
+
+  // Edición de un dato de entrada desde su sección. Se re-renderiza la tabla (para
+  // reflejar las fichas), sin tocar la sección: el campo editado conserva el foco.
+  updateInput(dataId, changes) {
+    updateData(this.analysis, dataId, changes);
+    this.renderTable();
+    this.#afterChange();
+  }
+
+  removeInput(dataId) {
+    removeData(this.analysis, dataId);
+    this.renderInputs();
+    this.renderTable();
+    this.#afterChange();
   }
 
   renderChain() {
@@ -89,7 +124,6 @@ export class AnalysisController {
       onMoveRow: (fromRowId, toRowId) => this.moveRow(fromRowId, toRowId),
       onDataChange: (dataId, changes) => this.updateData(dataId, changes),
       onResultChange: (rowId, changes) => this.updateResult(rowId, changes),
-      onAddRowInput: (rowId) => this.addRowInput(rowId),
       onReuseInput: (rowId, dataId) => this.reuseInput(rowId, dataId),
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
@@ -132,13 +166,6 @@ export class AnalysisController {
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
     if (row) this.#suggestResultType(row);
     this.#renderTableKeepingFocus();
-    this.#afterChange();
-  }
-
-  // Añadir/quitar una entrada cambia los controles visibles: se re-renderiza.
-  addRowInput(rowId) {
-    addRowInput(this.analysis, rowId);
-    this.renderTable();
     this.#afterChange();
   }
 
