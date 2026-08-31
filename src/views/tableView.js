@@ -65,6 +65,15 @@ export class TableView {
     );
   }
 
+  // Actualiza el texto de las fichas que reutilizan un dato, sin re-renderizar,
+  // para que un renombrado en el origen se refleje al instante.
+  syncDataReferences(datum) {
+    const label = dataReferenceLabel(datum);
+    this.container.querySelectorAll(`[data-ref-id="${datum.id}"]`).forEach((node) => {
+      node.textContent = label;
+    });
+  }
+
   #buildHeader() {
     const cells = [el("th", { class: `${TH_CLASS} w-10 text-slate-400`, scope: "col" }, "#")];
     for (const column of COLUMNS) {
@@ -198,6 +207,11 @@ function selectField(options, value, onChange, { placeholder, disabled = false }
   return select;
 }
 
+// Etiqueta de un dato reutilizado: "nombre : Tipo".
+function dataReferenceLabel(entry) {
+  return `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`;
+}
+
 // El texto guía de "Uso posterior" cambia según el propósito elegido.
 function subsequentUsePlaceholder(purpose) {
   if (purpose === "operation") return "Cómo alimenta la siguiente operación";
@@ -263,8 +277,9 @@ function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
           {
             class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
             title: "Dato reutilizado (se edita en su fila de origen)",
+            dataset: { refId: entry.id },
           },
-          `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`,
+          dataReferenceLabel(entry),
         ),
         detachButton(entry.id, "Quitar referencia"),
       ]);
@@ -295,7 +310,7 @@ function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
 
   if (reusable.length > 0) {
     const reuse = selectField(
-      reusable.map((entry) => ({ value: entry.id, label: `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}` })),
+      reusable.map((entry) => ({ value: entry.id, label: dataReferenceLabel(entry) })),
       "",
       (dataId) => dataId && handlers.onReuseInput(rowId, dataId),
       { placeholder: "Reutilizar dato…" },

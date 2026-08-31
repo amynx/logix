@@ -59,8 +59,22 @@ export function addRow(analysis, row = createRow()) {
   return touch(analysis);
 }
 
+// Elimina una fila y limpia el catálogo: el dato que producía deja de tener
+// origen, así que se quita junto con sus referencias; las entradas propias que
+// queden huérfanas también se descartan. Los datos reutilizados de otras filas
+// solo pierden la referencia (su origen los conserva).
 export function removeRow(analysis, rowId) {
-  analysis.rows = analysis.rows.filter((row) => row.id !== rowId);
+  const row = analysis.rows.find((candidate) => candidate.id === rowId);
+  if (!row) return analysis;
+
+  const producedId = row.resultId;
+  const inputIds = [...row.inputIds];
+  analysis.rows = analysis.rows.filter((candidate) => candidate.id !== rowId);
+
+  if (producedId) removeData(analysis, producedId);
+  for (const dataId of inputIds) {
+    if (dataId !== producedId && !isDataReferenced(analysis, dataId)) removeData(analysis, dataId);
+  }
   return touch(analysis);
 }
 
@@ -125,6 +139,11 @@ export function removeData(analysis, dataId) {
 // Un dato es huérfano si ninguna fila lo consume como entrada ni lo produce.
 function isDataReferenced(analysis, dataId) {
   return analysis.rows.some((row) => row.inputIds.includes(dataId) || row.resultId === dataId);
+}
+
+// Filas que consumen un dato como entrada (para avisar antes de borrar su origen).
+export function rowsUsingData(analysis, dataId) {
+  return analysis.rows.filter((row) => row.inputIds.includes(dataId));
 }
 
 // --- Referencias fila ↔ dato ---

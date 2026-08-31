@@ -9,6 +9,7 @@ import {
   addRowInput,
   addExistingRowInput,
   removeRowInput,
+  removeRow,
   updateRowResult,
   removeData,
   findData,
@@ -71,6 +72,33 @@ test("addExistingRowInput reuses a datum without duplicating it", () => {
 
   addExistingRowInput(analysis, rowB.id, dataId); // idempotente
   assert.equal(rowB.inputIds.filter((id) => id === dataId).length, 1);
+});
+
+test("removeRow deletes the produced datum and prunes its references", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const producer = addRow(analysis).rows.at(-1);
+  const consumer = addRow(analysis).rows.at(-1);
+  updateRowResult(analysis, producer.id, { name: "promedio", type: "numeric" });
+  addExistingRowInput(analysis, consumer.id, producer.resultId);
+  const dataId = producer.resultId;
+
+  removeRow(analysis, producer.id);
+  assert.equal(analysis.rows.length, 1);
+  assert.equal(findData(analysis, dataId), null, "el dato producido se elimina");
+  assert.ok(!consumer.inputIds.includes(dataId), "se poda la referencia colgante");
+});
+
+test("removeRow keeps a datum whose origin row remains", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const producer = addRow(analysis).rows.at(-1);
+  const consumer = addRow(analysis).rows.at(-1);
+  updateRowResult(analysis, producer.id, { name: "x", type: "numeric" });
+  addExistingRowInput(analysis, consumer.id, producer.resultId);
+  const dataId = producer.resultId;
+
+  removeRow(analysis, consumer.id); // se borra el consumidor, no el origen
+  assert.ok(findData(analysis, dataId), "el dato permanece porque su origen sigue");
+  assert.equal(producer.resultId, dataId);
 });
 
 test("removeData prunes every reference in the rows", () => {

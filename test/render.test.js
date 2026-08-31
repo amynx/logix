@@ -63,6 +63,25 @@ function fire(node, type) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve));
 
+// Produce un dato en la fila 0 y lo reutiliza como entrada en una nueva fila 1.
+// Devuelve el id del dato reutilizado.
+function reuseFirstResultInNewRow(doc, controller, name) {
+  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultInput.value = name;
+  fire(resultInput, "input");
+
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+
+  const dataId = controller.analysis.rows[0].resultId;
+  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
+  const reuseSelect = [...inputsCell.querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === dataId),
+  );
+  reuseSelect.value = dataId;
+  fire(reuseSelect, "change");
+  return dataId;
+}
+
 test("renders analysis info and a seeded row with all columns", async () => {
   const { doc } = await mountApp();
 
@@ -217,6 +236,33 @@ test("reusing a produced result adds it as a read-only reference in another row"
   const chip = [...inputsCell().querySelectorAll("span")].find((s) => /promedio/.test(s.textContent));
   assert.ok(chip, "se muestra como ficha de solo lectura");
   assert.equal(inputsCell().querySelectorAll("input").length, 0, "sin campo editable para el dato reutilizado");
+});
+
+test("renaming a produced result updates its reused reference live", async () => {
+  const { doc, controller } = await mountApp();
+  const dataId = reuseFirstResultInNewRow(doc, controller, "promedio");
+
+  const resultInput = doc.querySelectorAll("tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
+  resultInput.value = "promedioFinal";
+  fire(resultInput, "input");
+
+  const chip = doc.querySelectorAll("tbody tr")[1].querySelector(`[data-ref-id="${dataId}"]`);
+  assert.match(chip.textContent, /promedioFinal/, "la ficha reutilizada se actualiza sin re-render manual");
+});
+
+test("deleting a row whose datum is reused warns and prunes the reference", async () => {
+  const { doc, controller } = await mountApp();
+  const dataId = reuseFirstResultInNewRow(doc, controller, "promedio");
+
+  doc.querySelectorAll("tbody tr")[0].querySelector("td:last-child button").click();
+  assert.match(doc.body.textContent, /reutilizado en/, "el aviso menciona la reutilización");
+
+  [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
+  await flush();
+
+  assert.equal(controller.analysis.rows.length, 1);
+  assert.equal(findData(controller.analysis, dataId), null, "el dato se elimina con la fila de origen");
+  assert.ok(!controller.analysis.rows[0].inputIds.includes(dataId), "la referencia colgante se poda");
 });
 
 test("recovers the most recently updated analysis on start", async () => {

@@ -14,6 +14,8 @@ import {
   addExistingRowInput,
   removeRowInput,
   updateRowResult,
+  findData,
+  rowsUsingData,
 } from "../models/analysisModel.js";
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
@@ -69,16 +71,26 @@ export class AnalysisController {
     });
   }
 
-  // Edición de nombre/tipo de un dato: el valor ya está en el DOM; no se re-renderiza.
+  // Edición de nombre/tipo de un dato: el valor ya está en el DOM del control que
+  // se edita; solo se sincronizan las fichas de solo lectura que lo reutilizan.
   updateData(dataId, changes) {
     updateData(this.analysis, dataId, changes);
+    this.#syncDataReferences(dataId);
     this.#scheduleSave();
   }
 
   // El dato resultante se crea de forma diferida leyendo el resultId actual de la fila.
   updateResult(rowId, changes) {
     updateRowResult(this.analysis, rowId, changes);
+    const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
+    if (row?.resultId) this.#syncDataReferences(row.resultId);
     this.#scheduleSave();
+  }
+
+  // Propaga nombre/tipo de un dato a sus fichas reutilizadas sin re-renderizar.
+  #syncDataReferences(dataId) {
+    const datum = findData(this.analysis, dataId);
+    if (datum) this.tableView.syncDataReferences(datum);
   }
 
   // Añadir/quitar una entrada cambia los controles visibles: se re-renderiza.
@@ -136,12 +148,27 @@ export class AnalysisController {
   async deleteRow(rowId) {
     const confirmed = await confirmDialog({
       title: "Eliminar fila",
-      message: "Se eliminará esta fila del análisis. Esta acción no se puede deshacer.",
+      message: this.#deleteRowMessage(rowId),
     });
     if (!confirmed) return;
     removeRow(this.analysis, rowId);
     this.renderTable();
     this.#scheduleSave();
+  }
+
+  // Advierte si la fila produce un dato reutilizado por otras filas, porque al
+  // borrarla ese dato y sus referencias también desaparecerán.
+  #deleteRowMessage(rowId) {
+    const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
+    const consumers = row?.resultId
+      ? rowsUsingData(this.analysis, row.resultId).filter((candidate) => candidate.id !== rowId)
+      : [];
+    if (consumers.length === 0) {
+      return "Se eliminará esta fila del análisis. Esta acción no se puede deshacer.";
+    }
+    const datum = findData(this.analysis, row.resultId);
+    const name = datum?.name ? `"${datum.name}"` : "que produce";
+    return `Esta fila produce el dato ${name}, reutilizado en ${consumers.length} fila(s). Al eliminarla, ese dato y sus referencias también se quitarán.`;
   }
 
   moveRow(fromRowId, toRowId) {
