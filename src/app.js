@@ -3,6 +3,7 @@
 
 import { AnalysisView } from "./views/analysisView.js";
 import { TableView } from "./views/tableView.js";
+import { ChainView } from "./views/chainView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
 
@@ -16,9 +17,14 @@ function main() {
     container: document.getElementById("table-container"),
   });
 
+  const chainView = new ChainView({
+    container: document.getElementById("chain-container"),
+  });
+
   const controller = new AnalysisController({
     analysisView,
     tableView,
+    chainView,
     storage: new StorageService(),
   });
 

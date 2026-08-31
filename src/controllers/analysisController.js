@@ -20,15 +20,17 @@ import {
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
 import { collectAnalysisWarnings } from "../validation/analysisValidation.js";
+import { buildChain } from "../models/chainModel.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, tableView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
     this.tableView = tableView;
+    this.chainView = chainView;
     this.storage = storage;
     this.saveDelay = saveDelay;
     this.analysis = null;
@@ -47,6 +49,17 @@ export class AnalysisController {
   render() {
     this.renderInfo();
     this.renderTable();
+    this.renderChain();
+  }
+
+  renderChain() {
+    this.chainView.render(buildChain(this.analysis));
+  }
+
+  // Tras cualquier cambio del modelo: refresca la cadena derivada y agenda el guardado.
+  #afterChange() {
+    this.renderChain();
+    this.#scheduleSave();
   }
 
   renderInfo() {
@@ -76,7 +89,7 @@ export class AnalysisController {
   updateData(dataId, changes) {
     updateData(this.analysis, dataId, changes);
     this.#syncDataReferences(dataId);
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   // El dato resultante se crea de forma diferida leyendo el resultId actual de la fila.
@@ -84,7 +97,7 @@ export class AnalysisController {
     updateRowResult(this.analysis, rowId, changes);
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
     if (row?.resultId) this.#syncDataReferences(row.resultId);
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   // Propaga nombre/tipo de un dato a sus fichas reutilizadas sin re-renderizar.
@@ -97,31 +110,31 @@ export class AnalysisController {
   addRowInput(rowId) {
     addRowInput(this.analysis, rowId);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   reuseInput(rowId, dataId) {
     addExistingRowInput(this.analysis, rowId, dataId);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   removeRowInput(rowId, dataId) {
     removeRowInput(this.analysis, rowId, dataId);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   updateInfo(changes) {
     updateAnalysisInfo(this.analysis, changes);
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   updateRowField(rowId, updater) {
     const changes = this.#resolveRowChanges(rowId, updater);
     if (!changes) return;
     updateRow(this.analysis, rowId, changes);
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   updateRowStructure(rowId, updater) {
@@ -129,7 +142,7 @@ export class AnalysisController {
     if (!changes) return;
     updateRow(this.analysis, rowId, changes);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   // Resuelve el actualizador contra la fila actual del modelo, de modo que cada
@@ -142,7 +155,7 @@ export class AnalysisController {
   addRow() {
     addRow(this.analysis);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   async deleteRow(rowId) {
@@ -153,7 +166,7 @@ export class AnalysisController {
     if (!confirmed) return;
     removeRow(this.analysis, rowId);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   // Advierte si la fila produce un dato reutilizado por otras filas, porque al
@@ -178,7 +191,7 @@ export class AnalysisController {
     if (fromIndex === -1 || toIndex === -1) return;
     moveRow(this.analysis, fromIndex, toIndex);
     this.renderTable();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   // Reemplaza el análisis actual y refresca vista y persistencia. Es el punto
@@ -186,7 +199,7 @@ export class AnalysisController {
   loadAnalysis(analysis) {
     this.analysis = analysis;
     this.render();
-    this.#scheduleSave();
+    this.#afterChange();
   }
 
   newAnalysis() {

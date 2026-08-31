@@ -7,6 +7,7 @@ import { JSDOM } from "jsdom";
 
 import { AnalysisView } from "../src/views/analysisView.js";
 import { TableView } from "../src/views/tableView.js";
+import { ChainView } from "../src/views/chainView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
 import { createAnalysis, addRow, findData } from "../src/models/analysisModel.js";
 import { serializeAnalysis } from "../src/services/file/fileService.js";
@@ -35,7 +36,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="table-container"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="table-container"></div><div id="chain-container"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -50,6 +51,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
       infoContainer: doc.getElementById("analysis-info"),
     }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
+    chainView: new ChainView({ container: doc.getElementById("chain-container") }),
     storage,
     saveDelay: 0,
   });
@@ -263,6 +265,31 @@ test("deleting a row whose datum is reused warns and prunes the reference", asyn
   assert.equal(controller.analysis.rows.length, 1);
   assert.equal(findData(controller.analysis, dataId), null, "el dato se elimina con la fila de origen");
   assert.ok(!controller.analysis.rows[0].inputIds.includes(dataId), "la referencia colgante se poda");
+});
+
+test("the chain panel reflects external inputs and final outputs live", async () => {
+  const { doc } = await mountApp();
+  const chainText = () => doc.getElementById("chain-container").textContent;
+
+  const addDato = () =>
+    [...doc.querySelectorAll("tbody tr td")[2].querySelectorAll("button")].find((b) => b.textContent === "+ dato");
+  addDato().click();
+  const nameInput = doc.querySelectorAll("tbody tr td")[2].querySelector("input");
+  nameInput.value = "nota1";
+  fire(nameInput, "input");
+
+  const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  purposeSelect.value = "response";
+  fire(purposeSelect, "change");
+  const subsequent = doc.querySelectorAll("tbody tr td")[7].querySelector("textarea");
+  subsequent.value = "Mostrar el resultado";
+  fire(subsequent, "input");
+
+  const text = chainText();
+  assert.match(text, /Entradas/);
+  assert.match(text, /nota1/);
+  assert.match(text, /Salida/);
+  assert.match(text, /Mostrar el resultado/);
 });
 
 test("recovers the most recently updated analysis on start", async () => {
