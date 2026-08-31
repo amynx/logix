@@ -19,6 +19,20 @@ test("an empty analysis yields an empty chain", () => {
   assert.deepEqual(chain, { entradas: [], proceso: [], producidos: [], salidas: [] });
 });
 
+test("a decision step exposes both paths (Sí/No)", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const row = addRow(analysis).rows.at(-1);
+  updateRow(analysis, row.id, {
+    purpose: "decision",
+    ifTrue: { type: "response", value: "Aprobó" },
+    ifFalse: { type: "operation", value: "Recalcular" },
+  });
+
+  const [step] = buildChain(analysis).proceso;
+  assert.deepEqual(step.ifTrue, { type: "response", text: "Aprobó" });
+  assert.deepEqual(step.ifFalse, { type: "operation", text: "Recalcular" });
+});
+
 test("produced data are listed for reuse in the process", () => {
   const analysis = createAnalysis({ title: "Demo" });
   const row = addRow(analysis).rows.at(-1);

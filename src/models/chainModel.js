@@ -81,6 +81,9 @@ function buildStep(row, index, resolve, producedIds) {
     result,
     purpose: row.purpose,
     purposeDetail: row.subsequentUse.trim(),
+    // Caminos de la decisión (para visualizar cómo la condición afecta el flujo).
+    ifTrue: { type: row.ifTrue.type, text: row.ifTrue.value.trim() },
+    ifFalse: { type: row.ifFalse.type, text: row.ifFalse.value.trim() },
   };
 }
 

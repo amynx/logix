@@ -3,7 +3,7 @@
 // re-renderiza completa en cada cambio (es barata y no retiene el foco).
 
 import { el, clear } from "../utils/dom.js";
-import { DATA_TYPES, PURPOSES, labelOf } from "../models/dataTypes.js";
+import { DATA_TYPES, PURPOSES, BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -102,6 +102,17 @@ function outputChip(output) {
   return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-emerald-800" }, children);
 }
 
+// Un camino de la decisión: badge Sí/No + a dónde conduce (tipo y detalle).
+function pathLine(caseLabel, branch) {
+  return el("div", { class: "flex items-start gap-1.5 text-xs text-slate-600" }, [
+    caseBadge(caseLabel),
+    el("span", {}, [
+      branch.type ? el("span", { class: "text-slate-400" }, `${labelOf(BRANCH_TYPES, branch.type)}: `) : null,
+      branch.text || "…",
+    ]),
+  ]);
+}
+
 // Indica el caso de la condición: Sí (se cumple) o No (no se cumple).
 function caseBadge(branchCase) {
   const style = branchCase === "Sí" ? "bg-emerald-600 text-white" : "bg-rose-500 text-white";
@@ -125,6 +136,15 @@ function stepCard(step) {
           purposeBadge(step.purpose),
           step.purposeDetail ? el("span", {}, step.purposeDetail) : null,
         ]),
+      ),
+    );
+  }
+  // Cuando la actividad decide, se muestran los dos caminos posibles del flujo.
+  if (step.purpose === "decision" || step.condition) {
+    fields.push(
+      fieldRow(
+        "Caminos",
+        el("div", { class: "space-y-0.5" }, [pathLine("Sí", step.ifTrue), pathLine("No", step.ifFalse)]),
       ),
     );
   }
