@@ -302,6 +302,31 @@ test("building an operation references data and shows it in the chain", async ()
   assert.match(doc.getElementById("chain-container").textContent, /nota1 ÷ 3/);
 });
 
+test("the result type is suggested from the operation when unset", async () => {
+  const { doc, controller } = await mountApp();
+
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "promedio";
+  fire(resultName, "input");
+
+  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const addLiteral = (value) => {
+    const literal = opCell().querySelector('input[placeholder="valor"]');
+    literal.value = value;
+    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+  };
+  addLiteral("2");
+  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === "add"),
+  );
+  opSelect.value = "add";
+  fire(opSelect, "change");
+  addLiteral("3");
+
+  const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
+  assert.equal(result.type, "numeric", "operación aritmética sugiere Numérico");
+});
+
 test("the condition is built as an expression referencing data", async () => {
   const { doc, controller } = await mountApp();
 

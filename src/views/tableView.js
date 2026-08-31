@@ -146,7 +146,7 @@ export class TableView {
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
       cell(expressionEditor(row.condition, availableRefs, resolveData, editExpression("condition"))),
-      cell(expressionEditor(row.operation, availableRefs, resolveData, editExpression("operation"))),
+      cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),

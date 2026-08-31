@@ -36,3 +36,21 @@ function tokenToText(token, resolve) {
   if (token.kind === "literal") return token.value ?? "";
   return "";
 }
+
+const ARITHMETIC_OPS = Object.keys(OPERATOR_GROUPS.arithmetic.operators);
+const BOOLEAN_OPS = [
+  ...Object.keys(OPERATOR_GROUPS.relational.operators),
+  ...Object.keys(OPERATOR_GROUPS.logical.operators),
+];
+
+// Sugerencia de tipo para el dato resultante según los operadores de la
+// operación: relacionales/lógicos → "logical"; aritméticos → "numeric".
+// Devuelve null si no hay operadores significativos (no hay nada que sugerir).
+export function inferResultType(tokens) {
+  const ops = (tokens ?? [])
+    .filter((token) => token.kind === "op")
+    .map((token) => token.op)
+    .filter((op) => ARITHMETIC_OPS.includes(op) || BOOLEAN_OPS.includes(op));
+  if (ops.length === 0) return null;
+  return ops.some((op) => BOOLEAN_OPS.includes(op)) ? "logical" : "numeric";
+}

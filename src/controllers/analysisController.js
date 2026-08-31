@@ -21,6 +21,7 @@ import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
 import { collectAnalysisWarnings } from "../validation/analysisValidation.js";
 import { buildChain } from "../models/chainModel.js";
+import { inferResultType } from "../models/operators.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
@@ -81,7 +82,27 @@ export class AnalysisController {
       onAddRowInput: (rowId) => this.addRowInput(rowId),
       onReuseInput: (rowId, dataId) => this.reuseInput(rowId, dataId),
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
+      onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
     });
+  }
+
+  // Cambia la operación (lista de tokens) y sugiere el tipo del dato resultante
+  // cuando aún no tiene uno, según los operadores usados.
+  updateOperation(rowId, tokensUpdater) {
+    const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
+    if (!row) return;
+    updateRow(this.analysis, rowId, { operation: tokensUpdater(row.operation) });
+    this.#suggestResultType(row);
+    this.renderTable();
+    this.#afterChange();
+  }
+
+  #suggestResultType(row) {
+    if (!row.resultId) return;
+    const result = findData(this.analysis, row.resultId);
+    if (!result || result.type) return; // no sobrescribir un tipo ya elegido
+    const inferred = inferResultType(row.operation);
+    if (inferred) updateData(this.analysis, row.resultId, { type: inferred });
   }
 
   // Edición de nombre/tipo de un dato: el valor ya está en el DOM del control que

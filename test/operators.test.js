@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { operationToText } from "../src/models/operators.js";
+import { operationToText, inferResultType } from "../src/models/operators.js";
 
 const resolve = (id) => ({ n1: { name: "nota1" }, n2: { name: "nota2" } }[id] ?? null);
 
@@ -24,4 +24,11 @@ test("a reference to a removed datum renders as ?", () => {
 
 test("an empty operation is empty text", () => {
   assert.equal(operationToText([], resolve), "");
+});
+
+test("inferResultType suggests a type from the operators used", () => {
+  const ref = { kind: "ref", dataId: "n1" };
+  assert.equal(inferResultType([ref, { kind: "op", op: "add" }, ref]), "numeric");
+  assert.equal(inferResultType([ref, { kind: "op", op: "ge" }, { kind: "literal", value: "3" }]), "logical");
+  assert.equal(inferResultType([ref]), null, "sin operadores no hay sugerencia");
 });
