@@ -302,6 +302,37 @@ test("building an operation references data and shows it in the chain", async ()
   assert.match(doc.getElementById("chain-container").textContent, /nota1 ÷ 3/);
 });
 
+test("operation tokens can be reordered by drag and drop", async () => {
+  const { doc, controller } = await mountApp();
+  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const addLiteral = (value) => {
+    const literal = opCell().querySelector('input[placeholder="valor"]');
+    literal.value = value;
+    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+  };
+  addLiteral("A");
+  addLiteral("B");
+
+  const chips = opCell().querySelectorAll("span[draggable]");
+  fire(chips[1], "dragstart");
+  fire(chips[0], "drop");
+
+  assert.deepEqual(controller.analysis.rows[0].operation.map((t) => t.value), ["B", "A"]);
+});
+
+test("parentheses are available as grouping operators", async () => {
+  const { doc, controller } = await mountApp();
+  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === "lparen"),
+  );
+  assert.ok(opSelect, "el selector ofrece paréntesis");
+  opSelect.value = "lparen";
+  fire(opSelect, "change");
+
+  assert.deepEqual(controller.analysis.rows[0].operation, [{ kind: "op", op: "lparen" }]);
+});
+
 test("the result type is suggested from the operation when unset", async () => {
   const { doc, controller } = await mountApp();
 

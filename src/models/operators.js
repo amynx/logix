@@ -13,6 +13,7 @@ export const OPERATOR_GROUPS = {
   arithmetic: { label: "Aritméticos", operators: { add: "+", sub: "−", mul: "×", div: "÷" } },
   relational: { label: "Relacionales", operators: { eq: "=", ne: "≠", lt: "<", gt: ">", le: "≤", ge: "≥" } },
   logical: { label: "Lógicos", operators: { and: "Y", or: "O", not: "NO" } },
+  grouping: { label: "Agrupación", operators: { lparen: "(", rparen: ")" } },
 };
 
 export const OPERATOR_SYMBOLS = Object.values(OPERATOR_GROUPS).reduce(

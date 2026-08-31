@@ -230,7 +230,32 @@ function expressionEditor(tokens, refs, resolve, onChange) {
   const append = (token) => onChange((current) => [...current, token]);
   const removeAt = (index) => onChange((current) => current.filter((_, i) => i !== index));
 
-  const chips = tokens.map((token, index) => operationTokenChip(token, resolve, () => removeAt(index)));
+  // Reordenar tokens arrastrando una ficha sobre otra.
+  let draggedIndex = null;
+  const moveToken = (from, to) => {
+    if (from == null || from === to) return;
+    onChange((current) => {
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+
+  const chips = tokens.map((token, index) =>
+    operationTokenChip(token, resolve, {
+      onRemove: () => removeAt(index),
+      draggable: tokens.length > 1,
+      onDragStart: () => {
+        draggedIndex = index;
+      },
+      onDrop: () => {
+        const from = draggedIndex;
+        draggedIndex = null;
+        moveToken(from, index);
+      },
+    }),
+  );
 
   const controls = [];
   if (refs.length > 0) {
@@ -271,17 +296,33 @@ function expressionEditor(tokens, refs, resolve, onChange) {
   ]);
 }
 
-function operationTokenChip(token, resolve, onRemove) {
+function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, onDrop }) {
   const { text, className } = describeToken(token, resolve);
-  return el("span", { class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${className}` }, [
-    el("span", {}, text),
-    el("button", {
-      type: "button",
-      class: "text-slate-400 hover:text-red-600",
-      title: "Quitar",
-      onclick: onRemove,
-    }, "×"),
-  ]);
+  const cursor = draggable ? "cursor-move" : "";
+  return el(
+    "span",
+    {
+      class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${cursor} ${className}`,
+      draggable: draggable ? "true" : null,
+      title: draggable ? "Arrastra para reordenar" : null,
+      ondragstart: onDragStart,
+      ondragover: (event) => draggable && event.preventDefault(),
+      ondrop: (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onDrop();
+      },
+    },
+    [
+      el("span", {}, text),
+      el("button", {
+        type: "button",
+        class: "text-slate-400 hover:text-red-600",
+        title: "Quitar",
+        onclick: onRemove,
+      }, "×"),
+    ],
+  );
 }
 
 function describeToken(token, resolve) {
