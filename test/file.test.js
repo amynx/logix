@@ -31,6 +31,47 @@ test("deserializing without rows throws a friendly error", () => {
   assert.throws(() => deserializeAnalysis(payload), /incompleto o dañado/);
 });
 
+test("deserializing a future version throws a friendly error", () => {
+  const payload = JSON.stringify({ version: ANALYSIS_VERSION + 1, id: "x", rows: [] });
+  assert.throws(() => deserializeAnalysis(payload), /versión distinta/);
+});
+
+test("migrates a v1 file to the data catalog and relinks by name", () => {
+  const v1 = {
+    version: 1,
+    id: "a1",
+    title: "Promedio",
+    description: "",
+    rows: [
+      {
+        id: "r1",
+        inputs: [{ name: "nota1", type: "numeric" }],
+        operation: "sumar y dividir",
+        result: { name: "promedio", type: "numeric" },
+        purpose: "operation",
+      },
+      {
+        id: "r2",
+        inputs: [{ name: "promedio", type: "numeric" }],
+        condition: "¿promedio >= 3?",
+        result: { name: "", type: "" },
+        purpose: "decision",
+      },
+    ],
+    createdAt: "x",
+    updatedAt: "y",
+  };
+
+  const migrated = deserializeAnalysis(JSON.stringify(v1));
+
+  assert.equal(migrated.version, ANALYSIS_VERSION);
+  const [r1, r2] = migrated.rows;
+  assert.ok(r1.resultId, "the operation row produces a datum");
+  assert.equal(r2.inputIds.length, 1);
+  assert.equal(r2.inputIds[0], r1.resultId, "the reused 'promedio' links to the produced datum");
+  assert.ok(migrated.data.some((d) => d.name === "nota1"));
+});
+
 test("builds a slugged file name from the title", () => {
   assert.equal(fileNameFor({ title: "Cálculo del Promedio" }), "calculo_del_promedio.analisis");
   assert.equal(fileNameFor({ title: "" }), "analisis.analisis");

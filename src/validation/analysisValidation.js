@@ -1,9 +1,9 @@
-// Validación del análisis en los límites del sistema.
-// validateImportedAnalysis comprueba que un objeto proveniente de un archivo
-// tenga la forma y versión esperadas antes de convertirlo en estado interno.
-// Lanza mensajes comprensibles para el estudiante (no errores técnicos).
+// Validación y migración del análisis en los límites del sistema.
+// Comprueba que un objeto proveniente de un archivo sea abrible y lo actualiza al
+// formato interno actual. Lanza mensajes comprensibles (no errores técnicos).
 
-import { ANALYSIS_VERSION } from "../models/analysisModel.js";
+import { ANALYSIS_VERSION, createDataEntry, findData } from "../models/analysisModel.js";
+import { createId } from "../utils/id.js";
 
 const INVALID_FORMAT = "El archivo seleccionado no tiene un formato de análisis válido.";
 
@@ -11,14 +11,70 @@ export function validateImportedAnalysis(data) {
   if (typeof data !== "object" || data === null || Array.isArray(data)) {
     throw new Error(INVALID_FORMAT);
   }
-  if (data.version !== ANALYSIS_VERSION) {
-    const found = data.version ?? "desconocida";
+  const { version } = data;
+  if (typeof version !== "number" || version < 1 || version > ANALYSIS_VERSION) {
+    const found = version ?? "desconocida";
     throw new Error(`El archivo fue creado con una versión distinta (v${found}) y no se puede abrir en esta versión.`);
   }
   if (!Array.isArray(data.rows)) {
     throw new Error("El archivo de análisis está incompleto o dañado.");
   }
   return true;
+}
+
+// Actualiza un análisis abrible al formato actual. Solo transforma lo necesario;
+// un análisis ya en la versión actual se devuelve sin cambios.
+export function migrateAnalysis(data) {
+  if (data.version === 1) return migrateV1toV2(data);
+  return data;
+}
+
+// v1 tenía los datos en línea (inputs:[{name,type}], result:{name,type}). La v2
+// los mueve a un catálogo con ids. Las entradas con el mismo nombre se unifican
+// (incluido cuando coinciden con un resultado anterior), reconstruyendo así las
+// conexiones entre filas.
+function migrateV1toV2(old) {
+  const catalog = [];
+  const findOrCreate = (name, type) => {
+    const trimmed = (name ?? "").trim();
+    if (!trimmed) return null;
+    let entry = catalog.find((item) => item.name === trimmed);
+    if (!entry) {
+      entry = createDataEntry({ name: trimmed, type: type ?? "" });
+      catalog.push(entry);
+    }
+    return entry;
+  };
+
+  const rows = (old.rows ?? []).map((row) => {
+    const inputIds = (row.inputs ?? [])
+      .map((input) => findOrCreate(input.name, input.type))
+      .filter(Boolean)
+      .map((entry) => entry.id);
+
+    let resultId = null;
+    const result = row.result ?? {};
+    if ((result.name ?? "").trim()) {
+      const entry = createDataEntry({ name: result.name.trim(), type: result.type ?? "" });
+      catalog.push(entry);
+      resultId = entry.id;
+    }
+
+    return {
+      id: row.id ?? createId(),
+      problem: row.problem ?? "",
+      inputIds,
+      condition: row.condition ?? "",
+      operation: row.operation ?? "",
+      resultId,
+      purpose: row.purpose ?? "",
+      subsequentUse: row.subsequentUse ?? "",
+      ifTrue: row.ifTrue ?? { type: "", value: "" },
+      ifFalse: row.ifFalse ?? { type: "", value: "" },
+    };
+  });
+
+  return { ...old, version: ANALYSIS_VERSION, data: catalog, rows };
 }
 
 // Advertencias no bloqueantes para orientar al estudiante (sección 22).
@@ -32,11 +88,13 @@ export function collectAnalysisWarnings(analysis) {
 
   analysis.rows.forEach((row, index) => {
     const position = index + 1;
-    if (row.operation.trim() && !row.result.name.trim()) {
+    const result = findData(analysis, row.resultId);
+
+    if (row.operation.trim() && !(result && result.name.trim())) {
       warnings.push(`Fila ${position}: la operación produce un dato sin nombre.`);
     }
-    if (row.result.name.trim() && !row.result.type) {
-      warnings.push(`Fila ${position}: el dato "${row.result.name}" no tiene tipo.`);
+    if (result && result.name.trim() && !result.type) {
+      warnings.push(`Fila ${position}: el dato "${result.name}" no tiene tipo.`);
     }
     if (row.purpose === "decision" && !row.condition.trim()) {
       warnings.push(`Fila ${position}: la decisión no tiene una condición (pregunta) definida.`);

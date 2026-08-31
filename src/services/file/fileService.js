@@ -3,7 +3,7 @@
 // navegador (Blob, descarga, FileReader), de modo que la lógica sea probable
 // sin DOM. El contenido es JSON; la extensión visible es propia de la app.
 
-import { validateImportedAnalysis } from "../../validation/analysisValidation.js";
+import { validateImportedAnalysis, migrateAnalysis } from "../../validation/analysisValidation.js";
 
 const FILE_EXTENSION = ".analisis";
 const INVALID_FORMAT = "El archivo seleccionado no tiene un formato de análisis válido.";
@@ -22,7 +22,7 @@ export function deserializeAnalysis(text) {
     throw new Error(INVALID_FORMAT);
   }
   validateImportedAnalysis(data);
-  return data;
+  return migrateAnalysis(data);
 }
 
 export function fileNameFor(analysis) {

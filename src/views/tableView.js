@@ -39,9 +39,10 @@ export class TableView {
 
   render(analysis, handlers) {
     clear(this.container);
+    const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      this.#buildBody(analysis.rows, handlers),
+      this.#buildBody(analysis.rows, dataById, handlers),
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
@@ -75,11 +76,11 @@ export class TableView {
     return el("thead", { class: "bg-slate-50" }, [el("tr", {}, cells)]);
   }
 
-  #buildBody(rows, handlers) {
-    return el("tbody", {}, rows.map((row, index) => this.#buildRow(row, index, handlers)));
+  #buildBody(rows, dataById, handlers) {
+    return el("tbody", {}, rows.map((row, index) => this.#buildRow(row, index, dataById, handlers)));
   }
 
-  #buildRow(row, index, handlers) {
+  #buildRow(row, index, dataById, handlers) {
     // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
     // que cada edición lea el estado fresco del modelo. Es clave para campos con
     // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
@@ -87,6 +88,8 @@ export class TableView {
     const field = (updater) => handlers.onFieldChange(row.id, updater);
     const structural = (updater) => handlers.onStructuralChange(row.id, updater);
     const isDecision = row.purpose === "decision";
+    const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
+    const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -113,10 +116,10 @@ export class TableView {
         el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
-      cell(inputsEditor(row.inputs, field, structural)),
+      cell(inputsEditor(row.id, inputEntries, handlers)),
       cell(textField(row.condition, "¿Qué debe responderse?", (value) => field(() => ({ condition: value })))),
       cell(textField(row.operation, "Operación a realizar", (value) => field(() => ({ operation: value })))),
-      cell(resultEditor(row.result, field)),
+      cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
       cell(branchEditor(row.ifTrue, "ifTrue", field, !isDecision)),
@@ -194,17 +197,18 @@ function subsequentUsePlaceholder(purpose) {
   return "Cómo se usa el dato";
 }
 
-// Dato resultante: nombre + tipo.
-function resultEditor(result, field) {
+// Dato resultante: nombre + tipo. El dato se crea de forma diferida en el modelo
+// la primera vez que se escribe algo (handlers.onResultChange).
+function resultEditor(rowId, result, handlers) {
   return el("div", { class: "space-y-1" }, [
     el("input", {
       type: "text",
-      value: result.name ?? "",
+      value: result?.name ?? "",
       placeholder: "nombre",
       class: CONTROL_CLASS,
-      oninput: (event) => field((row) => ({ result: { ...row.result, name: event.target.value } })),
+      oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
     }),
-    selectField(optionsOf(DATA_TYPES), result.type, (value) => field((row) => ({ result: { ...row.result, type: value } })), {
+    selectField(optionsOf(DATA_TYPES), result?.type, (value) => handlers.onResultChange(rowId, { type: value }), {
       placeholder: "Tipo…",
     }),
   ]);
@@ -231,26 +235,26 @@ function branchEditor(branch, key, field, disabled) {
 }
 
 // Lista de datos de entrada: cada uno con nombre y tipo, con añadir y quitar.
-function inputsEditor(inputs, field, structural) {
-  const rows = inputs.map((input, index) =>
+// Cada entrada es un dato del catálogo referenciado por la fila; editar su nombre
+// o tipo edita el dato (handlers.onDataChange), fuente única de esos valores.
+function inputsEditor(rowId, entries, handlers) {
+  const rows = entries.map((entry) =>
     el("div", { class: "flex items-center gap-1" }, [
       el("input", {
         type: "text",
-        value: input.name ?? "",
+        value: entry.name ?? "",
         placeholder: "nombre",
         class: CONTROL_CLASS,
-        oninput: (event) =>
-          field((row) => ({ inputs: replaceAt(row.inputs, index, { ...row.inputs[index], name: event.target.value }) })),
+        oninput: (event) => handlers.onDataChange(entry.id, { name: event.target.value }),
       }),
-      selectField(optionsOf(DATA_TYPES), input.type, (value) =>
-        field((row) => ({ inputs: replaceAt(row.inputs, index, { ...row.inputs[index], type: value }) })), {
+      selectField(optionsOf(DATA_TYPES), entry.type, (value) => handlers.onDataChange(entry.id, { type: value }), {
         placeholder: "Tipo…",
       }),
       el("button", {
         type: "button",
         class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
         title: "Quitar dato",
-        onclick: () => structural((row) => ({ inputs: removeAt(row.inputs, index) })),
+        onclick: () => handlers.onRemoveRowInput(rowId, entry.id),
       }, "×"),
     ]),
   );
@@ -258,18 +262,8 @@ function inputsEditor(inputs, field, structural) {
   const addButton = el("button", {
     type: "button",
     class: "text-xs font-medium text-slate-500 hover:text-slate-700",
-    onclick: () => structural((row) => ({ inputs: [...row.inputs, { name: "", type: "" }] })),
+    onclick: () => handlers.onAddRowInput(rowId),
   }, "+ dato");
 
   return el("div", { class: "space-y-1" }, [...rows, addButton]);
-}
-
-// --- Helpers de arrays inmutables para los datos de entrada ---
-
-function replaceAt(array, index, value) {
-  return array.map((item, i) => (i === index ? value : item));
-}
-
-function removeAt(array, index) {
-  return array.filter((_, i) => i !== index);
 }

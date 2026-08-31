@@ -8,7 +8,7 @@ import { JSDOM } from "jsdom";
 import { AnalysisView } from "../src/views/analysisView.js";
 import { TableView } from "../src/views/tableView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
-import { createAnalysis, addRow } from "../src/models/analysisModel.js";
+import { createAnalysis, addRow, findData } from "../src/models/analysisModel.js";
 import { serializeAnalysis } from "../src/services/file/fileService.js";
 
 // Storage falso en memoria para inyectar en el controlador sin IndexedDB.
@@ -156,7 +156,7 @@ test("adding an input datum grows the row's inputs and re-renders", async () => 
 
   addButton.click();
 
-  assert.equal(controller.analysis.rows[0].inputs.length, 1);
+  assert.equal(controller.analysis.rows[0].inputIds.length, 1);
   assert.equal(doc.querySelectorAll("tbody tr td")[2].querySelectorAll("input").length, 1);
 });
 
@@ -171,8 +171,9 @@ test("editing result name then type keeps both (no stale overwrite)", async () =
   typeSelect.value = "numeric";
   fire(typeSelect, "change");
 
-  assert.equal(controller.analysis.rows[0].result.name, "promedio");
-  assert.equal(controller.analysis.rows[0].result.type, "numeric");
+  const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
+  assert.equal(result.name, "promedio");
+  assert.equal(result.type, "numeric");
 });
 
 test("adding a datum after naming another preserves the first name", async () => {
@@ -186,8 +187,9 @@ test("adding a datum after naming another preserves the first name", async () =>
   fire(nameInput, "input");
   addDato().click(); // añadir otro no debe borrar el primero
 
-  assert.equal(controller.analysis.rows[0].inputs.length, 2);
-  assert.equal(controller.analysis.rows[0].inputs[0].name, "nota1");
+  const { inputIds } = controller.analysis.rows[0];
+  assert.equal(inputIds.length, 2);
+  assert.equal(findData(controller.analysis, inputIds[0]).name, "nota1");
 });
 
 test("recovers the most recently updated analysis on start", async () => {

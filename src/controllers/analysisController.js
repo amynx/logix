@@ -2,7 +2,18 @@
 // actual) y coordina el flujo acción → estado → persistencia → vista.
 // El auto-guardado es con debounce para no escribir en IndexedDB en cada tecla.
 
-import { createAnalysis, addRow, removeRow, moveRow, updateRow, updateAnalysisInfo } from "../models/analysisModel.js";
+import {
+  createAnalysis,
+  addRow,
+  removeRow,
+  moveRow,
+  updateRow,
+  updateAnalysisInfo,
+  updateData,
+  addRowInput,
+  removeRowInput,
+  updateRowResult,
+} from "../models/analysisModel.js";
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
 import { collectAnalysisWarnings } from "../validation/analysisValidation.js";
@@ -49,7 +60,36 @@ export class AnalysisController {
       onAddRow: () => this.addRow(),
       onDeleteRow: (rowId) => this.deleteRow(rowId),
       onMoveRow: (fromRowId, toRowId) => this.moveRow(fromRowId, toRowId),
+      onDataChange: (dataId, changes) => this.updateData(dataId, changes),
+      onResultChange: (rowId, changes) => this.updateResult(rowId, changes),
+      onAddRowInput: (rowId) => this.addRowInput(rowId),
+      onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
     });
+  }
+
+  // Edición de nombre/tipo de un dato: el valor ya está en el DOM; no se re-renderiza.
+  updateData(dataId, changes) {
+    updateData(this.analysis, dataId, changes);
+    this.#scheduleSave();
+  }
+
+  // El dato resultante se crea de forma diferida leyendo el resultId actual de la fila.
+  updateResult(rowId, changes) {
+    updateRowResult(this.analysis, rowId, changes);
+    this.#scheduleSave();
+  }
+
+  // Añadir/quitar una entrada cambia los controles visibles: se re-renderiza.
+  addRowInput(rowId) {
+    addRowInput(this.analysis, rowId);
+    this.renderTable();
+    this.#scheduleSave();
+  }
+
+  removeRowInput(rowId, dataId) {
+    removeRowInput(this.analysis, rowId, dataId);
+    this.renderTable();
+    this.#scheduleSave();
   }
 
   updateInfo(changes) {

@@ -5,12 +5,12 @@
 
 import { createId } from "../utils/id.js";
 
-// Versión del formato del análisis. Se incluye en cada análisis para permitir
-// migraciones futuras del archivo .analisis sin romper la compatibilidad.
-export const ANALYSIS_VERSION = 1;
+// Versión del formato del análisis. La v2 introduce el catálogo de datos con
+// identidad propia (ids); las filas referencian los datos por id.
+export const ANALYSIS_VERSION = 2;
 
-export function createDataItem(overrides = {}) {
-  return { name: "", type: "", ...overrides };
+export function createDataEntry(overrides = {}) {
+  return { id: createId(), name: "", type: "", ...overrides };
 }
 
 export function createBranch(overrides = {}) {
@@ -21,10 +21,10 @@ export function createRow(overrides = {}) {
   return {
     id: createId(),
     problem: "",
-    inputs: [],
+    inputIds: [],
     condition: "",
     operation: "",
-    result: createDataItem(),
+    resultId: null,
     purpose: "",
     subsequentUse: "",
     ifTrue: createBranch(),
@@ -40,6 +40,7 @@ export function createAnalysis(overrides = {}) {
     id: createId(),
     title: "",
     description: "",
+    data: [],
     rows: [],
     createdAt: now,
     updatedAt: now,
@@ -88,5 +89,75 @@ export function updateRow(analysis, rowId, changes) {
 // Actualiza el título y/o la descripción del análisis.
 export function updateAnalysisInfo(analysis, changes) {
   Object.assign(analysis, changes);
+  return touch(analysis);
+}
+
+// --- Catálogo de datos (única fuente de verdad de nombre y tipo) ---
+
+export function findData(analysis, dataId) {
+  return analysis.data.find((entry) => entry.id === dataId) ?? null;
+}
+
+export function addData(analysis, values = {}) {
+  const entry = createDataEntry(values);
+  analysis.data.push(entry);
+  touch(analysis);
+  return entry;
+}
+
+export function updateData(analysis, dataId, changes) {
+  const entry = findData(analysis, dataId);
+  if (!entry) return analysis;
+  Object.assign(entry, changes);
+  return touch(analysis);
+}
+
+// Elimina un dato del catálogo y todas sus referencias en las filas.
+export function removeData(analysis, dataId) {
+  analysis.data = analysis.data.filter((entry) => entry.id !== dataId);
+  for (const row of analysis.rows) {
+    row.inputIds = row.inputIds.filter((id) => id !== dataId);
+    if (row.resultId === dataId) row.resultId = null;
+  }
+  return touch(analysis);
+}
+
+// Un dato es huérfano si ninguna fila lo consume como entrada ni lo produce.
+function isDataReferenced(analysis, dataId) {
+  return analysis.rows.some((row) => row.inputIds.includes(dataId) || row.resultId === dataId);
+}
+
+// --- Referencias fila ↔ dato ---
+
+// Añade un nuevo dato de entrada (vacío) a la fila y lo registra en el catálogo.
+export function addRowInput(analysis, rowId) {
+  const row = analysis.rows.find((candidate) => candidate.id === rowId);
+  if (!row) return null;
+  const entry = addData(analysis);
+  row.inputIds.push(entry.id);
+  touch(analysis);
+  return entry;
+}
+
+// Quita un dato de entrada de la fila; si queda huérfano, lo elimina del catálogo.
+export function removeRowInput(analysis, rowId, dataId) {
+  const row = analysis.rows.find((candidate) => candidate.id === rowId);
+  if (!row) return analysis;
+  row.inputIds = row.inputIds.filter((id) => id !== dataId);
+  if (!isDataReferenced(analysis, dataId)) removeData(analysis, dataId);
+  return touch(analysis);
+}
+
+// Edita el dato resultante de la fila. Lo crea de forma diferida la primera vez
+// que se le asigna nombre o tipo, leyendo siempre el resultId actual de la fila.
+export function updateRowResult(analysis, rowId, changes) {
+  const row = analysis.rows.find((candidate) => candidate.id === rowId);
+  if (!row) return analysis;
+  if (row.resultId) {
+    updateData(analysis, row.resultId, changes);
+  } else {
+    const entry = addData(analysis, changes);
+    row.resultId = entry.id;
+  }
   return touch(analysis);
 }
