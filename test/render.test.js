@@ -267,6 +267,41 @@ test("deleting a row whose datum is reused warns and prunes the reference", asyn
   assert.ok(!controller.analysis.rows[0].inputIds.includes(dataId), "la referencia colgante se poda");
 });
 
+test("building an operation references data and shows it in the chain", async () => {
+  const { doc, controller } = await mountApp();
+
+  // Identifica un dato de entrada "nota1".
+  const inputsCell = () => doc.querySelectorAll("tbody tr td")[2];
+  [...inputsCell().querySelectorAll("button")].find((b) => b.textContent === "+ dato").click();
+  const nameInput = inputsCell().querySelector("input");
+  nameInput.value = "nota1";
+  fire(nameInput, "input");
+
+  // Construye la operación: referencia nota1, operador ÷ y literal 3.
+  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const dataId = controller.analysis.rows[0].inputIds[0];
+  const dataSelect = [...opCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === dataId),
+  );
+  dataSelect.value = dataId;
+  fire(dataSelect, "change");
+
+  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === "div"),
+  );
+  opSelect.value = "div";
+  fire(opSelect, "change");
+
+  const literal = opCell().querySelector('input[placeholder="valor"]');
+  literal.value = "3";
+  [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+
+  const operation = controller.analysis.rows[0].operation;
+  assert.deepEqual(operation.map((t) => t.kind), ["ref", "op", "literal"]);
+  assert.equal(operation[0].dataId, dataId);
+  assert.match(doc.getElementById("chain-container").textContent, /nota1 ÷ 3/);
+});
+
 test("the chain panel reflects external inputs and final outputs live", async () => {
   const { doc } = await mountApp();
   const chainText = () => doc.getElementById("chain-container").textContent;

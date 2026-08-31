@@ -4,6 +4,8 @@
 // reutilizando la identidad por id para distinguir datos externos, intermedios y
 // finales. Es la base para futuras representaciones (pseudocódigo, diagramas).
 
+import { operationToText } from "./operators.js";
+
 export function buildChain(analysis) {
   const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
   const resolve = (id) => dataById.get(id) ?? null;
@@ -42,16 +44,17 @@ function buildStep(row, index, resolve, producedIds) {
     .filter(Boolean)
     .map((datum) => ({ ...datum, produced: producedIds.has(datum.id) }));
   const result = resolve(row.resultId);
+  const operation = operationToText(row.operation, resolve);
 
   const hasContent =
-    row.operation.trim() || row.condition.trim() || result || inputs.length > 0 || row.purpose;
+    operation || row.condition.trim() || result || inputs.length > 0 || row.purpose;
   if (!hasContent) return null;
 
   return {
     rowId: row.id,
     position: index + 1,
     inputs,
-    operation: row.operation.trim(),
+    operation,
     condition: row.condition.trim(),
     purpose: row.purpose,
     result,

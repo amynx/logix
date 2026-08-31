@@ -31,6 +31,37 @@ test("deserializing without rows throws a friendly error", () => {
   assert.throws(() => deserializeAnalysis(payload), /incompleto o dañado/);
 });
 
+test("migrates a v2 operation string into a preserved literal token", () => {
+  const v2 = {
+    version: 2,
+    id: "a",
+    title: "Demo",
+    description: "",
+    data: [],
+    rows: [
+      {
+        id: "r",
+        problem: "",
+        inputIds: [],
+        condition: "",
+        operation: "sumar las notas",
+        resultId: null,
+        purpose: "",
+        subsequentUse: "",
+        ifTrue: { type: "", value: "" },
+        ifFalse: { type: "", value: "" },
+      },
+    ],
+    createdAt: "x",
+    updatedAt: "y",
+  };
+
+  const migrated = deserializeAnalysis(JSON.stringify(v2));
+
+  assert.equal(migrated.version, ANALYSIS_VERSION);
+  assert.deepEqual(migrated.rows[0].operation, [{ kind: "literal", value: "sumar las notas" }]);
+});
+
 test("deserializing a future version throws a friendly error", () => {
   const payload = JSON.stringify({ version: ANALYSIS_VERSION + 1, id: "x", rows: [] });
   assert.throws(() => deserializeAnalysis(payload), /versión distinta/);

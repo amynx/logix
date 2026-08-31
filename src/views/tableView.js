@@ -10,6 +10,7 @@
 
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
+import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 
 const CONTROL_CLASS =
   "w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
@@ -24,7 +25,7 @@ const COLUMNS = [
   { key: "problem", title: "Problema / Necesidad", help: "Sub-necesidad de este paso (opcional)." },
   { key: "inputs", title: "Datos de entrada", help: "Datos que el programa recibe para este paso." },
   { key: "condition", title: "Condición", help: "Pregunta que debe responderse para decidir el camino." },
-  { key: "operation", title: "Operación", help: "Operación que debe realizarse." },
+  { key: "operation", title: "Operación", help: "Constrúyela referenciando datos y operadores." },
   { key: "result", title: "Dato resultante", help: "Dato producido tras realizar una operación." },
   { key: "purpose", title: "Propósito", help: "Para qué se utilizará el dato producido." },
   { key: "subsequentUse", title: "Uso posterior", help: "Cómo se integra el dato en la siguiente operación o información." },
@@ -108,6 +109,13 @@ export class TableView {
     const reusable = [...dataById.values()].filter(
       (entry) => !row.inputIds.includes(entry.id) && entry.id !== row.resultId,
     );
+    // Datos que la operación puede referenciar: las entradas de esta fila y los
+    // resultados ya producidos por otras filas.
+    const operationRefs = dedupeById([
+      ...inputEntries,
+      ...[...dataById.values()].filter((entry) => producedIds.has(entry.id) && entry.id !== row.resultId),
+    ]);
+    const resolveData = (id) => dataById.get(id) ?? null;
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -136,7 +144,7 @@ export class TableView {
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
       cell(textField(row.condition, "¿Qué debe responderse?", (value) => field(() => ({ condition: value })))),
-      cell(textField(row.operation, "Operación a realizar", (value) => field(() => ({ operation: value })))),
+      cell(operationEditor(row.operation, operationRefs, resolveData, structural)),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),
       cell(textField(row.subsequentUse, subsequentUsePlaceholder(row.purpose), (value) => field(() => ({ subsequentUse: value })))),
@@ -210,6 +218,108 @@ function selectField(options, value, onChange, { placeholder, disabled = false }
 // Etiqueta de un dato reutilizado: "nombre : Tipo".
 function dataReferenceLabel(entry) {
   return `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`;
+}
+
+// Constructor de la operación: sus piezas (referencias a datos, operadores y
+// literales) se seleccionan, no se escriben como texto. Así la operación usa los
+// datos identificados y sus resultados quedan disponibles para operaciones posteriores.
+function operationEditor(tokens, refs, resolve, structural) {
+  const append = (token) => structural((row) => ({ operation: [...row.operation, token] }));
+  const removeAt = (index) => structural((row) => ({ operation: row.operation.filter((_, i) => i !== index) }));
+
+  const chips = tokens.map((token, index) => operationTokenChip(token, resolve, () => removeAt(index)));
+
+  const controls = [];
+  if (refs.length > 0) {
+    const dataSelect = selectField(
+      refs.map((entry) => ({ value: entry.id, label: entry.name || "(sin nombre)" })),
+      "",
+      (dataId) => dataId && append({ kind: "ref", dataId }),
+      { placeholder: "+ dato" },
+    );
+    dataSelect.classList.add("text-xs");
+    controls.push(dataSelect);
+  }
+  controls.push(operatorSelect((op) => append({ kind: "op", op })));
+
+  const literal = el("input", {
+    type: "text",
+    placeholder: "valor",
+    class: `${CONTROL_CLASS} w-16 text-xs`,
+  });
+  const addLiteral = () => {
+    const value = literal.value.trim();
+    if (value) append({ kind: "literal", value });
+  };
+  controls.push(
+    el("div", { class: "flex items-center gap-1" }, [
+      literal,
+      el("button", {
+        type: "button",
+        class: "shrink-0 rounded px-1.5 py-1 text-xs font-medium text-slate-500 hover:text-slate-700",
+        onclick: addLiteral,
+      }, "+ valor"),
+    ]),
+  );
+
+  return el("div", { class: "space-y-1" }, [
+    tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
+    el("div", { class: "flex flex-wrap gap-1" }, controls),
+  ]);
+}
+
+function operationTokenChip(token, resolve, onRemove) {
+  const { text, className } = describeToken(token, resolve);
+  return el("span", { class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${className}` }, [
+    el("span", {}, text),
+    el("button", {
+      type: "button",
+      class: "text-slate-400 hover:text-red-600",
+      title: "Quitar",
+      onclick: onRemove,
+    }, "×"),
+  ]);
+}
+
+function describeToken(token, resolve) {
+  if (token.kind === "ref") {
+    const datum = resolve(token.dataId);
+    return {
+      text: datum ? datum.name || "(sin nombre)" : "(dato eliminado)",
+      className: "border border-sky-200 bg-sky-50 text-sky-700",
+    };
+  }
+  if (token.kind === "op") {
+    return { text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "bg-slate-100 font-semibold text-slate-700" };
+  }
+  return { text: token.value || "∅", className: "border border-amber-200 bg-amber-50 text-amber-700" };
+}
+
+// Selector de operador con grupos (Aritméticos / Relacionales / Lógicos).
+function operatorSelect(onPick) {
+  const groups = Object.values(OPERATOR_GROUPS).map((group) =>
+    el(
+      "optgroup",
+      { label: group.label },
+      Object.entries(group.operators).map(([key, symbol]) => el("option", { value: key }, symbol)),
+    ),
+  );
+  const select = el(
+    "select",
+    {
+      class: `${CONTROL_CLASS} text-xs`,
+      onchange: (event) => {
+        if (event.target.value) onPick(event.target.value);
+      },
+    },
+    [el("option", { value: "" }, "+ operador"), ...groups],
+  );
+  select.value = "";
+  return select;
+}
+
+function dedupeById(entries) {
+  return [...new Map(entries.map((entry) => [entry.id, entry])).values()];
 }
 
 // El texto guía de "Uso posterior" cambia según el propósito elegido.

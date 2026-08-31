@@ -22,11 +22,23 @@ export function validateImportedAnalysis(data) {
   return true;
 }
 
-// Actualiza un análisis abrible al formato actual. Solo transforma lo necesario;
-// un análisis ya en la versión actual se devuelve sin cambios.
+// Actualiza un análisis abrible al formato actual aplicando las migraciones
+// necesarias en orden. Un análisis ya en la versión actual se devuelve sin cambios.
 export function migrateAnalysis(data) {
-  if (data.version === 1) return migrateV1toV2(data);
-  return data;
+  let current = data;
+  if (current.version < 2) current = migrateV1toV2(current);
+  if (current.version < 3) current = migrateV2toV3(current);
+  return current;
+}
+
+// v3: la operación pasa de texto libre a lista de tokens. El texto anterior se
+// conserva como un literal para no perder el trabajo del estudiante.
+function migrateV2toV3(old) {
+  const rows = old.rows.map((row) => {
+    const text = typeof row.operation === "string" ? row.operation.trim() : "";
+    return { ...row, operation: text ? [{ kind: "literal", value: text }] : [] };
+  });
+  return { ...old, version: 3, rows };
 }
 
 // v1 tenía los datos en línea (inputs:[{name,type}], result:{name,type}). La v2
@@ -90,7 +102,7 @@ export function collectAnalysisWarnings(analysis) {
     const position = index + 1;
     const result = findData(analysis, row.resultId);
 
-    if (row.operation.trim() && !(result && result.name.trim())) {
+    if (row.operation.length > 0 && !(result && result.name.trim())) {
       warnings.push(`Fila ${position}: la operación produce un dato sin nombre.`);
     }
     if (result && result.name.trim() && !result.type) {
