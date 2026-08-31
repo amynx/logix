@@ -24,7 +24,7 @@ const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
 const COLUMNS = [
   { key: "problem", title: "Problema / Necesidad", help: "Sub-necesidad de este paso (opcional)." },
   { key: "inputs", title: "Datos de entrada", help: "Datos que el programa recibe para este paso." },
-  { key: "condition", title: "Condición", help: "Constrúyela con datos y operadores (p. ej. promedio ≥ 3)." },
+  { key: "condition", title: "Condición", help: "Pregunta en lenguaje natural que debe validar el programa." },
   { key: "operation", title: "Operación", help: "Constrúyela referenciando datos y operadores." },
   { key: "result", title: "Dato resultante", help: "Dato producido tras realizar una operación." },
   { key: "purpose", title: "Propósito", help: "Para qué se utilizará el dato producido." },
@@ -122,8 +122,6 @@ export class TableView {
       ...[...dataById.values()].filter((entry) => producedIds.has(entry.id) && entry.id !== row.resultId),
     ]);
     const resolveData = (id) => dataById.get(id) ?? null;
-    const editExpression = (fieldName) => (updater) =>
-      structural((current) => ({ [fieldName]: updater(current[fieldName]) }));
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -151,7 +149,7 @@ export class TableView {
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
       cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
-      cell(expressionEditor(row.condition, availableRefs, resolveData, editExpression("condition"))),
+      cell(textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))),
       cell(expressionEditor(row.operation, availableRefs, resolveData, (updater) => handlers.onOperationChange(row.id, updater))),
       cell(resultEditor(row.id, resultEntry, handlers)),
       cell(purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })))),

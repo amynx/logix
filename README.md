@@ -12,10 +12,13 @@ Funciona **completamente en el navegador**: sin backend, sin cuentas y sin base 
 - **Catálogo de datos con identidad.** Cada dato (entrada o resultado) tiene un `id`; su nombre
   y tipo viven en un único lugar. Las filas referencian los datos por id, así que un resultado
   producido queda disponible para reutilizarse y renombrar propaga a todas sus referencias.
-- **Operaciones y condiciones como expresiones.** No se escriben como texto: se **construyen**
-  seleccionando referencias a datos, operadores (aritméticos, relacionales, lógicos y
-  paréntesis) y literales (p. ej. `nota1 + nota2 + nota3 ÷ 3`, o `promedio ≥ 3`). Las piezas se
-  pueden reordenar arrastrándolas. Esto evita inconsistencias de nombres y valores.
+- **Operaciones como expresiones.** No se escriben como texto: se **construyen** seleccionando
+  referencias a datos, operadores (aritméticos, relacionales, lógicos y paréntesis) y literales
+  (p. ej. `nota1 + nota2 + nota3 ÷ 3`, o `promedio ≥ 3`). Las piezas se reordenan arrastrándolas.
+  Esto evita inconsistencias de nombres y valores.
+- **Condición en lenguaje natural.** La columna Condición es la **pregunta** que el programa debe
+  validar, escrita en lenguaje natural (p. ej. *«¿El promedio es mayor o igual a 3.0?»*). La
+  expresión relacional o lógica que la responde se construye en la columna Operación.
 - **Cadena del análisis.** Bajo la tabla se dibuja en vivo la cadena
   **Entradas → Proceso → Salida**, derivada del modelo: las entradas externas (datos que se
   consumen pero nadie produce), las actividades en orden y la información final.

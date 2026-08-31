@@ -386,36 +386,16 @@ test("the result type is suggested when the result is named after the operation"
   assert.equal(doc.querySelector("[data-result-type]").value, "numeric", "el select refleja la sugerencia");
 });
 
-test("the condition is built as an expression referencing data", async () => {
+test("the condition is a free-text natural-language question", async () => {
   const { doc, controller } = await mountApp();
 
-  const inputsCell = () => doc.querySelectorAll("tbody tr td")[2];
-  [...inputsCell().querySelectorAll("button")].find((b) => b.textContent === "+ dato").click();
-  const nameInput = inputsCell().querySelector("input");
-  nameInput.value = "x";
-  fire(nameInput, "input");
-  const dataId = controller.analysis.rows[0].inputIds[0];
+  const conditionField = doc.querySelectorAll("tbody tr td")[3].querySelector("textarea");
+  assert.ok(conditionField, "la condición es un campo de texto, no un constructor");
 
-  const condCell = () => doc.querySelectorAll("tbody tr td")[3];
-  const dataSelect = [...condCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === dataId),
-  );
-  dataSelect.value = dataId;
-  fire(dataSelect, "change");
+  conditionField.value = "¿El promedio es mayor o igual a 3?";
+  fire(conditionField, "input");
 
-  const opSelect = [...condCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === "ge"),
-  );
-  opSelect.value = "ge";
-  fire(opSelect, "change");
-
-  const literal = condCell().querySelector('input[placeholder="valor"]');
-  literal.value = "3";
-  [...condCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
-
-  const condition = controller.analysis.rows[0].condition;
-  assert.deepEqual(condition.map((t) => t.kind), ["ref", "op", "literal"]);
-  assert.equal(condition[1].op, "ge");
+  assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
 });
 
 test("the chain panel reflects external inputs and final outputs live", async () => {

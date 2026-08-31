@@ -3,6 +3,7 @@
 // formato interno actual. Lanza mensajes comprensibles (no errores técnicos).
 
 import { ANALYSIS_VERSION, createDataEntry, findData } from "../models/analysisModel.js";
+import { operationToText } from "../models/operators.js";
 import { createId } from "../utils/id.js";
 
 const INVALID_FORMAT = "El archivo seleccionado no tiene un formato de análisis válido.";
@@ -29,7 +30,21 @@ export function migrateAnalysis(data) {
   if (current.version < 2) current = migrateV1toV2(current);
   if (current.version < 3) current = migrateV2toV3(current);
   if (current.version < 4) current = migrateV3toV4(current);
+  if (current.version < 5) current = migrateV4toV5(current);
   return current;
+}
+
+// v5: la condición vuelve a ser texto libre (la pregunta en lenguaje natural).
+// Si venía como lista de tokens (v4), se deriva a su texto legible para no
+// perder el contenido.
+function migrateV4toV5(old) {
+  const byId = new Map((old.data ?? []).map((entry) => [entry.id, entry]));
+  const resolve = (id) => byId.get(id) ?? null;
+  const rows = old.rows.map((row) => ({
+    ...row,
+    condition: Array.isArray(row.condition) ? operationToText(row.condition, resolve) : row.condition ?? "",
+  }));
+  return { ...old, version: 5, rows };
 }
 
 // Convierte un campo de texto libre en lista de tokens, preservando el texto
@@ -119,7 +134,7 @@ export function collectAnalysisWarnings(analysis) {
     if (result && result.name.trim() && !result.type) {
       warnings.push(`Fila ${position}: el dato "${result.name}" no tiene tipo.`);
     }
-    if (row.purpose === "decision" && row.condition.length === 0) {
+    if (row.purpose === "decision" && !row.condition.trim()) {
       warnings.push(`Fila ${position}: la decisión no tiene una condición definida.`);
     }
     if (row.purpose === "response" && !row.subsequentUse.trim()) {

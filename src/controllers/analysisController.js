@@ -19,7 +19,7 @@ import {
 } from "../models/analysisModel.js";
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
-import { collectAnalysisWarnings } from "../validation/analysisValidation.js";
+import { collectAnalysisWarnings, migrateAnalysis } from "../validation/analysisValidation.js";
 import { buildChain } from "../models/chainModel.js";
 import { inferResultType } from "../models/operators.js";
 
@@ -270,7 +270,9 @@ export class AnalysisController {
     try {
       const stored = await this.storage.getAllAnalyses();
       if (stored && stored.length > 0) {
-        return stored.reduce((latest, item) => (item.updatedAt > latest.updatedAt ? item : latest));
+        const latest = stored.reduce((newest, item) => (item.updatedAt > newest.updatedAt ? item : newest));
+        // Migra por si el auto-guardado quedó en un formato anterior.
+        return migrateAnalysis(latest);
       }
     } catch (error) {
       console.error("No se pudo recuperar el análisis guardado:", error);

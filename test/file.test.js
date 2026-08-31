@@ -62,7 +62,7 @@ test("migrates a v2 operation string into a preserved literal token", () => {
   assert.deepEqual(migrated.rows[0].operation, [{ kind: "literal", value: "sumar las notas" }]);
 });
 
-test("migrates a v3 condition string into a preserved literal token", () => {
+test("keeps the condition as natural-language text through migration", () => {
   const v3 = {
     version: 3,
     id: "a",
@@ -74,7 +74,7 @@ test("migrates a v3 condition string into a preserved literal token", () => {
         id: "r",
         problem: "",
         inputIds: [],
-        condition: "promedio alto",
+        condition: "¿el promedio es alto?",
         operation: [],
         resultId: null,
         purpose: "decision",
@@ -90,7 +90,7 @@ test("migrates a v3 condition string into a preserved literal token", () => {
   const migrated = deserializeAnalysis(JSON.stringify(v3));
 
   assert.equal(migrated.version, ANALYSIS_VERSION);
-  assert.deepEqual(migrated.rows[0].condition, [{ kind: "literal", value: "promedio alto" }]);
+  assert.equal(migrated.rows[0].condition, "¿el promedio es alto?");
 });
 
 test("deserializing a future version throws a friendly error", () => {
