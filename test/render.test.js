@@ -358,6 +358,34 @@ test("the result type is suggested from the operation when unset", async () => {
   assert.equal(result.type, "numeric", "operación aritmética sugiere Numérico");
 });
 
+test("the result type is suggested when the result is named after the operation", async () => {
+  const { doc, controller } = await mountApp();
+
+  // Primero se construye la operación 2 + 3...
+  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const addLiteral = (value) => {
+    const literal = opCell().querySelector('input[placeholder="valor"]');
+    literal.value = value;
+    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+  };
+  addLiteral("2");
+  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => o.value === "add"),
+  );
+  opSelect.value = "add";
+  fire(opSelect, "change");
+  addLiteral("3");
+
+  // ...y luego se nombra el resultado.
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "suma";
+  fire(resultName, "input");
+
+  const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
+  assert.equal(result.type, "numeric");
+  assert.equal(doc.querySelector("[data-result-type]").value, "numeric", "el select refleja la sugerencia");
+});
+
 test("the condition is built as an expression referencing data", async () => {
   const { doc, controller } = await mountApp();
 

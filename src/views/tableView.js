@@ -75,6 +75,12 @@ export class TableView {
     });
   }
 
+  // Refleja en el select del tipo el valor sugerido, sin re-renderizar la fila.
+  syncResultType(rowId, type) {
+    const select = this.container.querySelector(`[data-result-type="${rowId}"]`);
+    if (select) select.value = type;
+  }
+
   #buildHeader() {
     const cells = [el("th", { class: `${TH_CLASS} w-10 text-slate-400`, scope: "col" }, "#")];
     for (const column of COLUMNS) {
@@ -377,6 +383,15 @@ function subsequentUsePlaceholder(purpose) {
 // Dato resultante: nombre + tipo. El dato se crea de forma diferida en el modelo
 // la primera vez que se escribe algo (handlers.onResultChange).
 function resultEditor(rowId, result, handlers) {
+  const typeSelect = selectField(
+    optionsOf(DATA_TYPES),
+    result?.type,
+    (value) => handlers.onResultChange(rowId, { type: value }),
+    { placeholder: "Tipo…" },
+  );
+  // Permite que el controlador refleje el tipo sugerido sin re-renderizar la fila.
+  typeSelect.dataset.resultType = rowId;
+
   return el("div", { class: "space-y-1" }, [
     el("input", {
       type: "text",
@@ -385,9 +400,7 @@ function resultEditor(rowId, result, handlers) {
       class: CONTROL_CLASS,
       oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
     }),
-    selectField(optionsOf(DATA_TYPES), result?.type, (value) => handlers.onResultChange(rowId, { type: value }), {
-      placeholder: "Tipo…",
-    }),
+    typeSelect,
   ]);
 }
 

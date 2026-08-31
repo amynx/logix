@@ -97,12 +97,18 @@ export class AnalysisController {
     this.#afterChange();
   }
 
+  // Sugiere y aplica el tipo del dato resultante si aún no tiene uno. Devuelve el
+  // tipo aplicado (o null) para que el llamador pueda reflejarlo en la vista.
   #suggestResultType(row) {
-    if (!row.resultId) return;
+    if (!row.resultId) return null;
     const result = findData(this.analysis, row.resultId);
-    if (!result || result.type) return; // no sobrescribir un tipo ya elegido
+    if (!result || result.type) return null; // no sobrescribir un tipo ya elegido
     const inferred = inferResultType(row.operation);
-    if (inferred) updateData(this.analysis, row.resultId, { type: inferred });
+    if (inferred) {
+      updateData(this.analysis, row.resultId, { type: inferred });
+      return inferred;
+    }
+    return null;
   }
 
   // Edición de nombre/tipo de un dato: el valor ya está en el DOM del control que
@@ -117,7 +123,11 @@ export class AnalysisController {
   updateResult(rowId, changes) {
     updateRowResult(this.analysis, rowId, changes);
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
-    if (row?.resultId) this.#syncDataReferences(row.resultId);
+    if (row?.resultId) {
+      const suggested = this.#suggestResultType(row);
+      if (suggested) this.tableView.syncResultType(rowId, suggested);
+      this.#syncDataReferences(row.resultId);
+    }
     this.#afterChange();
   }
 
