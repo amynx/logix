@@ -139,6 +139,17 @@ export function addRowInput(analysis, rowId) {
   return entry;
 }
 
+// Reutiliza un dato existente del catálogo como entrada de la fila (comparte id).
+export function addExistingRowInput(analysis, rowId, dataId) {
+  const row = analysis.rows.find((candidate) => candidate.id === rowId);
+  if (!row) return analysis;
+  if (!row.inputIds.includes(dataId) && findData(analysis, dataId)) {
+    row.inputIds.push(dataId);
+    touch(analysis);
+  }
+  return analysis;
+}
+
 // Quita un dato de entrada de la fila; si queda huérfano, lo elimina del catálogo.
 export function removeRowInput(analysis, rowId, dataId) {
   const row = analysis.rows.find((candidate) => candidate.id === rowId);

@@ -11,6 +11,7 @@ import {
   updateAnalysisInfo,
   updateData,
   addRowInput,
+  addExistingRowInput,
   removeRowInput,
   updateRowResult,
 } from "../models/analysisModel.js";
@@ -63,6 +64,7 @@ export class AnalysisController {
       onDataChange: (dataId, changes) => this.updateData(dataId, changes),
       onResultChange: (rowId, changes) => this.updateResult(rowId, changes),
       onAddRowInput: (rowId) => this.addRowInput(rowId),
+      onReuseInput: (rowId, dataId) => this.reuseInput(rowId, dataId),
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
     });
   }
@@ -82,6 +84,12 @@ export class AnalysisController {
   // Añadir/quitar una entrada cambia los controles visibles: se re-renderiza.
   addRowInput(rowId) {
     addRowInput(this.analysis, rowId);
+    this.renderTable();
+    this.#scheduleSave();
+  }
+
+  reuseInput(rowId, dataId) {
+    addExistingRowInput(this.analysis, rowId, dataId);
     this.renderTable();
     this.#scheduleSave();
   }

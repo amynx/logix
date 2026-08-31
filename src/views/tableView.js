@@ -9,7 +9,7 @@
 //     dato de entrada) → onStructuralChange, que provoca un nuevo render de la tabla.
 
 import { el, clear } from "../utils/dom.js";
-import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf } from "../models/dataTypes.js";
+import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 
 const CONTROL_CLASS =
   "w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
@@ -40,9 +40,12 @@ export class TableView {
   render(analysis, handlers) {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
+    // Datos que alguna fila produce como resultado: se editan en su celda de
+    // origen y se reutilizan como referencia de solo lectura en otras filas.
+    const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      this.#buildBody(analysis.rows, dataById, handlers),
+      this.#buildBody(analysis.rows, { dataById, producedIds }, handlers),
     ]);
     this.container.append(
       el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
@@ -76,11 +79,12 @@ export class TableView {
     return el("thead", { class: "bg-slate-50" }, [el("tr", {}, cells)]);
   }
 
-  #buildBody(rows, dataById, handlers) {
-    return el("tbody", {}, rows.map((row, index) => this.#buildRow(row, index, dataById, handlers)));
+  #buildBody(rows, catalog, handlers) {
+    return el("tbody", {}, rows.map((row, index) => this.#buildRow(row, index, catalog, handlers)));
   }
 
-  #buildRow(row, index, dataById, handlers) {
+  #buildRow(row, index, catalog, handlers) {
+    const { dataById, producedIds } = catalog;
     // Los cambios se expresan como actualizadores (fila actual) => cambios, de modo
     // que cada edición lea el estado fresco del modelo. Es clave para campos con
     // varios subcampos (result, inputs, ramas): editar uno no debe sobrescribir otro
@@ -90,6 +94,11 @@ export class TableView {
     const isDecision = row.purpose === "decision";
     const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
     const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
+    // Datos que esta fila puede reutilizar: los del catálogo que no consume ya
+    // ni produce ella misma.
+    const reusable = [...dataById.values()].filter(
+      (entry) => !row.inputIds.includes(entry.id) && entry.id !== row.resultId,
+    );
 
     const cells = [
       el("td", { class: `${TD_CLASS} text-center` }, [
@@ -116,7 +125,7 @@ export class TableView {
         el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
       ]),
       cell(textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })))),
-      cell(inputsEditor(row.id, inputEntries, handlers)),
+      cell(inputsEditor(row.id, inputEntries, { producedIds, reusable }, handlers)),
       cell(textField(row.condition, "¿Qué debe responderse?", (value) => field(() => ({ condition: value })))),
       cell(textField(row.operation, "Operación a realizar", (value) => field(() => ({ operation: value })))),
       cell(resultEditor(row.id, resultEntry, handlers)),
@@ -234,12 +243,34 @@ function branchEditor(branch, key, field, disabled) {
   return wrapper;
 }
 
-// Lista de datos de entrada: cada uno con nombre y tipo, con añadir y quitar.
-// Cada entrada es un dato del catálogo referenciado por la fila; editar su nombre
-// o tipo edita el dato (handlers.onDataChange), fuente única de esos valores.
-function inputsEditor(rowId, entries, handlers) {
-  const rows = entries.map((entry) =>
-    el("div", { class: "flex items-center gap-1" }, [
+// Lista de datos de entrada de la fila. Un dato que otra fila produce se muestra
+// como ficha de solo lectura (se renombra en su origen); uno propio es editable.
+// Al pie: reutilizar un dato existente o crear uno nuevo.
+function inputsEditor(rowId, entries, { producedIds, reusable }, handlers) {
+  const detachButton = (dataId, title) =>
+    el("button", {
+      type: "button",
+      class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
+      title,
+      onclick: () => handlers.onRemoveRowInput(rowId, dataId),
+    }, "×");
+
+  const rows = entries.map((entry) => {
+    if (producedIds.has(entry.id)) {
+      return el("div", { class: "flex items-center gap-1" }, [
+        el(
+          "span",
+          {
+            class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
+            title: "Dato reutilizado (se edita en su fila de origen)",
+          },
+          `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`,
+        ),
+        detachButton(entry.id, "Quitar referencia"),
+      ]);
+    }
+
+    return el("div", { class: "flex items-center gap-1" }, [
       el("input", {
         type: "text",
         value: entry.name ?? "",
@@ -250,20 +281,28 @@ function inputsEditor(rowId, entries, handlers) {
       selectField(optionsOf(DATA_TYPES), entry.type, (value) => handlers.onDataChange(entry.id, { type: value }), {
         placeholder: "Tipo…",
       }),
-      el("button", {
-        type: "button",
-        class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
-        title: "Quitar dato",
-        onclick: () => handlers.onRemoveRowInput(rowId, entry.id),
-      }, "×"),
-    ]),
-  );
+      detachButton(entry.id, "Quitar dato"),
+    ]);
+  });
 
-  const addButton = el("button", {
-    type: "button",
-    class: "text-xs font-medium text-slate-500 hover:text-slate-700",
-    onclick: () => handlers.onAddRowInput(rowId),
-  }, "+ dato");
+  const actions = [
+    el("button", {
+      type: "button",
+      class: "text-xs font-medium text-slate-500 hover:text-slate-700",
+      onclick: () => handlers.onAddRowInput(rowId),
+    }, "+ dato"),
+  ];
 
-  return el("div", { class: "space-y-1" }, [...rows, addButton]);
+  if (reusable.length > 0) {
+    const reuse = selectField(
+      reusable.map((entry) => ({ value: entry.id, label: `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}` })),
+      "",
+      (dataId) => dataId && handlers.onReuseInput(rowId, dataId),
+      { placeholder: "Reutilizar dato…" },
+    );
+    reuse.classList.add("text-xs");
+    actions.push(reuse);
+  }
+
+  return el("div", { class: "space-y-1" }, [...rows, el("div", { class: "space-y-1" }, actions)]);
 }

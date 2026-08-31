@@ -7,6 +7,7 @@ import {
   createAnalysis,
   addRow,
   addRowInput,
+  addExistingRowInput,
   removeRowInput,
   updateRowResult,
   removeData,
@@ -55,6 +56,21 @@ test("a datum shared by two rows survives removal from one row", () => {
   removeRowInput(analysis, rowA.id, entry.id);
   assert.equal(analysis.data.length, 1, "sigue referenciado por la otra fila");
   assert.ok(rowB.inputIds.includes(entry.id));
+});
+
+test("addExistingRowInput reuses a datum without duplicating it", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const rowA = addRow(analysis).rows.at(-1);
+  const rowB = addRow(analysis).rows.at(-1);
+  updateRowResult(analysis, rowA.id, { name: "promedio", type: "numeric" });
+  const dataId = rowA.resultId;
+
+  addExistingRowInput(analysis, rowB.id, dataId);
+  assert.ok(rowB.inputIds.includes(dataId));
+  assert.equal(analysis.data.length, 1, "no duplica el dato");
+
+  addExistingRowInput(analysis, rowB.id, dataId); // idempotente
+  assert.equal(rowB.inputIds.filter((id) => id === dataId).length, 1);
 });
 
 test("removeData prunes every reference in the rows", () => {

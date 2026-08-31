@@ -192,6 +192,33 @@ test("adding a datum after naming another preserves the first name", async () =>
   assert.equal(findData(controller.analysis, inputIds[0]).name, "nota1");
 });
 
+test("reusing a produced result adds it as a read-only reference in another row", async () => {
+  const { doc, controller } = await mountApp();
+
+  // La fila 0 produce "promedio".
+  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultInput.value = "promedio";
+  fire(resultInput, "input");
+
+  // Segunda fila y su selector de reutilización.
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar fila").click();
+  const inputsCell = () => doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
+  const reuseSelect = [...inputsCell().querySelectorAll("select")].find((s) =>
+    [...s.options].some((o) => /promedio/.test(o.textContent)),
+  );
+  assert.ok(reuseSelect, "el selector ofrece el dato producido");
+
+  const option = [...reuseSelect.options].find((o) => /promedio/.test(o.textContent));
+  reuseSelect.value = option.value;
+  fire(reuseSelect, "change");
+
+  const promedioId = controller.analysis.rows[0].resultId;
+  assert.ok(controller.analysis.rows[1].inputIds.includes(promedioId), "la fila 2 referencia el dato");
+  const chip = [...inputsCell().querySelectorAll("span")].find((s) => /promedio/.test(s.textContent));
+  assert.ok(chip, "se muestra como ficha de solo lectura");
+  assert.equal(inputsCell().querySelectorAll("input").length, 0, "sin campo editable para el dato reutilizado");
+});
+
 test("recovers the most recently updated analysis on start", async () => {
   const older = createAnalysis({ title: "Viejo", updatedAt: "2026-01-01T00:00:00.000Z" });
   const newer = createAnalysis({ title: "Reciente", updatedAt: "2026-06-01T00:00:00.000Z" });
