@@ -5,14 +5,17 @@
 
 import { createId } from "../utils/id.js";
 
-// Versión del formato del análisis. v3: la operación pasa a lista de tokens.
-// v5: la condición es texto libre (pregunta en lenguaje natural). v6: uso
-// posterior y ramas como expresiones. v7: el uso posterior vuelve a ser texto
-// libre (un "comentario"); solo el detalle de cada rama sigue siendo expresión.
-export const ANALYSIS_VERSION = 7;
+// Versión del formato del análisis. v5: la condición es texto libre. v6: uso
+// posterior y ramas como expresiones. v7: el uso posterior vuelve a texto (un
+// "comentario"). v8: se registra la información de los estudiantes.
+export const ANALYSIS_VERSION = 8;
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
+}
+
+export function createStudent(overrides = {}) {
+  return { id: createId(), idNumber: "", fullName: "", group: "", ...overrides };
 }
 
 export function createBranch(overrides = {}) {
@@ -42,12 +45,34 @@ export function createAnalysis(overrides = {}) {
     id: createId(),
     title: "",
     description: "",
+    students: [],
     data: [],
     rows: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,
   };
+}
+
+// --- Estudiantes ---
+
+export function addStudent(analysis) {
+  const student = createStudent();
+  analysis.students.push(student);
+  touch(analysis);
+  return student;
+}
+
+export function updateStudent(analysis, studentId, changes) {
+  const student = analysis.students.find((candidate) => candidate.id === studentId);
+  if (!student) return analysis;
+  Object.assign(student, changes);
+  return touch(analysis);
+}
+
+export function removeStudent(analysis, studentId) {
+  analysis.students = analysis.students.filter((student) => student.id !== studentId);
+  return touch(analysis);
 }
 
 // Marca el análisis como modificado en este instante.

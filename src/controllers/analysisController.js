@@ -18,6 +18,9 @@ import {
   updateRowResult,
   findData,
   rowsUsingData,
+  addStudent,
+  updateStudent,
+  removeStudent,
 } from "../models/analysisModel.js";
 import { confirmDialog, messageDialog } from "../views/dialogs.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
@@ -30,8 +33,9 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, inputsView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, tableView, chainView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
+    this.studentsView = studentsView;
     this.inputsView = inputsView;
     this.tableView = tableView;
     this.chainView = chainView;
@@ -52,9 +56,36 @@ export class AnalysisController {
 
   render() {
     this.renderInfo();
+    this.renderStudents();
     this.renderInputs();
     this.renderTable();
     this.renderChain();
+  }
+
+  renderStudents() {
+    this.studentsView.render(this.analysis.students, {
+      onAddStudent: () => this.addStudent(),
+      onStudentChange: (studentId, changes) => this.updateStudent(studentId, changes),
+      onRemoveStudent: (studentId) => this.removeStudent(studentId),
+    });
+  }
+
+  addStudent() {
+    addStudent(this.analysis);
+    this.renderStudents();
+    this.#afterChange();
+  }
+
+  // El campo editado conserva el foco; la sección no se re-renderiza al teclear.
+  updateStudent(studentId, changes) {
+    updateStudent(this.analysis, studentId, changes);
+    this.#afterChange();
+  }
+
+  removeStudent(studentId) {
+    removeStudent(this.analysis, studentId);
+    this.renderStudents();
+    this.#afterChange();
   }
 
   renderInputs() {

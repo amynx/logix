@@ -33,7 +33,13 @@ export function migrateAnalysis(data) {
   if (current.version < 5) current = migrateV4toV5(current);
   if (current.version < 6) current = migrateV5toV6(current);
   if (current.version < 7) current = migrateV6toV7(current);
+  if (current.version < 8) current = migrateV7toV8(current);
   return current;
+}
+
+// v8: se añade la información de los estudiantes (vacía si no existía).
+function migrateV7toV8(old) {
+  return { ...old, version: 8, students: Array.isArray(old.students) ? old.students : [] };
 }
 
 // v7: el uso posterior (comentario) vuelve a texto libre. Si venía como tokens

@@ -14,6 +14,9 @@ import {
   updateRowResult,
   removeData,
   findData,
+  addStudent,
+  updateStudent,
+  removeStudent,
 } from "../src/models/analysisModel.js";
 
 function analysisWithRow() {
@@ -100,6 +103,21 @@ test("removeRow keeps a datum whose origin row remains", () => {
   removeRow(analysis, consumer.id); // se borra el consumidor, no el origen
   assert.ok(findData(analysis, dataId), "el dato permanece porque su origen sigue");
   assert.equal(producer.resultId, dataId);
+});
+
+test("students can be added, edited and removed", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const student = addStudent(analysis);
+  assert.equal(analysis.students.length, 1);
+
+  updateStudent(analysis, student.id, { idNumber: "123", fullName: "Ana Pérez", group: "N1" });
+  assert.deepEqual(
+    { idNumber: analysis.students[0].idNumber, fullName: analysis.students[0].fullName, group: analysis.students[0].group },
+    { idNumber: "123", fullName: "Ana Pérez", group: "N1" },
+  );
+
+  removeStudent(analysis, student.id);
+  assert.equal(analysis.students.length, 0);
 });
 
 test("removeData prunes every reference in the rows", () => {

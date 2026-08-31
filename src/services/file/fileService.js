@@ -39,9 +39,11 @@ export function fileNameFor(analysis) {
 
 // --- Parte con navegador: archivo <-> disco ---
 
-// Descarga el análisis como un archivo .analisis.
+// Descarga el análisis como un archivo .analisis. La fecha/hora de exportación se
+// añade automáticamente (no se pide al usuario) y no altera el modelo guardado.
 export function exportAnalysis(analysis) {
-  const blob = new Blob([serializeAnalysis(analysis)], { type: "application/json" });
+  const content = serializeAnalysis({ ...analysis, exportedAt: new Date().toISOString() });
+  const blob = new Blob([content], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

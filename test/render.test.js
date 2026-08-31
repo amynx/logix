@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 import { AnalysisView } from "../src/views/analysisView.js";
+import { StudentsView } from "../src/views/studentsView.js";
 import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { ChainView } from "../src/views/chainView.js";
@@ -37,7 +38,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -51,6 +52,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
       toolbarContainer: doc.getElementById("toolbar"),
       infoContainer: doc.getElementById("analysis-info"),
     }),
+    studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),
@@ -468,6 +470,26 @@ test("the condition is a free-text natural-language question", async () => {
   fire(conditionField, "input");
 
   assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
+});
+
+test("the students section records identification, name and group", async () => {
+  const { doc, controller } = await mountApp();
+  [...doc.querySelectorAll("#students-container button")].find((b) => b.textContent === "+ Agregar estudiante").click();
+  assert.equal(controller.analysis.students.length, 1);
+
+  const inputs = doc.querySelectorAll("#students-container input");
+  const set = (input, value) => {
+    input.value = value;
+    fire(input, "input");
+  };
+  set(inputs[0], "123");
+  set(inputs[1], "Ana Pérez");
+  set(inputs[2], "N1");
+
+  const student = controller.analysis.students[0];
+  assert.equal(student.idNumber, "123");
+  assert.equal(student.fullName, "Ana Pérez");
+  assert.equal(student.group, "N1");
 });
 
 test("the branch builder appears only when the path is a response", async () => {
