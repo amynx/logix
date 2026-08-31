@@ -37,7 +37,8 @@ function collectInputs(analysis, resolve, producedIds) {
   return inputs;
 }
 
-// Una actividad por fila con contenido, en el orden del análisis.
+// Una actividad por fila con contenido, en el orden del análisis. Se expone cada
+// parte por separado para que la tarjeta la presente de forma organizada.
 function buildStep(row, index, resolve, producedIds) {
   const inputs = row.inputIds
     .map(resolve)
@@ -46,36 +47,40 @@ function buildStep(row, index, resolve, producedIds) {
   const result = resolve(row.resultId);
   const operation = operationToText(row.operation, resolve);
   const condition = row.condition.trim();
+  const description = row.problem.trim();
 
-  const hasContent = operation || condition || result || inputs.length > 0 || row.purpose;
+  const hasContent =
+    description || operation || condition || result || inputs.length > 0 || row.purpose;
   if (!hasContent) return null;
 
   return {
     rowId: row.id,
     position: index + 1,
+    description,
     inputs,
-    operation,
     condition,
-    purpose: row.purpose,
+    operation,
     result,
-    ifTrue: row.ifTrue,
-    ifFalse: row.ifFalse,
+    purpose: row.purpose,
+    purposeDetail: row.subsequentUse.trim(),
   };
 }
 
 // Salidas: la información final del programa (propósito "respuesta") y las ramas
-// de decisión que terminan en una respuesta.
+// de decisión que terminan en una respuesta. Cada salida de una rama indica a qué
+// caso corresponde (Sí = la condición se cumple; No = no se cumple) y la pregunta.
 function collectOutputs(analysis, resolve) {
   const outputs = [];
   for (const row of analysis.rows) {
     if (row.purpose === "response") {
       const result = resolve(row.resultId);
       const label = (result && result.name.trim()) || row.subsequentUse.trim() || "Respuesta";
-      outputs.push({ label, detail: result ? row.subsequentUse.trim() : "" });
+      outputs.push({ label, detail: result ? row.subsequentUse.trim() : "", branch: null, condition: "" });
     }
-    for (const branch of [row.ifTrue, row.ifFalse]) {
+    const condition = row.condition.trim();
+    for (const [branchCase, branch] of [["Sí", row.ifTrue], ["No", row.ifFalse]]) {
       if (branch.type === "response" && branch.value.trim()) {
-        outputs.push({ label: branch.value.trim(), detail: "" });
+        outputs.push({ label: branch.value.trim(), detail: "", branch: branchCase, condition });
       }
     }
   }

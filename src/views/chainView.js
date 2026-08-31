@@ -61,54 +61,67 @@ function dataChip(datum) {
 }
 
 function outputChip(output) {
-  return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-sm text-emerald-800" }, [
-    el("div", {}, output.label),
-    output.detail ? el("div", { class: "text-[11px] text-emerald-700/80" }, output.detail) : null,
+  const children = [
+    el("div", { class: "flex items-center gap-1.5" }, [
+      output.branch ? caseBadge(output.branch) : null,
+      el("span", { class: "font-medium" }, output.label),
+    ]),
+  ];
+  if (output.condition) {
+    children.push(el("div", { class: "text-[11px] text-emerald-700/80" }, `cuando: ${output.condition}`));
+  }
+  if (output.detail) {
+    children.push(el("div", { class: "text-[11px] text-emerald-700/80" }, output.detail));
+  }
+  return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-emerald-800" }, children);
+}
+
+// Indica el caso de la condición: Sí (se cumple) o No (no se cumple).
+function caseBadge(branchCase) {
+  const style = branchCase === "Sí" ? "bg-emerald-600 text-white" : "bg-rose-500 text-white";
+  return el("span", { class: `shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${style}` }, branchCase);
+}
+
+// Tarjeta de actividad: cada parte en su propia línea etiquetada para leerse de un vistazo.
+function stepCard(step) {
+  const fields = [];
+  if (step.inputs.length > 0) {
+    fields.push(fieldRow("Entradas", el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(smallChip))));
+  }
+  if (step.condition) fields.push(fieldRow("Condición", step.condition));
+  if (step.operation) fields.push(fieldRow("Operación", step.operation));
+  if (step.result) fields.push(fieldRow("Resultado", dataLabel(step.result)));
+  if (step.purpose) {
+    fields.push(
+      fieldRow(
+        "Propósito",
+        el("span", { class: "inline-flex flex-wrap items-center gap-1" }, [
+          purposeBadge(step.purpose),
+          step.purposeDetail ? el("span", {}, step.purposeDetail) : null,
+        ]),
+      ),
+    );
+  }
+
+  return el("div", { class: "space-y-1.5 rounded-md border border-slate-200 bg-white p-2.5" }, [
+    el("div", { class: "flex items-baseline gap-2" }, [
+      el("span", { class: "text-xs font-semibold text-slate-400" }, `#${step.position}`),
+      step.description ? el("span", { class: "text-sm font-medium text-slate-800" }, step.description) : null,
+    ]),
+    fields.length > 0 ? el("div", { class: "space-y-0.5" }, fields) : null,
   ]);
 }
 
-function stepCard(step) {
-  const children = [
-    el("div", { class: "mb-1 flex items-center gap-2" }, [
-      el("span", { class: "text-xs font-semibold text-slate-400" }, `#${step.position}`),
-      purposeBadge(step.purpose),
-    ]),
-  ];
-
-  if (step.inputs.length > 0) {
-    children.push(
-      el("div", { class: "mb-1 flex flex-wrap gap-1" }, step.inputs.map((datum) =>
-        el("span", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, dataLabel(datum)),
-      )),
-    );
-  }
-
-  if (step.purpose === "decision") {
-    children.push(el("div", { class: "text-sm text-slate-700" }, step.condition || "(sin condición)"));
-    children.push(
-      el("ul", { class: "mt-1 space-y-0.5 text-xs text-slate-500" }, [
-        branchLine("✓", step.ifTrue),
-        branchLine("✗", step.ifFalse),
-      ]),
-    );
-  } else if (step.operation) {
-    children.push(el("div", { class: "text-sm text-slate-700" }, step.operation));
-  } else if (step.condition) {
-    children.push(el("div", { class: "text-sm text-slate-500" }, step.condition));
-  }
-
-  if (step.result) {
-    children.push(
-      el("div", { class: "mt-1 text-xs text-slate-500" }, `→ produce ${dataLabel(step.result)}`),
-    );
-  }
-
-  return el("div", { class: "rounded-md border border-slate-200 bg-white p-2" }, children);
+// Línea "Etiqueta: valor" dentro de una tarjeta. `value` puede ser texto o un nodo.
+function fieldRow(label, value) {
+  return el("div", { class: "flex gap-1.5 text-xs leading-snug" }, [
+    el("span", { class: "shrink-0 font-medium text-slate-400" }, `${label}:`),
+    el("div", { class: "min-w-0 text-slate-700" }, value),
+  ]);
 }
 
-function branchLine(mark, branch) {
-  const value = branch.value.trim() || "…";
-  return el("li", {}, `${mark} ${value}`);
+function smallChip(datum) {
+  return el("span", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, dataLabel(datum));
 }
 
 function purposeBadge(purpose) {

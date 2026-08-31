@@ -47,15 +47,38 @@ test("a produced datum reused downstream is not an external input", () => {
   assert.equal(chain.salidas[0].label, "Mostrar el promedio");
 });
 
-test("decision branches that respond become outputs", () => {
+test("decision branches that respond become outputs tagged Sí/No", () => {
   const analysis = createAnalysis({ title: "Aprobado" });
   const row = addRow(analysis).rows.at(-1);
   updateRow(analysis, row.id, {
     purpose: "decision",
+    condition: "¿promedio >= 3?",
     ifTrue: { type: "response", value: "Mostrar 'aprobó'" },
     ifFalse: { type: "response", value: "Mostrar 'reprobó'" },
   });
 
   const chain = buildChain(analysis);
   assert.deepEqual(chain.salidas.map((o) => o.label), ["Mostrar 'aprobó'", "Mostrar 'reprobó'"]);
+  assert.deepEqual(chain.salidas.map((o) => o.branch), ["Sí", "No"]);
+  assert.equal(chain.salidas[0].condition, "¿promedio >= 3?");
+});
+
+test("a process step exposes description, inputs, result and purpose", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const row = addRow(analysis).rows.at(-1);
+  const nota = addRowInput(analysis, row.id);
+  updateData(analysis, nota.id, { name: "nota1", type: "numeric" });
+  updateRowResult(analysis, row.id, { name: "promedio", type: "numeric" });
+  updateRow(analysis, row.id, {
+    problem: "Obtener el promedio",
+    purpose: "operation",
+    subsequentUse: "Usarlo para decidir",
+  });
+
+  const [step] = buildChain(analysis).proceso;
+  assert.equal(step.description, "Obtener el promedio");
+  assert.equal(step.inputs[0].name, "nota1");
+  assert.equal(step.result.name, "promedio");
+  assert.equal(step.purpose, "operation");
+  assert.equal(step.purposeDetail, "Usarlo para decidir");
 });
