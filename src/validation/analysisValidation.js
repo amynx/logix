@@ -36,7 +36,13 @@ export function migrateAnalysis(data) {
   if (current.version < 8) current = migrateV7toV8(current);
   if (current.version < 9) current = migrateV8toV9(current);
   if (current.version < 10) current = migrateV9toV10(current);
+  if (current.version < 11) current = migrateV10toV11(current);
   return current;
+}
+
+// v11: vuelven los estudiantes (id, nombre). El grupo sigue siendo único.
+function migrateV10toV11(old) {
+  return { ...old, version: 11, students: Array.isArray(old.students) ? old.students : [] };
 }
 
 // v10: la información de estudiantes se reduce al grupo. Se conserva el primer

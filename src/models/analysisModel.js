@@ -10,7 +10,9 @@ import { createId } from "../utils/id.js";
 // "comentario"). v8: se registra la información de los estudiantes. v9: cada fila
 // puede declarar en qué actividad se usará su dato producido (o dejarlo pendiente).
 // v10: la información de estudiantes se reduce al grupo (todos comparten grupo).
-export const ANALYSIS_VERSION = 10;
+// v11: se registran de nuevo los estudiantes (id, nombre), pero el grupo sigue
+// siendo un único campo compartido por todos (ya no es propio de cada estudiante).
+export const ANALYSIS_VERSION = 11;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -18,6 +20,12 @@ export const PENDING_ACTIVITY = "pending";
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
+}
+
+// Un estudiante que participa en el análisis. El grupo es común a todos, así que
+// no se guarda aquí, sino una sola vez en el análisis (`analysis.group`).
+export function createStudent(overrides = {}) {
+  return { id: createId(), idNumber: "", fullName: "", ...overrides };
 }
 
 export function createBranch(overrides = {}) {
@@ -49,12 +57,34 @@ export function createAnalysis(overrides = {}) {
     title: "",
     description: "",
     group: "",
+    students: [],
     data: [],
     rows: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,
   };
+}
+
+// --- Estudiantes (el grupo es común y vive en analysis.group) ---
+
+export function addStudent(analysis) {
+  const student = createStudent();
+  analysis.students.push(student);
+  touch(analysis);
+  return student;
+}
+
+export function updateStudent(analysis, studentId, changes) {
+  const student = analysis.students.find((candidate) => candidate.id === studentId);
+  if (!student) return analysis;
+  Object.assign(student, changes);
+  return touch(analysis);
+}
+
+export function removeStudent(analysis, studentId) {
+  analysis.students = analysis.students.filter((student) => student.id !== studentId);
+  return touch(analysis);
 }
 
 // Marca el análisis como modificado en este instante.

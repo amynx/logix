@@ -15,6 +15,9 @@ import {
   removeData,
   findData,
   updateAnalysisInfo,
+  addStudent,
+  updateStudent,
+  removeStudent,
 } from "../src/models/analysisModel.js";
 
 function analysisWithRow() {
@@ -103,12 +106,28 @@ test("removeRow keeps a datum whose origin row remains", () => {
   assert.equal(producer.resultId, dataId);
 });
 
-test("the analysis records a single group for all students", () => {
+test("the analysis records a single group shared by all students", () => {
   const analysis = createAnalysis({ title: "Demo" });
   assert.equal(analysis.group, "", "empieza sin grupo");
 
   updateAnalysisInfo(analysis, { group: "N1" });
   assert.equal(analysis.group, "N1");
+});
+
+test("students can be added, edited and removed (without their own group)", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const student = addStudent(analysis);
+  assert.equal(analysis.students.length, 1);
+  assert.equal(student.group, undefined, "el estudiante no lleva grupo propio");
+
+  updateStudent(analysis, student.id, { idNumber: "123", fullName: "Ana Pérez" });
+  assert.deepEqual(
+    { idNumber: analysis.students[0].idNumber, fullName: analysis.students[0].fullName },
+    { idNumber: "123", fullName: "Ana Pérez" },
+  );
+
+  removeStudent(analysis, student.id);
+  assert.equal(analysis.students.length, 0);
 });
 
 test("removeData prunes every reference in the rows", () => {

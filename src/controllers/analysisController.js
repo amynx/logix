@@ -18,6 +18,9 @@ import {
   updateRowResult,
   findData,
   rowsUsingData,
+  addStudent,
+  updateStudent,
+  removeStudent,
 } from "../models/analysisModel.js";
 import { confirmDialog, messageDialog, selectSectionsDialog } from "../views/dialogs.js";
 import { PDF_SECTIONS } from "../views/pdfView.js";
@@ -31,9 +34,9 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, groupView, inputsView, tableView, cardsView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
-    this.groupView = groupView;
+    this.studentsView = studentsView;
     this.inputsView = inputsView;
     this.tableView = tableView;
     this.cardsView = cardsView;
@@ -60,17 +63,38 @@ export class AnalysisController {
   }
 
   render() {
-    this.renderGroup();
+    this.renderStudents();
     this.renderInfo();
     this.renderInputs();
     this.renderTable();
     this.renderChain();
   }
 
-  renderGroup() {
-    this.groupView.render(this.analysis.group, {
+  renderStudents() {
+    this.studentsView.render(this.analysis.group, this.analysis.students, {
       onGroupChange: (group) => this.updateInfo({ group }),
+      onAddStudent: () => this.addStudent(),
+      onStudentChange: (studentId, changes) => this.updateStudent(studentId, changes),
+      onRemoveStudent: (studentId) => this.removeStudent(studentId),
     });
+  }
+
+  addStudent() {
+    addStudent(this.analysis);
+    this.renderStudents();
+    this.#afterChange();
+  }
+
+  // El campo editado conserva el foco; la sección no se re-renderiza al teclear.
+  updateStudent(studentId, changes) {
+    updateStudent(this.analysis, studentId, changes);
+    this.#afterChange();
+  }
+
+  removeStudent(studentId) {
+    removeStudent(this.analysis, studentId);
+    this.renderStudents();
+    this.#afterChange();
   }
 
   renderInputs() {
