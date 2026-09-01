@@ -46,6 +46,7 @@ export class AnalysisController {
     this.storage = storage;
     this.saveDelay = saveDelay;
     this.analysis = null;
+    this.editingRows = new Set(); // ids de actividades en modo edición (estado de vista)
   }
 
   async start() {
@@ -55,7 +56,9 @@ export class AnalysisController {
       onSaveFile: () => this.saveToFile(),
       onExportPdf: () => this.exportPdf(),
     });
-    this.analysis = await this.#recoverOrCreate();
+    const { analysis, editingRowIds } = await this.#recoverOrCreate();
+    this.analysis = analysis;
+    this.editingRows = new Set(editingRowIds);
     this.render();
   }
 
@@ -152,6 +155,14 @@ export class AnalysisController {
     this.renderTable();
   }
 
+  // Alterna una actividad entre modo edición y modo visualización. Es estado de
+  // vista (no se persiste): al terminar, la actividad muestra solo su información.
+  setRowEditing(rowId, editing) {
+    if (editing) this.editingRows.add(rowId);
+    else this.editingRows.delete(rowId);
+    this.renderTable();
+  }
+
   renderTable() {
     this.#activityView().render(this.analysis, this.#tableHandlers(), this.viewMode);
   }
@@ -165,6 +176,9 @@ export class AnalysisController {
   #tableHandlers() {
     return {
       onSetViewMode: (mode) => this.setViewMode(mode),
+      isRowEditing: (rowId) => this.editingRows.has(rowId),
+      onEditRow: (rowId) => this.setRowEditing(rowId, true),
+      onDoneRow: (rowId) => this.setRowEditing(rowId, false),
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
       onAddRow: () => this.addRow(),
@@ -256,8 +270,11 @@ export class AnalysisController {
     return row ? updater(row) : null;
   }
 
+  // Una actividad nueva se abre en modo edición: aún no tiene información que ver.
   addRow() {
     addRow(this.analysis);
+    const newRow = this.analysis.rows[this.analysis.rows.length - 1];
+    this.editingRows.add(newRow.id);
     this.renderTable();
     this.#afterChange();
   }
@@ -269,6 +286,7 @@ export class AnalysisController {
     });
     if (!confirmed) return;
     removeRow(this.analysis, rowId);
+    this.editingRows.delete(rowId);
     this.renderTable();
     this.#afterChange();
   }
@@ -300,8 +318,9 @@ export class AnalysisController {
 
   // Reemplaza el análisis actual y refresca vista y persistencia. Es el punto
   // único por el que entra un análisis nuevo, importado o recuperado.
-  loadAnalysis(analysis) {
+  loadAnalysis(analysis, editingRowIds = []) {
     this.analysis = analysis;
+    this.editingRows = new Set(editingRowIds);
     this.render();
     this.#afterChange();
   }
@@ -309,7 +328,8 @@ export class AnalysisController {
   newAnalysis() {
     const analysis = createAnalysis();
     addRow(analysis);
-    this.loadAnalysis(analysis);
+    const seededRow = analysis.rows[analysis.rows.length - 1];
+    this.loadAnalysis(analysis, [seededRow.id]);
   }
 
   async saveToFile() {
@@ -351,15 +371,18 @@ export class AnalysisController {
       const stored = await this.storage.getAllAnalyses();
       if (stored && stored.length > 0) {
         const latest = stored.reduce((newest, item) => (item.updatedAt > newest.updatedAt ? item : newest));
-        // Migra por si el auto-guardado quedó en un formato anterior.
-        return migrateAnalysis(latest);
+        // Migra por si el auto-guardado quedó en un formato anterior. Un análisis
+        // recuperado se muestra en modo visualización (sin ninguna fila en edición).
+        return { analysis: migrateAnalysis(latest), editingRowIds: [] };
       }
     } catch (error) {
       console.error("No se pudo recuperar el análisis guardado:", error);
     }
+    // Análisis nuevo: su fila inicial se abre en modo edición.
     const analysis = createAnalysis();
     addRow(analysis);
-    return analysis;
+    const seededRow = analysis.rows[analysis.rows.length - 1];
+    return { analysis, editingRowIds: [seededRow.id] };
   }
 
   #scheduleSave() {

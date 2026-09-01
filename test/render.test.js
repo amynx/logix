@@ -162,24 +162,45 @@ test("editing in the cards view updates the same analysis", async () => {
   assert.equal(doc.querySelectorAll("tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
 });
 
-test("a card can be expanded and collapsed", async () => {
+test("a card toggles between edit and view mode", async () => {
   const { doc, controller } = await mountApp();
   [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
 
   const card = () => doc.querySelector("#table-container [data-row-id]");
   const rowId = card().dataset.rowId;
-  const expandBtn = () => [...card().querySelectorAll("button")].find((b) => /Expandir|Encoger/.test(b.textContent));
+  const btn = (re) => [...card().querySelectorAll("button")].find((b) => re.test(b.textContent));
 
-  assert.equal(card().dataset.expanded, "false");
-  assert.match(expandBtn().textContent, /Expandir/);
+  // La actividad inicial arranca en modo edición (aún no tiene información que ver).
+  assert.equal(card().dataset.editing, "true");
+  assert.ok(btn(/Listo/), "muestra «Listo» durante la edición");
 
-  expandBtn().click();
-  assert.ok(controller.cardsView.expanded.has(rowId), "queda registrada como expandida");
-  assert.equal(card().dataset.expanded, "true");
-  assert.match(expandBtn().textContent, /Encoger/);
+  btn(/Listo/).click();
+  assert.equal(controller.editingRows.has(rowId), false, "deja de estar en edición");
+  assert.equal(card().dataset.editing, "false");
+  assert.ok(btn(/Editar/), "muestra «Editar» en visualización");
 
-  expandBtn().click();
-  assert.equal(card().dataset.expanded, "false", "se puede encoger de nuevo");
+  btn(/Editar/).click();
+  assert.equal(controller.editingRows.has(rowId), true, "vuelve a edición");
+  assert.equal(card().dataset.editing, "true");
+});
+
+test("finishing edit in the table shows the read-only summary with an Editar action", async () => {
+  const { doc, controller } = await mountApp();
+
+  // Registra un resultado y termina la edición de la fila inicial.
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "promedio";
+  fire(resultName, "input");
+  const rowId = controller.analysis.rows[0].id;
+
+  [...doc.querySelector("tbody tr").querySelectorAll("button")].find((b) => /Listo/.test(b.textContent)).click();
+
+  assert.equal(controller.editingRows.has(rowId), false);
+  const row = doc.querySelector("tbody tr");
+  assert.equal(row.dataset.editing, "false");
+  assert.equal(row.querySelectorAll("input, select, textarea").length, 0, "sin controles en visualización");
+  assert.match(row.querySelectorAll("td")[5].textContent, /promedio/, "muestra la información registrada");
+  assert.ok([...row.querySelectorAll("button")].some((b) => /Editar/.test(b.textContent)), "ofrece «Editar»");
 });
 
 test("cards can be reordered by drag and drop", async () => {
@@ -210,7 +231,7 @@ test("deleting a row removes it after confirmation", async () => {
   controller.addRow(); // dos filas
   const firstRowId = controller.analysis.rows[0].id;
 
-  doc.querySelector("tbody tr td:last-child button").click(); // abre el diálogo
+  doc.querySelector('tbody tr [title="Eliminar actividad"]').click(); // abre el diálogo
   const confirmButton = [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar");
   confirmButton.click();
   await new Promise((resolve) => setTimeout(resolve)); // esperar la resolución de la promesa
@@ -388,7 +409,7 @@ test("deleting a row warns when its datum is used in another operation", async (
   fire(dataSelect, "change");
   const secondRowId = controller.analysis.rows[1].id;
 
-  doc.querySelectorAll("tbody tr")[0].querySelector("td:last-child button").click();
+  doc.querySelectorAll("tbody tr")[0].querySelector('[title="Eliminar actividad"]').click();
   assert.match(doc.body.textContent, /reutilizado en/, "el aviso menciona la reutilización");
   [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
   await flush();

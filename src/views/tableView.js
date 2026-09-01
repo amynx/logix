@@ -11,8 +11,11 @@ import {
   viewToggle,
   dragHandle,
   deleteButton,
+  editButton,
+  doneButton,
   addActivityButton,
 } from "./rowEditor.js";
+import { buildRowSummary } from "./rowSummary.js";
 import { sectionHeader } from "./sectionHeader.js";
 
 const TH_CLASS = "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left align-top";
@@ -63,7 +66,13 @@ export class TableView {
   }
 
   #buildRow(row, index, dataById, handlers) {
-    const fields = buildRowFields(row, dataById, handlers);
+    const editing = handlers.isRowEditing(row.id);
+    const contentCells = editing
+      ? this.#editCells(row, dataById, handlers)
+      : this.#viewCells(row, dataById);
+    const action = editing
+      ? doneButton(() => handlers.onDoneRow(row.id))
+      : editButton(() => handlers.onEditRow(row.id));
 
     const setDragged = (id) => {
       this.draggedRowId = id;
@@ -73,15 +82,17 @@ export class TableView {
         dragHandle(row.id, setDragged),
         el("span", { class: "text-xs text-slate-400" }, String(index + 1)),
       ]),
-      ...FIELD_ORDER.map((column) => el("td", { class: TD_CLASS }, [fields[column.key] ?? notApplicable()])),
-      el("td", { class: `${TD_CLASS} text-center` }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
+      ...contentCells,
+      el("td", { class: `${TD_CLASS} text-center` }, [
+        el("div", { class: "flex flex-col items-center gap-1" }, [action, deleteButton(() => handlers.onDeleteRow(row.id))]),
+      ]),
     ];
 
     return el(
       "tr",
       {
         class: `${index % 2 === 1 ? "bg-slate-50" : "bg-white"} hover:bg-sky-50/60`,
-        dataset: { rowId: row.id },
+        dataset: { rowId: row.id, editing: String(editing) },
         ondragover: (event) => event.preventDefault(),
         ondrop: (event) => {
           event.preventDefault();
@@ -91,6 +102,20 @@ export class TableView {
         },
       },
       cells,
+    );
+  }
+
+  // Modo edición: una celda por campo con su control editable.
+  #editCells(row, dataById, handlers) {
+    const fields = buildRowFields(row, dataById, handlers);
+    return FIELD_ORDER.map((column) => el("td", { class: TD_CLASS }, [fields[column.key] ?? notApplicable()]));
+  }
+
+  // Modo visualización: una celda por campo con solo la información registrada.
+  #viewCells(row, dataById) {
+    const summary = buildRowSummary(row, dataById);
+    return FIELD_ORDER.map((column) =>
+      el("td", { class: TD_CLASS }, [summary[column.key] ?? el("span", { class: "text-slate-300" }, "—")]),
     );
   }
 }
