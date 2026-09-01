@@ -737,10 +737,20 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
   assert.doesNotMatch(printText, /Tabla de datos/, "no incluye lo no seleccionado");
 });
 
-test("toolbar exposes new, open, save and export actions", async () => {
+test("toolbar exposes new, open, save, export and help actions", async () => {
   const { doc } = await mountApp();
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
-  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF"]);
+  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda"]);
+});
+
+test("the help button opens the documentation dialog", async () => {
+  const { doc } = await mountApp();
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ayuda").click();
+
+  const dialog = doc.querySelector('[role="dialog"]');
+  assert.ok(dialog, "se abre un diálogo");
+  assert.match(dialog.textContent, /Cómo usar Logix/);
+  assert.match(dialog.textContent, /Cómo se construyen las operaciones/);
 });
 
 test("creating a new analysis resets to a single empty row", async () => {

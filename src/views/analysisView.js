@@ -5,6 +5,7 @@
 import { el, clear } from "../utils/dom.js";
 import { icon } from "./icons.js";
 import { sectionHeader } from "./sectionHeader.js";
+import { openHelp } from "./helpView.js";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
@@ -59,6 +60,7 @@ export class AnalysisView {
       toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
       toolbarButton("Guardar archivo", onSaveFile, "save"),
       toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
+      toolbarButton("Ayuda", () => openHelp(), "help"),
       fileInput,
       this.statusElement,
     );
