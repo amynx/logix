@@ -1,17 +1,22 @@
-// Documentación de ayuda: un modal con explicaciones sencillas y una guía
-// pedagógica para construir el análisis (nombrar datos, condiciones y expresiones
-// algorítmicas). Se organiza en pestañas para mantener la legibilidad y reutiliza
-// los mismos badges de la interfaz. Solo se ocupa del DOM.
+// Documentación de ayuda: un panel lateral deslizable (no bloquea el análisis,
+// que permanece visible al lado) con explicaciones sencillas y una guía pedagógica
+// para construir el análisis. Se organiza en pestañas para mantener la legibilidad
+// y reutiliza los mismos badges de la interfaz. Solo se ocupa del DOM.
 
 import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 
-// Abre el modal de ayuda. Se cierra al pulsar la ×, el fondo o la tecla Escape.
+// Abre el panel de ayuda. Se cierra al pulsar la ×, el fondo o la tecla Escape.
+// Si ya hay un panel abierto, no abre otro.
 export function openHelp() {
+  if (document.getElementById("help-panel")) return;
+
   const close = () => {
-    overlay.remove();
+    overlay.classList.add("opacity-0");
+    panel.classList.add("translate-x-full");
     document.removeEventListener("keydown", onKey);
+    setTimeout(() => overlay.remove(), 200); // espera la transición de salida
   };
   const onKey = (event) => {
     if (event.key === "Escape") close();
@@ -24,50 +29,57 @@ export function openHelp() {
   ];
 
   const panels = tabs.map((tab, index) => {
-    const panel = el("div", { class: "space-y-6" }, tab.sections());
-    panel.hidden = index !== 0;
-    return panel;
+    const view = el("div", { class: "space-y-6" }, tab.sections());
+    view.hidden = index !== 0;
+    return view;
   });
 
   const tabButtons = tabs.map((tab, index) =>
-    el(
-      "button",
-      {
-        type: "button",
-        class: tabButtonClass(index === 0),
-        onclick: () => activate(index),
-      },
-      tab.label,
-    ),
+    el("button", { type: "button", class: tabButtonClass(index === 0), onclick: () => activate(index) }, tab.label),
   );
 
   const activate = (active) => {
-    panels.forEach((panel, index) => (panel.hidden = index !== active));
+    panels.forEach((view, index) => (view.hidden = index !== active));
     tabButtons.forEach((button, index) => (button.className = tabButtonClass(index === active)));
   };
+
+  const panel = el(
+    "div",
+    {
+      id: "help-panel",
+      class: "absolute right-0 top-0 flex h-full w-full max-w-lg translate-x-full flex-col bg-white shadow-2xl transition-transform duration-200 ease-out",
+      role: "dialog",
+      "aria-modal": "false",
+      "aria-label": "Ayuda de Logix",
+    },
+    [
+      el("div", { class: "flex items-center justify-between border-b border-slate-200 px-5 py-3" }, [
+        el("div", { class: "flex items-center gap-2" }, [icon("help", "h-5 w-5 text-indigo-500"), el("h2", { class: "text-base font-semibold text-slate-900" }, "Cómo usar Logix")]),
+        el("button", { type: "button", class: "rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700", title: "Cerrar", "aria-label": "Cerrar ayuda", onclick: close }, "✕"),
+      ]),
+      el("div", { class: "flex gap-1 overflow-x-auto border-b border-slate-200 px-3 py-2" }, tabButtons),
+      el("div", { class: "flex-1 space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, panels),
+    ],
+  );
 
   const overlay = el(
     "div",
     {
-      class: "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4",
+      class: "fixed inset-0 z-50 bg-slate-900/30 opacity-0 transition-opacity duration-200",
       onclick: (event) => {
         if (event.target === overlay) close();
       },
     },
-    [
-      el("div", { class: "my-8 flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-xl", role: "dialog", "aria-modal": "true" }, [
-        el("div", { class: "flex items-center justify-between border-b border-slate-200 px-5 py-3" }, [
-          el("div", { class: "flex items-center gap-2" }, [icon("help", "h-5 w-5 text-indigo-500"), el("h2", { class: "text-base font-semibold text-slate-900" }, "Cómo usar Logix")]),
-          el("button", { type: "button", class: "rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700", title: "Cerrar", "aria-label": "Cerrar ayuda", onclick: close }, "✕"),
-        ]),
-        el("div", { class: "flex gap-1 overflow-x-auto border-b border-slate-200 px-3 py-2" }, tabButtons),
-        el("div", { class: "space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, panels),
-      ]),
-    ],
+    [panel],
   );
 
   document.body.append(overlay);
   document.addEventListener("keydown", onKey);
+  // Deja pintar el estado inicial (fuera de pantalla) y anima la entrada.
+  requestAnimationFrame(() => {
+    overlay.classList.remove("opacity-0");
+    panel.classList.remove("translate-x-full");
+  });
 }
 
 function tabButtonClass(active) {
