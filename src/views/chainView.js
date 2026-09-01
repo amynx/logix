@@ -8,6 +8,7 @@ import { sectionHeader } from "./sectionHeader.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { usedInNode } from "./rowSummary.js";
 import { activityZones, stepNumber, inlineRow, commentBox, questionBox, formulaBox, withEquals, withArrow } from "./cardLayout.js";
+import { helpButton } from "./helpView.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -36,6 +37,7 @@ export class ChainView {
           title: "Cadena del análisis",
           subtitle: "Cómo fluyen los datos: entran, se procesan y salen.",
           iconName: "chain",
+          help: helpButton(0), // pestaña "Interfaz" (símbolos e indicadores)
         }),
         body,
       ]),

@@ -13,7 +13,6 @@ export function openHelp(initialTab = 0) {
   if (document.getElementById("help-panel")) return;
 
   const close = () => {
-    overlay.classList.add("opacity-0");
     panel.classList.add("translate-x-full");
     document.removeEventListener("keydown", onKey);
     setTimeout(() => overlay.remove(), 200); // espera la transición de salida
@@ -48,7 +47,9 @@ export function openHelp(initialTab = 0) {
     "div",
     {
       id: "help-panel",
-      class: "absolute right-0 top-0 flex h-full w-full max-w-lg translate-x-full flex-col bg-white shadow-2xl transition-transform duration-200 ease-out",
+      // pointer-events-auto: el panel es interactivo aunque el overlay deje pasar
+      // los clics al análisis (se puede seguir trabajando con la ayuda abierta).
+      class: "pointer-events-auto absolute right-0 top-0 flex h-full w-full max-w-lg translate-x-full flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-200 ease-out",
       role: "dialog",
       "aria-modal": "false",
       "aria-label": "Ayuda de Logix",
@@ -63,24 +64,14 @@ export function openHelp(initialTab = 0) {
     ],
   );
 
-  const overlay = el(
-    "div",
-    {
-      class: "fixed inset-0 z-50 bg-slate-900/30 opacity-0 transition-opacity duration-200",
-      onclick: (event) => {
-        if (event.target === overlay) close();
-      },
-    },
-    [panel],
-  );
+  // Overlay sin fondo y que no captura clics: no bloquea el análisis, que queda
+  // visible y utilizable junto al panel.
+  const overlay = el("div", { class: "pointer-events-none fixed inset-0 z-50" }, [panel]);
 
   document.body.append(overlay);
   document.addEventListener("keydown", onKey);
   // Deja pintar el estado inicial (fuera de pantalla) y anima la entrada.
-  requestAnimationFrame(() => {
-    overlay.classList.remove("opacity-0");
-    panel.classList.remove("translate-x-full");
-  });
+  requestAnimationFrame(() => panel.classList.remove("translate-x-full"));
 }
 
 // Botón "?" de ayuda contextual: abre el panel en la pestaña indicada.
