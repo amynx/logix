@@ -34,7 +34,14 @@ export function migrateAnalysis(data) {
   if (current.version < 6) current = migrateV5toV6(current);
   if (current.version < 7) current = migrateV6toV7(current);
   if (current.version < 8) current = migrateV7toV8(current);
+  if (current.version < 9) current = migrateV8toV9(current);
   return current;
+}
+
+// v9: cada fila puede declarar la actividad donde se usará su dato producido.
+function migrateV8toV9(old) {
+  const rows = old.rows.map((row) => ({ ...row, usedInRowId: row.usedInRowId ?? "" }));
+  return { ...old, version: 9, rows };
 }
 
 // v8: se añade la información de los estudiantes (vacía si no existía).

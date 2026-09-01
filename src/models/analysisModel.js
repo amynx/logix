@@ -7,8 +7,13 @@ import { createId } from "../utils/id.js";
 
 // Versión del formato del análisis. v5: la condición es texto libre. v6: uso
 // posterior y ramas como expresiones. v7: el uso posterior vuelve a texto (un
-// "comentario"). v8: se registra la información de los estudiantes.
-export const ANALYSIS_VERSION = 8;
+// "comentario"). v8: se registra la información de los estudiantes. v9: cada fila
+// puede declarar en qué actividad se usará su dato producido (o dejarlo pendiente).
+export const ANALYSIS_VERSION = 9;
+
+// Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
+// aún no existe: la relación queda pendiente de asignar a una actividad concreta.
+export const PENDING_ACTIVITY = "pending";
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
@@ -31,6 +36,7 @@ export function createRow(overrides = {}) {
     operation: [],
     resultId: null,
     purpose: "",
+    usedInRowId: "", // "" sin asignar · PENDING_ACTIVITY · id de la actividad destino
     subsequentUse: "",
     ifTrue: createBranch(),
     ifFalse: createBranch(),
@@ -96,6 +102,11 @@ export function removeRow(analysis, rowId) {
   const producedId = row.resultId;
   analysis.rows = analysis.rows.filter((candidate) => candidate.id !== rowId);
   if (producedId) removeData(analysis, producedId);
+  // La actividad destino desaparece: las filas que la referenciaban vuelven a
+  // quedar pendientes de asignación, conservando la intención de reutilización.
+  for (const candidate of analysis.rows) {
+    if (candidate.usedInRowId === rowId) candidate.usedInRowId = PENDING_ACTIVITY;
+  }
   return touch(analysis);
 }
 
