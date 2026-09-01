@@ -33,7 +33,8 @@ export class CardsView {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const activities = buildActivityList(analysis.rows, dataById);
-    const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers, activities));
+    const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
+    const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers, activities, producedIds));
 
     this.container.append(
       sectionHeader({
@@ -54,9 +55,9 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers, viewMode));
   }
 
-  #card(row, index, dataById, handlers, activities) {
+  #card(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
-    const body = editing ? this.#editBody(row, dataById, handlers, activities) : this.#viewBody(row, dataById, activities);
+    const body = editing ? this.#editBody(row, dataById, handlers, activities) : this.#viewBody(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -96,8 +97,8 @@ export class CardsView {
   }
 
   // Modo visualización: solo la información registrada, agrupada por zona.
-  #viewBody(row, dataById, activities) {
-    const summary = buildRowSummary(row, dataById, activities);
+  #viewBody(row, dataById, activities, producedIds) {
+    const summary = buildRowSummary(row, dataById, activities, producedIds);
     if (isSummaryEmpty(summary)) {
       return el("p", { class: "text-sm text-slate-400" }, "Sin información. Pulsa «Editar» para completarla.");
     }

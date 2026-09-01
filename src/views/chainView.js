@@ -5,9 +5,9 @@
 import { el, clear } from "../utils/dom.js";
 import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { sectionHeader } from "./sectionHeader.js";
-import { typeBadge, purposeBadge } from "./badges.js";
+import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { usedInNode } from "./rowSummary.js";
-import { activityZones, stepNumber, inlineRow, commentBox } from "./cardLayout.js";
+import { activityZones, stepNumber, inlineRow, commentBox, questionBox, formulaBox, withEquals } from "./cardLayout.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -165,10 +165,10 @@ function partNode(part, tone) {
 function stepCard(step, activities) {
   const isDecision = step.purpose === "decision" || step.condition;
   const nodes = {
-    inputs: step.inputs.length > 0 ? el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(smallChip)) : null,
-    condition: step.condition ? textLine(step.condition) : null,
-    operation: step.operation.length > 0 ? expressionEl(step.operation) : null,
-    result: step.result ? smallChip(step.result) : null,
+    inputs: step.inputs.length > 0 ? el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(inputChip)) : null,
+    condition: step.condition ? questionBox(step.condition) : null,
+    operation: step.operation.length > 0 ? formulaBox(expressionEl(step.operation)) : null,
+    result: step.result ? withEquals(smallChip(step.result)) : null,
     purpose: purposeBadge(step.purpose),
     usedIn: step.result ? usedInNode(step.usedInRowId, activities) : null,
     comment: step.comment ? commentBox(step.comment) : null,
@@ -185,12 +185,18 @@ function stepCard(step, activities) {
   ]);
 }
 
-function textLine(text) {
-  return el("span", { class: "whitespace-pre-wrap" }, text);
-}
-
 function smallChip(datum) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, [
+    el("span", {}, datum.name || "(sin nombre)"),
+    typeBadge(datum.type),
+  ]);
+}
+
+// Ficha de una entrada de la actividad; marca las que son datos producidos en un
+// paso anterior (intermedios reutilizados) frente a las entradas del programa.
+function inputChip(datum) {
+  return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, [
+    datum.produced ? producedBadge() : null,
     el("span", {}, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);

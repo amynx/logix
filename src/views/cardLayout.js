@@ -4,16 +4,18 @@
 // Solo se ocupa del DOM; no conoce el modelo.
 
 import { el } from "../utils/dom.js";
+import { icon } from "./icons.js";
 
 // Tonos por zona: refuerzan el lenguaje de color entrada(azul) → proceso(índigo)
-// → resultado(verde), con los caminos en ámbar y el contexto en gris.
+// → resultado(verde), con los caminos en ámbar y el contexto en gris. Cada zona
+// lleva un icono para reconocerla más rápido.
 const ZONE_TONES = {
-  need: { bar: "border-slate-200", title: "text-slate-400" },
-  input: { bar: "border-blue-300", title: "text-blue-600" },
-  process: { bar: "border-indigo-300", title: "text-indigo-600" },
-  result: { bar: "border-emerald-300", title: "text-emerald-600" },
-  branch: { bar: "border-amber-300", title: "text-amber-600" },
-  comment: { bar: "border-slate-200", title: "text-slate-400" },
+  need: { bar: "border-slate-200", title: "text-slate-400", icon: "target" },
+  input: { bar: "border-blue-300", title: "text-blue-600", icon: "data" },
+  process: { bar: "border-indigo-300", title: "text-indigo-600", icon: "workflow" },
+  result: { bar: "border-emerald-300", title: "text-emerald-600", icon: "flag" },
+  branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
+  comment: { bar: "border-slate-200", title: "text-slate-400", icon: "message" },
 };
 
 // Etiquetas de los campos que comparten zona con otros (para distinguirlos). Los
@@ -37,6 +39,27 @@ export function commentBox(text) {
     { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm italic text-slate-600" },
     `“${text}”`,
   );
+}
+
+// Caja para la condición: se lee como una pregunta (icono de interrogación + cursiva).
+export function questionBox(text) {
+  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 py-1.5 text-sm italic text-slate-700" }, [
+    icon("help", "h-3.5 w-3.5 mt-0.5 text-indigo-400"),
+    el("span", { class: "min-w-0 whitespace-pre-wrap" }, text),
+  ]);
+}
+
+// Caja para la operación: se lee como una fórmula (recuadro tenue, monoespaciada).
+export function formulaBox(node) {
+  return el("div", { class: "inline-flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm text-slate-700" }, [node]);
+}
+
+// Antepone un "=" al dato producido para enfatizar que es el resultado del paso.
+export function withEquals(node) {
+  return el("span", { class: "inline-flex items-center gap-1.5" }, [
+    el("span", { class: "font-semibold text-slate-400" }, "="),
+    node,
+  ]);
 }
 
 // Fila etiqueta→valor en línea (compacta), para el modo de visualización.
@@ -71,12 +94,15 @@ export function activityZones(nodesByKey, renderRow) {
   ].filter(Boolean);
 }
 
-// Zona agrupada: barra y título en su color + filas. Devuelve null si no hay filas.
+// Zona agrupada: barra y título (con icono) en su color + filas. Null si no hay filas.
 function zoneBlock(title, tone, rows) {
   const present = rows.filter(Boolean);
   if (present.length === 0) return null;
   return el("div", { class: `border-l-2 ${tone.bar} pl-2.5` }, [
-    el("div", { class: `mb-1 text-[10px] font-semibold uppercase tracking-wide ${tone.title}` }, title),
+    el("div", { class: `mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide ${tone.title}` }, [
+      icon(tone.icon, "h-3 w-3"),
+      el("span", {}, title),
+    ]),
     el("div", { class: "space-y-1" }, present),
   ]);
 }

@@ -2,6 +2,7 @@
 
 import { el } from "../utils/dom.js";
 import { DATA_TYPES, PURPOSES, labelOf } from "../models/dataTypes.js";
+import { icon } from "./icons.js";
 
 const TYPE_STYLE = {
   numeric: { symbol: "#", cls: "bg-blue-100 text-blue-700" },
@@ -31,6 +32,14 @@ export function dataChip(datum, extraClass = "rounded border border-slate-200 bg
     el("span", { class: "truncate" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);
+}
+
+// Marca un dato de entrada que en realidad se produjo en otra actividad (dato
+// intermedio reutilizado), para distinguirlo de una entrada declarada del programa.
+export function producedBadge() {
+  const badge = icon("reuse", "h-3.5 w-3.5 text-indigo-500");
+  badge.setAttribute("title", "Producido en otra actividad");
+  return badge;
 }
 
 // Insignia del propósito de una actividad, con color por tipo de propósito.

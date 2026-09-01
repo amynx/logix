@@ -7,24 +7,27 @@ import { el } from "../utils/dom.js";
 import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { expressionParts } from "../models/operators.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
-import { typeBadge, purposeBadge } from "./badges.js";
-import { commentBox } from "./cardLayout.js";
+import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
+import { commentBox, questionBox, formulaBox, withEquals } from "./cardLayout.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
-export function buildRowSummary(row, dataById, activities = []) {
+export function buildRowSummary(row, dataById, activities = [], producedIds = new Set()) {
   const resolve = (id) => dataById.get(id) ?? null;
   const isDecision = row.purpose === "decision";
   const conditionApplies = !row.purpose || isDecision;
   const inputs = row.inputIds.map(resolve).filter(Boolean);
+  const conditionText = (row.condition ?? "").trim();
   const result = row.resultId ? resolve(row.resultId) : null;
 
   return {
     problem: textNode(row.problem),
-    inputs: inputs.length > 0 ? el("div", { class: "flex flex-wrap gap-1" }, inputs.map(dataChip)) : null,
-    condition: conditionApplies ? textNode(row.condition) : null,
-    operation: row.operation.length > 0 ? expressionNode(row.operation, resolve) : null,
-    result: result ? dataChip(result) : null,
+    inputs: inputs.length > 0
+      ? el("div", { class: "flex flex-wrap gap-1" }, inputs.map((datum) => inputChip(datum, producedIds.has(datum.id))))
+      : null,
+    condition: conditionApplies && conditionText ? questionBox(conditionText) : null,
+    operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve)) : null,
+    result: result ? withEquals(dataChip(result)) : null,
     purpose: purposeBadge(row.purpose),
     usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
     comment: commentText(row.subsequentUse),
@@ -50,6 +53,15 @@ function commentText(value) {
 
 function dataChip(datum) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600" }, [
+    el("span", {}, datum.name || "(sin nombre)"),
+    typeBadge(datum.type),
+  ]);
+}
+
+// Ficha de un dato de entrada; si es un dato producido en otra actividad, lo marca.
+function inputChip(datum, produced) {
+  return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600" }, [
+    produced ? producedBadge() : null,
     el("span", {}, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);

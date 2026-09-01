@@ -31,9 +31,10 @@ export class TableView {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const activities = buildActivityList(analysis.rows, dataById);
+    const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      el("tbody", {}, analysis.rows.map((row, index) => this.#buildRow(row, index, dataById, handlers, activities))),
+      el("tbody", {}, analysis.rows.map((row, index) => this.#buildRow(row, index, dataById, handlers, activities, producedIds))),
     ]);
 
     this.container.append(
@@ -67,11 +68,11 @@ export class TableView {
     return el("thead", { class: "bg-slate-50" }, [el("tr", {}, cells)]);
   }
 
-  #buildRow(row, index, dataById, handlers, activities) {
+  #buildRow(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
     const contentCells = editing
       ? this.#editCells(row, dataById, handlers, activities)
-      : this.#viewCells(row, dataById, activities);
+      : this.#viewCells(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -114,8 +115,8 @@ export class TableView {
   }
 
   // Modo visualización: una celda por campo con solo la información registrada.
-  #viewCells(row, dataById, activities) {
-    const summary = buildRowSummary(row, dataById, activities);
+  #viewCells(row, dataById, activities, producedIds) {
+    const summary = buildRowSummary(row, dataById, activities, producedIds);
     return FIELD_ORDER.map((column) =>
       el("td", { class: TD_CLASS }, [summary[column.key] ?? el("span", { class: "text-slate-300" }, "—")]),
     );
