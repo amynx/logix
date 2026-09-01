@@ -6,6 +6,7 @@ import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { typeBadge } from "./badges.js";
+import { icon } from "./icons.js";
 
 // Estilo discreto: sin borde ni fondo hasta pasar el cursor o enfocar.
 const CONTROL_CLASS =
@@ -123,6 +124,34 @@ export function dragHandle(rowId, setDragged) {
       ondragend: () => setDragged(null),
     },
     "⠿",
+  );
+}
+
+// Pasa la actividad a modo edición (mostrada en el modo de visualización).
+export function editButton(onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-700",
+      title: "Editar esta actividad",
+      onclick: onClick,
+    },
+    [icon("edit", "h-3.5 w-3.5"), "Editar"],
+  );
+}
+
+// Finaliza la edición y devuelve la actividad al modo de visualización.
+export function doneButton(onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex items-center gap-1 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700",
+      title: "Terminar de editar",
+      onclick: onClick,
+    },
+    [icon("check", "h-3.5 w-3.5"), "Listo"],
   );
 }
 
