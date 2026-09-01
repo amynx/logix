@@ -7,7 +7,6 @@
 
 import { el, clear } from "../utils/dom.js";
 import {
-  FIELD_ORDER,
   buildRowFields,
   renderPreservingFocus,
   viewToggle,
@@ -19,6 +18,7 @@ import {
   buildActivityList,
 } from "./rowEditor.js";
 import { buildRowSummary, isSummaryEmpty } from "./rowSummary.js";
+import { activityZones, stepNumber, inlineRow, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 
 const VIEW_WIDTH = "w-80"; // ~20rem: lectura compacta
@@ -78,9 +78,10 @@ export class CardsView {
         },
       },
       [
-        el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2" }, [
+        el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2.5" }, [
           dragHandle(row.id, setDragged),
-          el("span", { class: "text-sm font-semibold text-slate-600" }, `Actividad ${index + 1}`),
+          stepNumber(index + 1),
+          el("span", { class: "text-sm font-semibold text-slate-700" }, "Actividad"),
           el("div", { class: "ml-auto flex items-center gap-1" }, [action, deleteButton(() => handlers.onDeleteRow(row.id))]),
         ]),
         el("div", { class: "mt-3" }, [body]),
@@ -88,33 +89,20 @@ export class CardsView {
     );
   }
 
-  // Modo edición: todos los campos con sus controles.
+  // Modo edición: todos los campos con sus controles, agrupados por zona.
   #editBody(row, dataById, handlers, activities) {
     const fields = buildRowFields(row, dataById, handlers, activities);
-    const sections = FIELD_ORDER.filter((column) => fields[column.key]).map((column) =>
-      labeledSection(column.label, fields[column.key]),
-    );
-    return el("div", { class: "space-y-3" }, sections);
+    return el("div", { class: "space-y-3.5" }, activityZones(fields, stackedRow));
   }
 
-  // Modo visualización: solo los campos con información registrada.
+  // Modo visualización: solo la información registrada, agrupada por zona.
   #viewBody(row, dataById, activities) {
     const summary = buildRowSummary(row, dataById, activities);
     if (isSummaryEmpty(summary)) {
       return el("p", { class: "text-sm text-slate-400" }, "Sin información. Pulsa «Editar» para completarla.");
     }
-    const sections = FIELD_ORDER.filter((column) => summary[column.key]).map((column) =>
-      labeledSection(column.label, summary[column.key]),
-    );
-    return el("div", { class: "space-y-2.5" }, sections);
+    return el("div", { class: "space-y-3" }, activityZones(summary, inlineRow));
   }
-}
-
-function labeledSection(label, node) {
-  return el("div", {}, [
-    el("div", { class: "text-xs font-medium text-slate-500" }, label),
-    el("div", { class: "mt-1 text-sm" }, [node]),
-  ]);
 }
 
 // Encadena las tarjetas con un conector horizontal entre pasos consecutivos.

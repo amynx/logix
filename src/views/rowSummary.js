@@ -69,7 +69,7 @@ function partNode(part) {
 
 // Actividad donde se reutilizará el dato producido: pendiente (ámbar) o la
 // actividad concreta asociada (índigo). Vacío si aún no se ha indicado.
-function usedInNode(usedInRowId, activities) {
+export function usedInNode(usedInRowId, activities) {
   if (usedInRowId === PENDING_ACTIVITY) {
     return el("span", { class: "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700" }, "Pendiente de asignación");
   }

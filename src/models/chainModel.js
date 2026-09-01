@@ -82,6 +82,7 @@ function buildStep(row, index, resolve, producedIds) {
     operation,
     result,
     purpose: row.purpose,
+    usedInRowId: row.usedInRowId,
     comment: row.subsequentUse.trim(),
     // Caminos de la decisión (para visualizar cómo la condición afecta el flujo).
     ifTrue: path(row.ifTrue),

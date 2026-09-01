@@ -6,6 +6,8 @@ import { el, clear } from "../utils/dom.js";
 import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { typeBadge, purposeBadge } from "./badges.js";
+import { usedInNode } from "./rowSummary.js";
+import { activityZones, stepNumber, inlineRow } from "./cardLayout.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -61,9 +63,11 @@ function zone(title, subtitle, items, tone = ZONE_TONE.neutral) {
 // Zona de proceso: las actividades y, debajo, los datos producidos disponibles
 // para reutilizar en operaciones posteriores.
 function processZone(proceso, producidos) {
+  // Etiquetas de las actividades para resolver "se usa en → Actividad N".
+  const activities = proceso.map((step) => ({ id: step.rowId, label: `Actividad ${step.position}` }));
   const cards =
     proceso.length > 0
-      ? el("div", { class: "space-y-3" }, proceso.map(stepCard))
+      ? el("div", { class: "space-y-3" }, proceso.map((step) => stepCard(step, activities)))
       : el("div", { class: "text-sm text-slate-300" }, "—");
 
   const children = [
@@ -113,10 +117,10 @@ function outputChip(output) {
   return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-emerald-800" }, children);
 }
 
-// Un camino de la decisión: caso Sí/No, si continúa o finaliza, y a dónde conduce.
-function pathLine(caseLabel, branch) {
-  return el("div", { class: "flex flex-wrap items-center gap-1.5 text-xs text-slate-600" }, [
-    caseBadge(caseLabel),
+// Detalle de un camino de la decisión: si continúa o finaliza, y a dónde conduce.
+// El caso (Sí/No) lo aporta la etiqueta de la zona "Caminos".
+function branchDetail(branch) {
+  return el("div", { class: "flex flex-wrap items-center gap-1.5" }, [
     branch.flow ? flowBadge(branch.flow) : null,
     branch.type ? el("span", { class: "text-slate-400" }, `${labelOf(BRANCH_TYPES, branch.type)}:`) : null,
     branch.parts.length > 0 ? expressionEl(branch.parts) : el("span", { class: "text-slate-400" }, "…"),
@@ -155,42 +159,34 @@ function partNode(part, tone) {
   return el("span", {}, part.text);
 }
 
-// Tarjeta de actividad: cada parte en su propia línea etiquetada para leerse de un vistazo.
-function stepCard(step) {
-  const fields = [];
-  if (step.inputs.length > 0) {
-    fields.push(fieldRow("Entradas", el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(smallChip))));
-  }
-  if (step.condition) fields.push(fieldRow("Condición", step.condition));
-  if (step.operation.length > 0) fields.push(fieldRow("Operación", expressionEl(step.operation)));
-  if (step.result) fields.push(fieldRow("Resultado", smallChip(step.result)));
-  if (step.purpose) fields.push(fieldRow("Propósito", purposeBadge(step.purpose)));
-  if (step.comment) fields.push(fieldRow("Comentario", step.comment));
-  // Cuando la actividad decide, se muestran los dos caminos posibles del flujo.
-  if (step.purpose === "decision" || step.condition) {
-    fields.push(
-      fieldRow(
-        "Caminos",
-        el("div", { class: "space-y-1" }, [pathLine("Sí", step.ifTrue), pathLine("No", step.ifFalse)]),
-      ),
-    );
-  }
+// Tarjeta de actividad: cabecera con el número y la necesidad, y el resto de la
+// información agrupada en zonas (Entrada · Proceso · Resultado · Caminos), con la
+// misma jerarquía visual que la vista de tarjetas.
+function stepCard(step, activities) {
+  const isDecision = step.purpose === "decision" || step.condition;
+  const nodes = {
+    inputs: step.inputs.length > 0 ? el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(smallChip)) : null,
+    condition: step.condition ? textLine(step.condition) : null,
+    operation: step.operation.length > 0 ? expressionEl(step.operation) : null,
+    result: step.result ? smallChip(step.result) : null,
+    purpose: purposeBadge(step.purpose),
+    usedIn: step.result ? usedInNode(step.usedInRowId, activities) : null,
+    comment: step.comment ? textLine(step.comment) : null,
+    ifTrue: isDecision ? branchDetail(step.ifTrue) : null,
+    ifFalse: isDecision ? branchDetail(step.ifFalse) : null,
+  };
 
-  return el("div", { class: "space-y-2.5 rounded-md border border-slate-200 bg-white p-3.5" }, [
-    el("div", { class: "flex items-baseline gap-2" }, [
-      el("span", { class: "text-xs font-semibold text-slate-400" }, `#${step.position}`),
-      step.description ? el("span", { class: "text-sm font-medium text-slate-800" }, step.description) : null,
+  return el("div", { class: "rounded-lg border border-slate-200 bg-white p-3.5" }, [
+    el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2" }, [
+      stepNumber(step.position),
+      el("span", { class: "text-sm font-medium text-slate-800" }, step.description || `Actividad ${step.position}`),
     ]),
-    fields.length > 0 ? el("div", { class: "space-y-2" }, fields) : null,
+    el("div", { class: "mt-2.5 space-y-3" }, activityZones(nodes, inlineRow)),
   ]);
 }
 
-// Línea "Etiqueta: valor" dentro de una tarjeta. `value` puede ser texto o un nodo.
-function fieldRow(label, value) {
-  return el("div", { class: "flex gap-2 text-xs leading-relaxed" }, [
-    el("span", { class: "shrink-0 font-medium text-slate-400" }, `${label}:`),
-    el("div", { class: "min-w-0 text-slate-700" }, value),
-  ]);
+function textLine(text) {
+  return el("span", { class: "whitespace-pre-wrap" }, text);
 }
 
 function smallChip(datum) {
