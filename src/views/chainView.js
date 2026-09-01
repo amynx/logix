@@ -3,7 +3,9 @@
 // re-renderiza completa en cada cambio (es barata y no retiene el foco).
 
 import { el, clear } from "../utils/dom.js";
-import { DATA_TYPES, PURPOSES, BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
+import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
+import { sectionHeader } from "./sectionHeader.js";
+import { typeBadge, purposeBadge } from "./badges.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -18,24 +20,36 @@ export class ChainView {
     const body = isEmpty
       ? el("p", { class: "text-sm text-slate-400" }, "La cadena aparecerá aquí a medida que completes el análisis.")
       : el("div", { class: "flex flex-col gap-3 md:flex-row md:items-stretch" }, [
-          zone("Entradas", "Datos que recibe el programa", chain.entradas.map(dataChip)),
+          zone("Entradas", "Datos que recibe el programa", chain.entradas.map(dataChip), ZONE_TONE.input),
           connector(),
           processZone(chain.proceso, chain.producidos),
           connector(),
-          zone("Salida", "Información final", chain.salidas.map(outputChip)),
+          zone("Salida", "Información final", chain.salidas.map(outputChip), ZONE_TONE.output),
         ]);
 
     this.container.append(
-      el("section", { class: "rounded-lg border border-slate-200 bg-white p-4" }, [
-        el("h2", { class: "mb-3 text-sm font-semibold text-slate-700" }, "Cadena del análisis"),
+      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+        sectionHeader({
+          step: 4,
+          title: "Cadena del análisis",
+          subtitle: "Cómo fluyen los datos: entran, se procesan y salen.",
+          iconName: "chain",
+        }),
         body,
       ]),
     );
   }
 }
 
-function zone(title, subtitle, items) {
-  return el("div", { class: "flex-1 rounded-md border border-slate-200 bg-slate-50/60 p-3" }, [
+// Lenguaje de color de la cadena: entrada azul, proceso neutro, salida verde.
+const ZONE_TONE = {
+  input: "border-blue-200 bg-blue-50/60",
+  neutral: "border-slate-200 bg-slate-50/60",
+  output: "border-emerald-200 bg-emerald-50/60",
+};
+
+function zone(title, subtitle, items, tone = ZONE_TONE.neutral) {
+  return el("div", { class: `flex-1 rounded-md border p-3 ${tone}` }, [
     el("div", { class: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, title),
     el("div", { class: "mb-2 text-[11px] text-slate-400" }, subtitle),
     items.length > 0
@@ -67,7 +81,7 @@ function processZone(proceso, producidos) {
     );
   }
 
-  return el("div", { class: "flex-1 rounded-md border border-slate-200 bg-slate-50/60 p-3" }, children);
+  return el("div", { class: `flex-1 rounded-md border p-3 ${ZONE_TONE.neutral}` }, children);
 }
 
 // Conector entre zonas: flecha hacia la derecha en fila, hacia abajo apilado.
@@ -81,8 +95,8 @@ function connector() {
 function dataChip(datum) {
   return el(
     "div",
-    { class: "rounded border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700" },
-    dataLabel(datum),
+    { class: "flex items-center gap-1.5 rounded border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700" },
+    [el("span", { class: "min-w-0 truncate" }, datum.name || "(sin nombre)"), typeBadge(datum.type)],
   );
 }
 
@@ -180,18 +194,8 @@ function fieldRow(label, value) {
 }
 
 function smallChip(datum) {
-  return el("span", { class: "rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, dataLabel(datum));
-}
-
-function purposeBadge(purpose) {
-  if (!purpose) return null;
-  return el(
-    "span",
-    { class: "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500" },
-    labelOf(PURPOSES, purpose),
-  );
-}
-
-function dataLabel(datum) {
-  return `${datum.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, datum.type) || "—"}`;
+  return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, [
+    el("span", {}, datum.name || "(sin nombre)"),
+    typeBadge(datum.type),
+  ]);
 }

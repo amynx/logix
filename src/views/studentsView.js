@@ -3,10 +3,15 @@
 // estudiantes. Solo se ocupa del DOM; notifica los cambios mediante callbacks.
 
 import { el, clear } from "../utils/dom.js";
+import { sectionHeader, emptyState } from "./sectionHeader.js";
 
 const CONTROL_CLASS =
   "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
-  "outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300";
+  "outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
+
+const ADD_BUTTON_CLASS =
+  "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 " +
+  "text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
 
 export class StudentsView {
   constructor({ container }) {
@@ -19,23 +24,18 @@ export class StudentsView {
     const list =
       students.length > 0
         ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
-        : el("p", { class: "text-sm text-slate-400" }, "Aún no hay estudiantes. Agrega al menos uno.");
+        : emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
 
     this.container.append(
-      el("section", { class: "rounded-lg border border-slate-200 bg-white p-4" }, [
-        el("div", { class: "mb-3" }, [
-          el("h2", { class: "text-sm font-semibold text-slate-700" }, "Estudiantes"),
-          el("p", { class: "text-xs text-slate-400" }, "Se incluye al exportar el análisis."),
-        ]),
+      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+        sectionHeader({ step: 1, title: "Estudiantes", subtitle: "Se incluye al exportar el análisis.", iconName: "students" }),
         list,
         el("div", { class: "mt-3" }, [
           el(
             "button",
             {
               type: "button",
-              class:
-                "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium " +
-                "text-slate-700 hover:bg-slate-50",
+              class: ADD_BUTTON_CLASS,
               onclick: () => handlers.onAddStudent(),
             },
             "+ Agregar estudiante",

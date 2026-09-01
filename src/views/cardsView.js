@@ -14,6 +14,7 @@ import {
   deleteButton,
   addActivityButton,
 } from "./rowEditor.js";
+import { sectionHeader } from "./sectionHeader.js";
 
 const COLLAPSED_WIDTH = "w-80"; // ~20rem
 const EXPANDED_WIDTH = "w-[46rem]"; // ~46rem, para operaciones largas
@@ -31,7 +32,13 @@ export class CardsView {
     const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers));
 
     this.container.append(
-      el("div", { class: "mb-3" }, [viewToggle(viewMode, handlers.onSetViewMode)]),
+      sectionHeader({
+        step: 3,
+        title: "Actividades",
+        subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
+        iconName: "activities",
+        trailing: viewToggle(viewMode, handlers.onSetViewMode),
+      }),
       cards.length > 0
         ? el("div", { class: "overflow-x-auto pb-2" }, [el("div", { class: "flex items-start" }, chained(cards))])
         : el("p", { class: "text-sm text-slate-400" }, "Aún no hay actividades."),

@@ -5,11 +5,12 @@
 import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
+import { typeBadge } from "./badges.js";
 
 // Estilo discreto: sin borde ni fondo hasta pasar el cursor o enfocar.
 const CONTROL_CLASS =
   "w-full rounded border border-transparent bg-transparent px-2 py-1 text-sm text-slate-900 " +
-  "outline-none hover:border-slate-200 focus:border-slate-400 focus:bg-white focus:ring-1 focus:ring-slate-300 " +
+  "outline-none hover:border-slate-200 hover:bg-slate-50 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-200 " +
   "disabled:cursor-not-allowed disabled:text-slate-300";
 
 // Orden y etiquetas de los campos de una actividad (usado por ambas vistas).
@@ -90,7 +91,7 @@ export function viewToggle(mode, onToggle) {
       "button",
       {
         type: "button",
-        class: `rounded px-3 py-1 text-sm font-medium ${mode === key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`,
+        class: `rounded px-3 py-1 text-sm font-medium transition ${mode === key ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"}`,
         onclick: () => mode !== key && onToggle(key),
       },
       label,
@@ -338,10 +339,10 @@ function inputsEditor(rowId, entries, availableInputs, handlers) {
       el(
         "span",
         {
-          class: "flex-1 truncate rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
+          class: "flex flex-1 items-center gap-1.5 rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
           title: "Se edita en la sección «Datos de entrada»",
         },
-        dataReferenceLabel(entry),
+        [el("span", { class: "min-w-0 truncate" }, entry.name || "(sin nombre)"), typeBadge(entry.type)],
       ),
       el("button", {
         type: "button",

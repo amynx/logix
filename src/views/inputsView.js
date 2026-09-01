@@ -4,10 +4,15 @@
 
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
+import { sectionHeader, emptyState } from "./sectionHeader.js";
 
 const CONTROL_CLASS =
   "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
-  "outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300";
+  "outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
+
+const ADD_BUTTON_CLASS =
+  "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 " +
+  "text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
 
 export class InputsView {
   constructor({ container }) {
@@ -20,27 +25,19 @@ export class InputsView {
     const list =
       inputs.length > 0
         ? el("div", { class: "space-y-2" }, inputs.map((entry) => inputRow(entry, handlers)))
-        : el("p", { class: "text-sm text-slate-400" }, "Aún no hay datos de entrada. Agrégalos aquí para usarlos en las filas.");
+        : emptyState("data", "Aún no hay datos de entrada. Agrégalos aquí para usarlos en las actividades.");
 
     this.container.append(
-      el("section", { class: "rounded-lg border border-slate-200 bg-white p-4" }, [
-        el("div", { class: "mb-3" }, [
-          el("h2", { class: "text-sm font-semibold text-slate-700" }, "Datos de entrada"),
-          el("p", { class: "text-xs text-slate-400" }, "Datos que el programa recibe. En las filas solo se reutilizan estos."),
-        ]),
+      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+        sectionHeader({
+          step: 2,
+          title: "Datos de entrada",
+          subtitle: "Datos que el programa recibe. En las actividades solo se reutilizan estos.",
+          iconName: "data",
+        }),
         list,
         el("div", { class: "mt-3" }, [
-          el(
-            "button",
-            {
-              type: "button",
-              class:
-                "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium " +
-                "text-slate-700 hover:bg-slate-50",
-              onclick: () => handlers.onAddInput(),
-            },
-            "+ Agregar dato",
-          ),
+          el("button", { type: "button", class: ADD_BUTTON_CLASS, onclick: () => handlers.onAddInput() }, "+ Agregar dato"),
         ]),
       ]),
     );

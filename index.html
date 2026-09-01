@@ -8,30 +8,33 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800">
   <!-- Barra superior -->
-  <header class="border-b border-slate-200 bg-white">
-    <div class="flex items-center justify-between gap-4 px-4 py-3">
-      <div class="flex items-center gap-2">
-        <span class="text-lg font-semibold text-slate-900">Logix</span>
-        <span class="hidden text-sm text-slate-400 sm:inline">Análisis de problemas</span>
+  <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex max-w-[100rem] items-center justify-between gap-4 px-4 py-3">
+      <div class="flex items-center gap-2.5">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-base font-bold text-white">L</span>
+        <span class="text-lg font-semibold text-indigo-700">Logix</span>
+        <span class="hidden text-sm text-slate-400 sm:inline">· Análisis de problemas</span>
       </div>
-      <div id="toolbar" class="flex items-center gap-2"></div>
+      <div id="toolbar" class="flex flex-wrap items-center justify-end gap-2"></div>
     </div>
   </header>
 
-  <!-- Información del análisis (título y descripción) -->
-  <section id="analysis-info" class="px-4 py-6"></section>
+  <div class="mx-auto max-w-[100rem] px-4 pb-16">
+    <!-- Información del análisis (título y descripción) -->
+    <section id="analysis-info" class="max-w-4xl py-6"></section>
 
-  <!-- Estudiantes -->
-  <section id="students-container" class="px-4 pb-6"></section>
+    <!-- Estudiantes -->
+    <section id="students-container" class="max-w-4xl pb-6"></section>
 
-  <!-- Datos de entrada declarados -->
-  <section id="inputs-container" class="px-4 pb-6"></section>
+    <!-- Datos de entrada declarados -->
+    <section id="inputs-container" class="max-w-4xl pb-6"></section>
 
-  <!-- Tabla de análisis -->
-  <main id="table-container" class="px-4 pb-6"></main>
+    <!-- Actividades: tabla o tarjetas -->
+    <main id="table-container" class="pb-6"></main>
 
-  <!-- Cadena derivada: Entradas → Proceso → Salida -->
-  <section id="chain-container" class="px-4 pb-16"></section>
+    <!-- Cadena derivada: Entradas → Proceso → Salida -->
+    <section id="chain-container"></section>
+  </div>
 
   <!-- Área de impresión para la exportación a PDF (oculta en pantalla) -->
   <div id="print-area"></div>

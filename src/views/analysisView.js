@@ -3,26 +3,25 @@
 // ni la persistencia. Recibe callbacks y notifica los cambios del usuario.
 
 import { el, clear } from "../utils/dom.js";
+import { icon } from "./icons.js";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
-  "text-slate-900 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200";
+  "text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
 
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
-function toolbarButton(label, onClick) {
-  return el(
-    "button",
-    {
-      type: "button",
-      class:
-        "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium " +
-        "text-slate-700 hover:bg-slate-50",
-      onclick: onClick,
-    },
+// Botón de la barra: fantasma (por defecto) o primario (índigo sólido).
+function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
+  const base = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium";
+  const variant = primary
+    ? "bg-indigo-600 text-white hover:bg-indigo-700"
+    : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
+  return el("button", { type: "button", class: `${base} ${variant}`, onclick: onClick }, [
+    iconName ? icon(iconName, "h-4 w-4") : null,
     label,
-  );
+  ]);
 }
 
 const SAVE_STATUS = {
@@ -55,10 +54,10 @@ export class AnalysisView {
     this.statusElement = el("span", { class: "text-xs text-slate-400" }, "");
 
     this.toolbarContainer.append(
-      toolbarButton("Nuevo análisis", onNew),
-      toolbarButton("Abrir análisis", () => fileInput.click()),
-      toolbarButton("Guardar archivo", onSaveFile),
-      toolbarButton("Exportar PDF", onExportPdf),
+      toolbarButton("Nuevo análisis", onNew, "new"),
+      toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
+      toolbarButton("Guardar archivo", onSaveFile, "save"),
+      toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
       fileInput,
       this.statusElement,
     );
@@ -93,7 +92,7 @@ export class AnalysisView {
     });
 
     this.infoContainer.append(
-      el("div", { class: "space-y-4 rounded-lg border border-slate-200 bg-white p-4" }, [
+      el("div", { class: "space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
         el("div", {}, [
           el("label", { for: "analysis-title", class: LABEL_CLASS }, "Título del análisis"),
           el("div", { class: "mt-1" }, [title]),

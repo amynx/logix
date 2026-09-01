@@ -13,6 +13,7 @@ import {
   deleteButton,
   addActivityButton,
 } from "./rowEditor.js";
+import { sectionHeader } from "./sectionHeader.js";
 
 const TH_CLASS = "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left align-top";
 const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
@@ -31,8 +32,14 @@ export class TableView {
     ]);
 
     this.container.append(
-      el("div", { class: "mb-3" }, [viewToggle(viewMode, handlers.onSetViewMode)]),
-      el("div", { class: "overflow-x-auto rounded-lg border border-slate-200 bg-white" }, [table]),
+      sectionHeader({
+        step: 3,
+        title: "Actividades",
+        subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
+        iconName: "activities",
+        trailing: viewToggle(viewMode, handlers.onSetViewMode),
+      }),
+      el("div", { class: "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" }, [table]),
       addActivityButton(handlers.onAddRow),
     );
   }
