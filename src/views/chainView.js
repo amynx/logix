@@ -7,7 +7,7 @@ import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { usedInNode } from "./rowSummary.js";
-import { activityZones, stepNumber, inlineRow, commentBox, questionBox, formulaBox, withEquals } from "./cardLayout.js";
+import { activityZones, stepNumber, inlineRow, commentBox, questionBox, formulaBox, withEquals, withArrow } from "./cardLayout.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -117,14 +117,16 @@ function outputChip(output) {
   return el("div", { class: "rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm text-emerald-800" }, children);
 }
 
-// Detalle de un camino de la decisión: si continúa o finaliza, y a dónde conduce.
-// El caso (Sí/No) lo aporta la etiqueta de la zona "Caminos".
+// Detalle de un camino de la decisión: "→ [opción]" (si continúa o finaliza, y a
+// dónde conduce). El caso lo aporta la etiqueta "Si (no) se cumple, entonces:".
 function branchDetail(branch) {
-  return el("div", { class: "flex flex-wrap items-center gap-1.5" }, [
-    branch.flow ? flowBadge(branch.flow) : null,
-    branch.type ? el("span", { class: "text-slate-400" }, `${labelOf(BRANCH_TYPES, branch.type)}:`) : null,
-    branch.parts.length > 0 ? expressionEl(branch.parts) : el("span", { class: "text-slate-400" }, "…"),
-  ]);
+  return withArrow(
+    el("span", { class: "inline-flex flex-wrap items-center gap-1.5" }, [
+      branch.flow ? flowBadge(branch.flow) : null,
+      branch.type ? el("span", { class: "text-slate-500" }, labelOf(BRANCH_TYPES, branch.type)) : null,
+      branch.parts.length > 0 ? expressionEl(branch.parts) : (!branch.type ? el("span", { class: "text-slate-400" }, "sin definir") : null),
+    ]),
+  );
 }
 
 // Indica el caso de la condición: Sí (se cumple) o No (no se cumple).

@@ -8,7 +8,7 @@ import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { expressionParts } from "../models/operators.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
-import { commentBox, questionBox, formulaBox, withEquals } from "./cardLayout.js";
+import { commentBox, questionBox, formulaBox, withEquals, withArrow } from "./cardLayout.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
@@ -99,15 +99,16 @@ export function usedInNode(usedInRowId, activities) {
   ]);
 }
 
-// Camino de una decisión: tipo de continuación y, si la hay, su respuesta.
+// Camino de una decisión: "→ [opción]", donde la opción es el tipo de continuación
+// y, si la hay, su respuesta. Precedido por "→" para leerse tras "entonces:".
 function branchNode(branch, resolve) {
   const hasValue = Array.isArray(branch.value) && branch.value.length > 0;
-  if (!branch.type && !hasValue) return null;
   const parts = [];
-  if (branch.type) parts.push(el("span", { class: "text-slate-500" }, labelOf(BRANCH_TYPES, branch.type)));
+  if (branch.type) parts.push(el("span", { class: "text-slate-600" }, labelOf(BRANCH_TYPES, branch.type)));
   if (hasValue) {
     if (branch.type) parts.push(el("span", { class: "text-slate-300" }, "·"));
     parts.push(expressionNode(branch.value, resolve));
   }
-  return el("span", { class: "inline-flex flex-wrap items-center gap-1.5 text-slate-700" }, parts);
+  if (parts.length === 0) parts.push(el("span", { class: "text-slate-400" }, "sin definir"));
+  return withArrow(el("span", { class: "inline-flex flex-wrap items-center gap-1.5 text-slate-700" }, parts));
 }

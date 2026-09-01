@@ -62,6 +62,15 @@ export function withEquals(node) {
   ]);
 }
 
+// Antepone una flecha "→" a la acción de un camino de decisión, para que "entonces
+// → [acción]" haga explícito que la condición determina el camino a seguir.
+export function withArrow(node) {
+  return el("span", { class: "inline-flex flex-wrap items-center gap-1.5" }, [
+    el("span", { class: "font-semibold text-slate-400" }, "→"),
+    node,
+  ]);
+}
+
 // Fila etiqueta→valor en línea (compacta), para el modo de visualización.
 export function inlineRow(label, value) {
   return el("div", { class: "flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-slate-700" }, [
@@ -89,7 +98,10 @@ export function activityZones(nodesByKey, renderRow) {
     zoneBlock("Datos de entrada", ZONE_TONES.input, [row("inputs")]),
     zoneBlock("Proceso", ZONE_TONES.process, [row("condition", SUBLABELS.condition), row("operation", SUBLABELS.operation)]),
     zoneBlock("Resultado", ZONE_TONES.result, [row("result"), row("purpose", SUBLABELS.purpose), row("usedIn", SUBLABELS.usedIn)]),
-    zoneBlock("Caminos", ZONE_TONES.branch, [row("ifTrue", "Sí"), row("ifFalse", "No")]),
+    zoneBlock("Caminos", ZONE_TONES.branch, [
+      row("ifTrue", "Si se cumple, entonces:"),
+      row("ifFalse", "Si no se cumple, entonces:"),
+    ]),
     zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
   ].filter(Boolean);
 }
