@@ -6,11 +6,12 @@
 import { el } from "../utils/dom.js";
 import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { expressionParts } from "../models/operators.js";
+import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 import { typeBadge, purposeBadge } from "./badges.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
-export function buildRowSummary(row, dataById) {
+export function buildRowSummary(row, dataById, activities = []) {
   const resolve = (id) => dataById.get(id) ?? null;
   const isDecision = row.purpose === "decision";
   const conditionApplies = !row.purpose || isDecision;
@@ -24,6 +25,7 @@ export function buildRowSummary(row, dataById) {
     operation: row.operation.length > 0 ? expressionNode(row.operation, resolve) : null,
     result: result ? dataChip(result) : null,
     purpose: purposeBadge(row.purpose),
+    usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
     comment: textNode(row.subsequentUse),
     ifTrue: isDecision ? branchNode(row.ifTrue, resolve) : null,
     ifFalse: isDecision ? branchNode(row.ifFalse, resolve) : null,
@@ -63,6 +65,20 @@ function partNode(part) {
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
   return el("span", { class: "rounded bg-amber-50 px-1 py-0.5 text-amber-700" }, part.text || "∅");
+}
+
+// Actividad donde se reutilizará el dato producido: pendiente (ámbar) o la
+// actividad concreta asociada (índigo). Vacío si aún no se ha indicado.
+function usedInNode(usedInRowId, activities) {
+  if (usedInRowId === PENDING_ACTIVITY) {
+    return el("span", { class: "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700" }, "Pendiente de asignación");
+  }
+  const target = activities.find((activity) => activity.id === usedInRowId);
+  if (!target) return null;
+  return el("span", { class: "inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700" }, [
+    el("span", {}, "→"),
+    el("span", {}, target.label),
+  ]);
 }
 
 // Camino de una decisión: tipo de continuación y, si la hay, su respuesta.

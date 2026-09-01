@@ -16,6 +16,7 @@ import {
   editButton,
   doneButton,
   addActivityButton,
+  buildActivityList,
 } from "./rowEditor.js";
 import { buildRowSummary, isSummaryEmpty } from "./rowSummary.js";
 import { sectionHeader } from "./sectionHeader.js";
@@ -31,7 +32,8 @@ export class CardsView {
   render(analysis, handlers, viewMode) {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
-    const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers));
+    const activities = buildActivityList(analysis.rows, dataById);
+    const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers, activities));
 
     this.container.append(
       sectionHeader({
@@ -52,9 +54,9 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers, viewMode));
   }
 
-  #card(row, index, dataById, handlers) {
+  #card(row, index, dataById, handlers, activities) {
     const editing = handlers.isRowEditing(row.id);
-    const body = editing ? this.#editBody(row, dataById, handlers) : this.#viewBody(row, dataById);
+    const body = editing ? this.#editBody(row, dataById, handlers, activities) : this.#viewBody(row, dataById, activities);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -87,8 +89,8 @@ export class CardsView {
   }
 
   // Modo edición: todos los campos con sus controles.
-  #editBody(row, dataById, handlers) {
-    const fields = buildRowFields(row, dataById, handlers);
+  #editBody(row, dataById, handlers, activities) {
+    const fields = buildRowFields(row, dataById, handlers, activities);
     const sections = FIELD_ORDER.filter((column) => fields[column.key]).map((column) =>
       labeledSection(column.label, fields[column.key]),
     );
@@ -96,8 +98,8 @@ export class CardsView {
   }
 
   // Modo visualización: solo los campos con información registrada.
-  #viewBody(row, dataById) {
-    const summary = buildRowSummary(row, dataById);
+  #viewBody(row, dataById, activities) {
+    const summary = buildRowSummary(row, dataById, activities);
     if (isSummaryEmpty(summary)) {
       return el("p", { class: "text-sm text-slate-400" }, "Sin información. Pulsa «Editar» para completarla.");
     }

@@ -7,6 +7,7 @@ import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, PURPOSES, BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { operationToText } from "../models/operators.js";
 import { buildChain } from "../models/chainModel.js";
+import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 
 // Secciones que el usuario puede incluir o excluir (todas marcadas por defecto).
 export const PDF_SECTIONS = [
@@ -92,6 +93,12 @@ function tableBlock(analysis, resolve) {
     [branch.type ? labelOf(BRANCH_TYPES, branch.type) : "", operationToText(branch.value, resolve)]
       .filter(Boolean)
       .join(": ");
+  const activityLabelById = new Map(analysis.rows.map((row, index) => [row.id, `Actividad ${index + 1}`]));
+  const usedInText = (row) => {
+    if (!row.resultId || !row.usedInRowId) return "";
+    if (row.usedInRowId === PENDING_ACTIVITY) return "Pendiente de asignación";
+    return activityLabelById.get(row.usedInRowId) ?? "";
+  };
 
   const rows = analysis.rows.map((row, index) =>
     el("tr", {}, [
@@ -102,6 +109,7 @@ function tableBlock(analysis, resolve) {
       td(operationToText(row.operation, resolve)),
       td(resultText(row)),
       td(labelOf(PURPOSES, row.purpose)),
+      td(usedInText(row)),
       td(row.subsequentUse),
       td(branchText(row.ifTrue)),
       td(branchText(row.ifFalse)),
@@ -111,7 +119,7 @@ function tableBlock(analysis, resolve) {
   return el("div", {}, [
     sectionTitle("Tabla de datos"),
     printableTable(
-      ["#", "Problema", "Datos de entrada", "Condición", "Operación", "Dato resultante", "Propósito", "Comentario", "Si se cumple", "Si no se cumple"],
+      ["#", "Problema", "Datos de entrada", "Condición", "Operación", "Dato resultante", "Propósito", "Actividad asociada", "Comentario", "Si se cumple", "Si no se cumple"],
       rows,
     ),
   ]);

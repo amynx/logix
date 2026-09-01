@@ -14,6 +14,7 @@ import {
   editButton,
   doneButton,
   addActivityButton,
+  buildActivityList,
 } from "./rowEditor.js";
 import { buildRowSummary } from "./rowSummary.js";
 import { sectionHeader } from "./sectionHeader.js";
@@ -29,9 +30,10 @@ export class TableView {
   render(analysis, handlers, viewMode) {
     clear(this.container);
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
+    const activities = buildActivityList(analysis.rows, dataById);
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
-      el("tbody", {}, analysis.rows.map((row, index) => this.#buildRow(row, index, dataById, handlers))),
+      el("tbody", {}, analysis.rows.map((row, index) => this.#buildRow(row, index, dataById, handlers, activities))),
     ]);
 
     this.container.append(
@@ -65,11 +67,11 @@ export class TableView {
     return el("thead", { class: "bg-slate-50" }, [el("tr", {}, cells)]);
   }
 
-  #buildRow(row, index, dataById, handlers) {
+  #buildRow(row, index, dataById, handlers, activities) {
     const editing = handlers.isRowEditing(row.id);
     const contentCells = editing
-      ? this.#editCells(row, dataById, handlers)
-      : this.#viewCells(row, dataById);
+      ? this.#editCells(row, dataById, handlers, activities)
+      : this.#viewCells(row, dataById, activities);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -106,14 +108,14 @@ export class TableView {
   }
 
   // Modo edición: una celda por campo con su control editable.
-  #editCells(row, dataById, handlers) {
-    const fields = buildRowFields(row, dataById, handlers);
+  #editCells(row, dataById, handlers, activities) {
+    const fields = buildRowFields(row, dataById, handlers, activities);
     return FIELD_ORDER.map((column) => el("td", { class: TD_CLASS }, [fields[column.key] ?? notApplicable()]));
   }
 
   // Modo visualización: una celda por campo con solo la información registrada.
-  #viewCells(row, dataById) {
-    const summary = buildRowSummary(row, dataById);
+  #viewCells(row, dataById, activities) {
+    const summary = buildRowSummary(row, dataById, activities);
     return FIELD_ORDER.map((column) =>
       el("td", { class: TD_CLASS }, [summary[column.key] ?? el("span", { class: "text-slate-300" }, "—")]),
     );

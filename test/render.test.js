@@ -108,9 +108,9 @@ test("renders analysis info and a seeded row with all columns", async () => {
   assert.ok(doc.getElementById("analysis-title"), "title input exists");
   assert.ok(doc.getElementById("analysis-description"), "description textarea exists");
 
-  assert.equal(doc.querySelectorAll("thead th").length, 11, "11 header cells (# + 9 columns + actions)");
+  assert.equal(doc.querySelectorAll("thead th").length, 12, "12 header cells (# + 10 columns + actions)");
   assert.equal(doc.querySelectorAll("tbody tr").length, 1, "one seeded row");
-  assert.equal(doc.querySelectorAll("tbody tr td").length, 11, "row has 11 cells");
+  assert.equal(doc.querySelectorAll("tbody tr td").length, 12, "row has 12 cells");
 });
 
 test("dragging a row onto another reorders the analysis", async () => {
@@ -264,7 +264,7 @@ test("changing purpose updates the model and re-renders the table", async () => 
 test("condition and branches show as 'no aplica' outside of decisions", async () => {
   const { doc } = await mountApp();
   const conditionCell = () => doc.querySelectorAll("tbody tr td")[3];
-  const branchCell = () => doc.querySelectorAll("tbody tr td")[8];
+  const branchCell = () => doc.querySelectorAll("tbody tr td")[9];
   const purposeSelect = () => doc.querySelectorAll("tbody tr td")[6].querySelector("select");
 
   // Sin propósito aún: la condición sigue disponible; las ramas no aplican.
@@ -589,7 +589,7 @@ test("the branch builder appears only when the path is a response", async () => 
   purpose.value = "decision";
   fire(purpose, "change");
 
-  const branchCell = () => doc.querySelectorAll("tbody tr td")[8];
+  const branchCell = () => doc.querySelectorAll("tbody tr td")[9];
   const typeSelect = () => branchCell().querySelector("select");
 
   assert.equal(branchCell().querySelectorAll("select").length, 1, "sin tipo: solo el selector");
@@ -618,7 +618,7 @@ test("a decision branch response can reference existing data", async () => {
   row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
   fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");
 
-  const branchCell = () => row1().querySelectorAll("td")[8];
+  const branchCell = () => row1().querySelectorAll("td")[9];
   branchCell().querySelector("select").value = "response"; // el tipo de la rama
   fire(branchCell().querySelector("select"), "change");
 
@@ -634,6 +634,50 @@ test("a decision branch response can reference existing data", async () => {
   assert.equal(tokens[0].dataId, promedioId);
 });
 
+test("a produced datum can stay pending and later link to a new activity", async () => {
+  const { doc, controller } = await mountApp();
+
+  // La fila 0 produce "buenas": aparece el selector de actividad asociada.
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "buenas";
+  fire(resultName, "input");
+
+  const usedInSelect = () => doc.querySelectorAll("tbody tr td")[7].querySelector("select");
+  assert.ok(usedInSelect(), "hay selector cuando la fila produce un dato");
+
+  // Aún no existe la actividad destino: se deja pendiente de asignación.
+  usedInSelect().value = "pending";
+  fire(usedInSelect(), "change");
+  assert.equal(controller.analysis.rows[0].usedInRowId, "pending");
+
+  // Se crea la actividad destino y se vincula el dato con ella.
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  const targetId = controller.analysis.rows[1].id;
+  assert.ok([...usedInSelect().options].some((o) => o.value === targetId), "la nueva actividad es opción");
+  usedInSelect().value = targetId;
+  fire(usedInSelect(), "change");
+  assert.equal(controller.analysis.rows[0].usedInRowId, targetId);
+});
+
+test("deleting the target activity reverts the link to pending", async () => {
+  const { doc, controller } = await mountApp();
+
+  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  resultName.value = "buenas";
+  fire(resultName, "input");
+  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  const [sourceId, targetId] = controller.analysis.rows.map((r) => r.id);
+  controller.setUsedIn(sourceId, targetId);
+
+  // Se elimina la actividad destino: la relación no se pierde, queda pendiente.
+  doc.querySelectorAll("tbody tr")[1].querySelector('[title="Eliminar actividad"]').click();
+  [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
+  await flush();
+
+  assert.equal(controller.analysis.rows.length, 1);
+  assert.equal(controller.analysis.rows[0].usedInRowId, "pending", "la relación queda pendiente de asignación");
+});
+
 test("the chain panel reflects external inputs and final outputs live", async () => {
   const { doc, controller } = await mountApp();
   const chainText = () => doc.getElementById("chain-container").textContent;
@@ -646,7 +690,7 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   fire(purposeSelect, "change");
 
   // El comentario es texto libre.
-  const comment = doc.querySelectorAll("tbody tr td")[7].querySelector("textarea");
+  const comment = doc.querySelectorAll("tbody tr td")[8].querySelector("textarea");
   comment.value = "Mostrar el resultado";
   fire(comment, "input");
 

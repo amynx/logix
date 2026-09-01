@@ -188,6 +188,7 @@ export class AnalysisController {
       onResultChange: (rowId, changes) => this.updateResult(rowId, changes),
       onReuseInput: (rowId, dataId) => this.reuseInput(rowId, dataId),
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
+      onUsedInChange: (rowId, usedInRowId) => this.setUsedIn(rowId, usedInRowId),
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
     };
   }
@@ -228,6 +229,14 @@ export class AnalysisController {
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
     if (row) this.#suggestResultType(row);
     this.#renderTableKeepingFocus();
+    this.#afterChange();
+  }
+
+  // Vincula (o desvincula) el dato producido de la fila con la actividad donde se
+  // usará. El valor puede ser "" (sin asignar), "pending" o el id de una actividad.
+  setUsedIn(rowId, usedInRowId) {
+    updateRow(this.analysis, rowId, { usedInRowId });
+    this.renderTable();
     this.#afterChange();
   }
 

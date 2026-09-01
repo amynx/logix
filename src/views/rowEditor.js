@@ -7,6 +7,7 @@ import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../model
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
+import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 
 // Estilo discreto: sin borde ni fondo hasta pasar el cursor o enfocar.
 const CONTROL_CLASS =
@@ -22,6 +23,7 @@ export const FIELD_ORDER = [
   { key: "operation", label: "Operación", help: "Constrúyela referenciando datos y operadores." },
   { key: "result", label: "Dato resultante", help: "Dato producido tras realizar una operación." },
   { key: "purpose", label: "Propósito", help: "Para qué se utilizará el dato producido." },
+  { key: "usedIn", label: "Actividad asociada", help: "Actividad donde se usará el dato producido." },
   { key: "comment", label: "Comentario", help: "Nota libre para anotar qué sigue (opcional)." },
   { key: "ifTrue", label: "Si se cumple", help: "Camino cuando la condición se cumple (decisiones)." },
   { key: "ifFalse", label: "Si no se cumple", help: "Camino cuando la condición no se cumple (decisiones)." },
@@ -30,7 +32,7 @@ export const FIELD_ORDER = [
 // Construye los nodos editables de una fila. Los campos que no aplican en la fila
 // (condición y ramas fuera de una decisión) devuelven null, para que cada vista
 // decida cómo mostrarlos (la tabla pone "—"; las tarjetas los omiten).
-export function buildRowFields(row, dataById, handlers) {
+export function buildRowFields(row, dataById, handlers, activities = []) {
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
   const isDecision = row.purpose === "decision";
@@ -50,10 +52,22 @@ export function buildRowFields(row, dataById, handlers) {
     operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater)),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
+    // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
+    usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value }))),
     ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData }) : null,
     ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData }) : null,
   };
+}
+
+// Lista de actividades con una etiqueta reconocible (posición + dato/necesidad),
+// para poblar el selector de "actividad asociada". El id es la clave estable.
+export function buildActivityList(rows, dataById) {
+  return rows.map((row, index) => {
+    const detail = dataById.get(row.resultId)?.name || row.problem || "";
+    const label = detail ? `Actividad ${index + 1} · ${detail}` : `Actividad ${index + 1}`;
+    return { id: row.id, label };
+  });
 }
 
 // Marcador discreto para un campo que no aplica en esta actividad.
@@ -342,6 +356,17 @@ function resultEditor(rowId, result, handlers) {
 
 function purposeSelect(purpose, onChange) {
   return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
+}
+
+// Selector de la actividad donde se usará el dato producido. Además de las otras
+// actividades, ofrece "Pendiente" para cuando la actividad destino aún no existe.
+function usedInSelect(row, activities, onChange) {
+  const others = activities.filter((activity) => activity.id !== row.id);
+  const options = [
+    { value: PENDING_ACTIVITY, label: "Pendiente de asignación" },
+    ...others.map((activity) => ({ value: activity.id, label: activity.label })),
+  ];
+  return selectField(options, row.usedInRowId, onChange, { placeholder: "— Sin asignar —" });
 }
 
 // Camino de una decisión: el constructor de la respuesta solo aparece para "Respuesta".
