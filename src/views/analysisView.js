@@ -14,9 +14,10 @@ const INPUT_CLASS =
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
-// Botón de la barra: fantasma (por defecto) o primario (índigo sólido).
+// Botón de la barra: fantasma (por defecto) o primario (índigo sólido). Ocupa todo
+// el ancho en el menú móvil y vuelve a su ancho natural en pantallas grandes.
 function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
-  const base = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium";
+  const base = "inline-flex w-full items-center justify-start gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium md:w-auto md:justify-center";
   const variant = primary
     ? "bg-indigo-600 text-white hover:bg-indigo-700"
     : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
@@ -53,17 +54,53 @@ export class AnalysisView {
       },
     });
 
-    this.statusElement = el("span", { class: "text-xs text-slate-400" }, "");
+    this.statusElement = el("span", { class: "px-2 text-xs text-slate-400 md:px-0" }, "");
 
-    this.toolbarContainer.append(
-      toolbarButton("Nuevo análisis", onNew, "new"),
-      toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
-      toolbarButton("Guardar archivo", onSaveFile, "save"),
-      toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
-      toolbarButton("Ayuda", () => openHelp(), "help"),
-      fileInput,
-      this.statusElement,
+    // En móvil las acciones se agrupan en un menú desplegable; en pantallas
+    // grandes se muestran en línea (md:flex las revela pese a la clase "hidden").
+    const menu = el(
+      "div",
+      {
+        class:
+          "hidden absolute right-4 top-14 z-30 w-56 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg " +
+          "md:flex md:static md:right-auto md:top-auto md:z-auto md:w-auto md:flex-row md:items-center md:gap-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none",
+        onclick: (event) => {
+          if (event.target.closest("button")) closeMenu();
+        },
+      },
+      [
+        toolbarButton("Nuevo análisis", onNew, "new"),
+        toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
+        toolbarButton("Guardar archivo", onSaveFile, "save"),
+        toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
+        toolbarButton("Ayuda", () => openHelp(), "help"),
+        this.statusElement,
+      ],
     );
+
+    const closeMenu = () => menu.classList.replace("flex", "hidden");
+    const toggleMenu = () => (menu.classList.contains("hidden") ? menu.classList.replace("hidden", "flex") : closeMenu());
+
+    const hamburger = el(
+      "button",
+      {
+        type: "button",
+        class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 md:hidden",
+        "aria-label": "Abrir menú",
+        onclick: (event) => {
+          event.stopPropagation();
+          toggleMenu();
+        },
+      },
+      [icon("menu", "h-4 w-4"), "Menú"],
+    );
+
+    // Cierra el menú móvil al pulsar fuera de él.
+    document.addEventListener("click", (event) => {
+      if (menu.classList.contains("flex") && !menu.contains(event.target) && !hamburger.contains(event.target)) closeMenu();
+    });
+
+    this.toolbarContainer.append(menu, hamburger, fileInput);
   }
 
   setSaveStatus(state) {

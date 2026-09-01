@@ -740,7 +740,8 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
 test("toolbar exposes new, open, save, export and help actions", async () => {
   const { doc } = await mountApp();
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
-  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda"]);
+  // "Menú" es el control que despliega las acciones en móvil.
+  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Menú"]);
 });
 
 test("the help button opens the documentation dialog", async () => {
