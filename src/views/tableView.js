@@ -98,7 +98,7 @@ export class TableView {
     return el(
       "tr",
       {
-        class: `${index % 2 === 1 ? "bg-slate-50" : "bg-white"} hover:bg-sky-50/60`,
+        class: `${index % 2 === 1 ? "bg-slate-50" : "bg-white"} transition-colors hover:bg-sky-50/60`,
         dataset: { rowId: row.id, editing: String(editing) },
         ondragover: (event) => {
           event.preventDefault();

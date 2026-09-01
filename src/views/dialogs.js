@@ -45,7 +45,7 @@ export function selectSectionsDialog(sections, { title, confirmLabel = "Generar 
         },
       },
       [
-        el("div", { class: "w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
+        el("div", { class: "dialog-enter w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
           el("h2", { class: "text-base font-semibold text-slate-900" }, title),
           el("p", { class: "mt-1 text-xs text-slate-500" }, "Marca las secciones que quieres incluir."),
           el("div", { class: "mt-3 space-y-2" }, checks),
@@ -97,7 +97,7 @@ export function messageDialog({ title, message, acceptLabel = "Entendido" }) {
         },
       },
       [
-        el("div", { class: "w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
+        el("div", { class: "dialog-enter w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
           el("h2", { class: "text-base font-semibold text-slate-900" }, title),
           el("p", { class: "mt-2 text-sm text-slate-600" }, message),
           el("div", { class: "mt-5 flex justify-end" }, [acceptButton]),
@@ -136,7 +136,7 @@ export function confirmDialog({ title, message, details = [], confirmLabel = "El
         },
       },
       [
-        el("div", { class: "w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
+        el("div", { class: "dialog-enter w-full max-w-sm rounded-lg bg-white p-5 shadow-xl", role: "dialog", "aria-modal": "true" }, [
           el("h2", { class: "text-base font-semibold text-slate-900" }, title),
           el("p", { class: "mt-2 text-sm text-slate-600" }, message),
           details.length > 0

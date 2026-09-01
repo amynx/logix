@@ -15,6 +15,34 @@
   }
 }
 
+/* Micro-interacciones: transiciones suaves y aparición de diálogos. Respeta la
+   preferencia de movimiento reducido del sistema. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .dialog-enter {
+    animation: dialog-in 0.18s ease-out;
+  }
+}
+
 /* Retroalimentación al arrastrar y soltar actividades (tarjetas y filas). */
 .is-dragging {
   opacity: 0.4;
