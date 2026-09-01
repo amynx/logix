@@ -788,6 +788,17 @@ test("the help button opens the documentation dialog", async () => {
   assert.match(dialog.textContent, /Jerarquía de operadores/);
 });
 
+test("a section help button opens the panel on the relevant tab", async () => {
+  const { doc } = await mountApp();
+  const hint = [...doc.querySelectorAll("#inputs-container button")].find((b) => b.textContent === "?");
+  assert.ok(hint, "la sección de datos de entrada tiene un ? de ayuda");
+
+  hint.click();
+  const dialog = doc.querySelector('[role="dialog"]');
+  const active = [...dialog.querySelectorAll("button")].find((b) => b.className.includes("bg-indigo-600"));
+  assert.equal(active.textContent, "Datos y operaciones", "abre la pestaña de datos y operaciones");
+});
+
 test("the help dialog groups content into tabs", async () => {
   const { doc } = await mountApp();
   [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ayuda").click();

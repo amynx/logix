@@ -12,7 +12,7 @@ export function emptyState(iconName, text) {
   ]);
 }
 
-export function sectionHeader({ step, title, subtitle, iconName, trailing }) {
+export function sectionHeader({ step, title, subtitle, iconName, trailing, help }) {
   return el("div", { class: "mb-3 flex items-center gap-3" }, [
     el("span", { class: "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700" }, String(step)),
     el("span", { class: "text-indigo-500" }, [icon(iconName, "h-5 w-5")]),
@@ -20,6 +20,7 @@ export function sectionHeader({ step, title, subtitle, iconName, trailing }) {
       el("h2", { class: "text-sm font-semibold text-slate-800" }, title),
       subtitle ? el("p", { class: "text-xs text-slate-400" }, subtitle) : null,
     ]),
+    help ? el("div", { class: "shrink-0" }, [help]) : null,
     trailing ? el("div", { class: "ml-auto" }, [trailing]) : null,
   ]);
 }

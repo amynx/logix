@@ -22,6 +22,7 @@ import {
 import { buildRowSummary, isSummaryEmpty } from "./rowSummary.js";
 import { activityZones, stepNumber, inlineRow, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
+import { helpButton } from "./helpView.js";
 
 const VIEW_WIDTH = "w-80"; // ~20rem: lectura compacta
 const EDIT_WIDTH = "w-[46rem]"; // ~46rem: espacio para operaciones largas
@@ -44,6 +45,7 @@ export class CardsView {
         title: "Actividades",
         subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
         iconName: "activities",
+        help: helpButton(2), // pestaña "Condiciones y expresiones"
         trailing: viewToggle(viewMode, handlers.onSetViewMode),
       }),
       cards.length > 0

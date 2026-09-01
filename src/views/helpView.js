@@ -9,7 +9,7 @@ import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 
 // Abre el panel de ayuda. Se cierra al pulsar la ×, el fondo o la tecla Escape.
 // Si ya hay un panel abierto, no abre otro.
-export function openHelp() {
+export function openHelp(initialTab = 0) {
   if (document.getElementById("help-panel")) return;
 
   const close = () => {
@@ -28,14 +28,15 @@ export function openHelp() {
     { label: "Condiciones y expresiones", sections: expressionSections },
   ];
 
+  const startTab = Math.min(Math.max(initialTab, 0), tabs.length - 1);
   const panels = tabs.map((tab, index) => {
     const view = el("div", { class: "space-y-6" }, tab.sections());
-    view.hidden = index !== 0;
+    view.hidden = index !== startTab;
     return view;
   });
 
   const tabButtons = tabs.map((tab, index) =>
-    el("button", { type: "button", class: tabButtonClass(index === 0), onclick: () => activate(index) }, tab.label),
+    el("button", { type: "button", class: tabButtonClass(index === startTab), onclick: () => activate(index) }, tab.label),
   );
 
   const activate = (active) => {
@@ -80,6 +81,21 @@ export function openHelp() {
     overlay.classList.remove("opacity-0");
     panel.classList.remove("translate-x-full");
   });
+}
+
+// Botón "?" de ayuda contextual: abre el panel en la pestaña indicada.
+export function helpButton(initialTab = 0) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-300 text-xs font-semibold text-slate-500 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
+      title: "Ver ayuda sobre esta sección",
+      "aria-label": "Ayuda sobre esta sección",
+      onclick: () => openHelp(initialTab),
+    },
+    "?",
+  );
 }
 
 function tabButtonClass(active) {

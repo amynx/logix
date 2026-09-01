@@ -20,6 +20,7 @@ import {
 } from "./rowEditor.js";
 import { buildRowSummary } from "./rowSummary.js";
 import { sectionHeader } from "./sectionHeader.js";
+import { helpButton } from "./helpView.js";
 
 const TH_CLASS = "sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-3 py-2 text-left align-top";
 const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
@@ -45,6 +46,7 @@ export class TableView {
         title: "Actividades",
         subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
         iconName: "activities",
+        help: helpButton(2), // pestaña "Condiciones y expresiones"
         trailing: viewToggle(viewMode, handlers.onSetViewMode),
       }),
       el("div", { class: "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" }, [table]),

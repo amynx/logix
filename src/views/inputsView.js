@@ -5,6 +5,7 @@
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
 import { sectionHeader, emptyState } from "./sectionHeader.js";
+import { helpButton } from "./helpView.js";
 
 const CONTROL_CLASS =
   "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
@@ -34,6 +35,7 @@ export class InputsView {
           title: "Datos de entrada",
           subtitle: "Datos que el programa recibe. En las actividades solo se reutilizan estos.",
           iconName: "data",
+          help: helpButton(1), // pestaña "Datos y operaciones" (cómo nombrar los datos)
         }),
         list,
         el("div", { class: "mt-3" }, [
