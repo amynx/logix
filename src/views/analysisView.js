@@ -30,6 +30,21 @@ function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
 
 // Estados del guardado. Se usan etiquetas cortas y un ancho reservado para que el
 // cambio de estado no altere el layout del navbar; el icono distingue cada estado.
+// Botón compacto (solo icono) para deshacer/rehacer.
+function historyButton(iconName, label, onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-600",
+      title: label,
+      "aria-label": label,
+      onclick: onClick,
+    },
+    [icon(iconName, "h-4 w-4")],
+  );
+}
+
 const SAVE_STATUS = {
   idle: { text: "", pill: "text-transparent", icon: () => null },
   saving: { text: "Guardando…", pill: "bg-slate-100 text-slate-500", icon: spinner },
@@ -48,10 +63,11 @@ function dot() {
 }
 
 export class AnalysisView {
-  constructor({ toolbarContainer, infoContainer, statusContainer }) {
+  constructor({ toolbarContainer, infoContainer, statusContainer, historyContainer }) {
     this.toolbarContainer = toolbarContainer;
     this.infoContainer = infoContainer;
     this.statusContainer = statusContainer;
+    this.historyContainer = historyContainer;
     this.statusIcon = null;
     this.statusLabel = null;
   }
@@ -71,7 +87,7 @@ export class AnalysisView {
     this.setSaveStatus("idle");
   }
 
-  renderToolbar({ onNew, onLoadExample, onOpenFile, onSaveFile, onExportPdf }) {
+  renderToolbar({ onNew, onLoadExample, onOpenFile, onSaveFile, onExportPdf, onUndo, onRedo }) {
     clear(this.toolbarContainer);
 
     const fileInput = el("input", {
@@ -130,7 +146,19 @@ export class AnalysisView {
       if (menu.classList.contains("flex") && !menu.contains(event.target) && !hamburger.contains(event.target)) closeMenu();
     });
 
+    // Deshacer/rehacer: botones compactos junto al indicador de guardado (izquierda).
+    this.undoButton = historyButton("undo", "Deshacer", onUndo);
+    this.redoButton = historyButton("redo", "Rehacer", onRedo);
+    clear(this.historyContainer);
+    this.historyContainer.append(this.undoButton, this.redoButton);
+
     this.toolbarContainer.append(menu, hamburger, fileInput);
+  }
+
+  // Habilita o deshabilita los botones de deshacer/rehacer según el historial.
+  setHistoryState(canUndo, canRedo) {
+    if (this.undoButton) this.undoButton.disabled = !canUndo;
+    if (this.redoButton) this.redoButton.disabled = !canRedo;
   }
 
   setSaveStatus(state) {

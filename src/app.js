@@ -21,6 +21,7 @@ function main() {
     toolbarContainer: document.getElementById("toolbar"),
     infoContainer: document.getElementById("analysis-info"),
     statusContainer: document.getElementById("save-status"),
+    historyContainer: document.getElementById("history-controls"),
   });
 
   const studentsView = new StudentsView({

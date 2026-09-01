@@ -41,7 +41,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="history-controls"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -56,6 +56,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
       toolbarContainer: doc.getElementById("toolbar"),
       infoContainer: doc.getElementById("analysis-info"),
       statusContainer: doc.getElementById("save-status"),
+      historyContainer: doc.getElementById("history-controls"),
     }),
     studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
@@ -788,6 +789,32 @@ test("the completeness indicator lists pending items and clears when complete", 
   // El ejemplo está completo: el indicador lo confirma.
   [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo").click();
   assert.match(panel().textContent, /completo/);
+});
+
+test("undo and redo revert and reapply a change", async () => {
+  const { doc, controller } = await mountApp();
+  const title = () => doc.getElementById("analysis-title");
+
+  title().value = "Mi título";
+  fire(title(), "input");
+  assert.equal(controller.analysis.title, "Mi título");
+
+  controller.undo();
+  assert.equal(controller.analysis.title, "", "deshacer revierte el cambio");
+
+  controller.redo();
+  assert.equal(controller.analysis.title, "Mi título", "rehacer lo reaplica");
+});
+
+test("adding then undoing an activity restores the previous count", async () => {
+  const { doc, controller } = await mountApp();
+  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad");
+
+  addButton.click();
+  assert.equal(controller.analysis.rows.length, 2);
+
+  controller.undo();
+  assert.equal(controller.analysis.rows.length, 1, "deshacer quita la actividad agregada");
 });
 
 test("the theme button toggles dark mode", async () => {

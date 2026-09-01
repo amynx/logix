@@ -34,6 +34,10 @@ const DEFAULT_SAVE_DELAY = 500;
 
 export class AnalysisController {
   #saveTimer = null;
+  #history = []; // instantáneas del análisis para deshacer/rehacer
+  #historyIndex = -1;
+  #lastRecordAt = 0;
+  #restoring = false;
 
   constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, completenessView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
@@ -58,12 +62,34 @@ export class AnalysisController {
       onOpenFile: (file) => this.openFile(file),
       onSaveFile: () => this.saveToFile(),
       onExportPdf: () => this.exportPdf(),
+      onUndo: () => this.undo(),
+      onRedo: () => this.redo(),
     });
     this.analysisView.renderStatus();
+    this.#registerShortcuts();
     const { analysis, editingRowIds } = await this.#recoverOrCreate();
     this.analysis = analysis;
     this.editingRows = new Set(editingRowIds);
     this.render();
+    this.#resetHistory();
+  }
+
+  // Ctrl/Cmd+Z deshace y Ctrl/Cmd+Shift+Z (o Ctrl+Y) rehace. Dentro de un campo se
+  // respeta el deshacer nativo del texto.
+  #registerShortcuts() {
+    document.addEventListener("keydown", (event) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const tag = event.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const key = event.key.toLowerCase();
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        this.undo();
+      } else if ((key === "z" && event.shiftKey) || key === "y") {
+        event.preventDefault();
+        this.redo();
+      }
+    });
   }
 
   render() {
@@ -143,9 +169,69 @@ export class AnalysisController {
 
   // Tras cualquier cambio del modelo: refresca la cadena derivada y agenda el guardado.
   #afterChange() {
+    this.#recordHistory();
     this.renderCompleteness();
     this.renderChain();
     this.#scheduleSave();
+  }
+
+  // --- Historial (deshacer / rehacer) ---
+
+  // Registra el estado tras un cambio. Los cambios muy seguidos (p. ej. teclear)
+  // se agrupan en una sola entrada para que deshacer no vaya carácter por carácter.
+  #recordHistory() {
+    if (this.#restoring) return;
+    if (this.#historyIndex < this.#history.length - 1) {
+      this.#history.splice(this.#historyIndex + 1); // descarta el "rehacer" pendiente
+    }
+    const snapshot = structuredClone(this.analysis);
+    const now = Date.now();
+    if (now - this.#lastRecordAt < 600 && this.#historyIndex > 0) {
+      this.#history[this.#historyIndex] = snapshot;
+    } else {
+      this.#history.push(snapshot);
+      this.#historyIndex = this.#history.length - 1;
+      if (this.#history.length > 100) {
+        this.#history.shift();
+        this.#historyIndex--;
+      }
+    }
+    this.#lastRecordAt = now;
+    this.#updateHistoryButtons();
+  }
+
+  #resetHistory() {
+    this.#history = [structuredClone(this.analysis)];
+    this.#historyIndex = 0;
+    this.#lastRecordAt = 0;
+    this.#updateHistoryButtons();
+  }
+
+  undo() {
+    if (this.#historyIndex <= 0) return;
+    this.#historyIndex--;
+    this.#restoreFromHistory();
+  }
+
+  redo() {
+    if (this.#historyIndex >= this.#history.length - 1) return;
+    this.#historyIndex++;
+    this.#restoreFromHistory();
+  }
+
+  #restoreFromHistory() {
+    this.#restoring = true;
+    this.analysis = structuredClone(this.#history[this.#historyIndex]);
+    // Descarta el modo edición de filas que ya no existen tras restaurar.
+    this.editingRows = new Set([...this.editingRows].filter((id) => this.analysis.rows.some((row) => row.id === id)));
+    this.render();
+    this.#restoring = false;
+    this.#scheduleSave();
+    this.#updateHistoryButtons();
+  }
+
+  #updateHistoryButtons() {
+    this.analysisView.setHistoryState(this.#historyIndex > 0, this.#historyIndex < this.#history.length - 1);
   }
 
   renderInfo() {
@@ -343,6 +429,7 @@ export class AnalysisController {
     this.editingRows = new Set(editingRowIds);
     this.render();
     this.#afterChange();
+    this.#resetHistory(); // un análisis cargado empieza un historial nuevo
   }
 
   newAnalysis() {
