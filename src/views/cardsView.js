@@ -16,6 +16,8 @@ import {
   doneButton,
   addActivityButton,
   buildActivityList,
+  markDropTarget,
+  clearDropTarget,
 } from "./rowEditor.js";
 import { buildRowSummary, isSummaryEmpty } from "./rowSummary.js";
 import { activityZones, stepNumber, inlineRow, stackedRow } from "./cardLayout.js";
@@ -68,11 +70,18 @@ export class CardsView {
     return el(
       "div",
       {
-        class: `${editing ? EDIT_WIDTH : VIEW_WIDTH} shrink-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm`,
+        class: `${editing ? EDIT_WIDTH : VIEW_WIDTH} shrink-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition`,
         dataset: { rowId: row.id, editing: String(editing) },
-        ondragover: (event) => event.preventDefault(),
+        ondragover: (event) => {
+          event.preventDefault();
+          if (this.draggedRowId && this.draggedRowId !== row.id) markDropTarget(event.currentTarget);
+        },
+        ondragleave: (event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) clearDropTarget(event.currentTarget);
+        },
         ondrop: (event) => {
           event.preventDefault();
+          clearDropTarget(event.currentTarget);
           const fromId = this.draggedRowId;
           this.draggedRowId = null;
           if (fromId && fromId !== row.id) handlers.onMoveRow(fromId, row.id);

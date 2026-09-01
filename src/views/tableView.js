@@ -15,6 +15,8 @@ import {
   doneButton,
   addActivityButton,
   buildActivityList,
+  markDropTarget,
+  clearDropTarget,
 } from "./rowEditor.js";
 import { buildRowSummary } from "./rowSummary.js";
 import { sectionHeader } from "./sectionHeader.js";
@@ -96,9 +98,16 @@ export class TableView {
       {
         class: `${index % 2 === 1 ? "bg-slate-50" : "bg-white"} hover:bg-sky-50/60`,
         dataset: { rowId: row.id, editing: String(editing) },
-        ondragover: (event) => event.preventDefault(),
+        ondragover: (event) => {
+          event.preventDefault();
+          if (this.draggedRowId && this.draggedRowId !== row.id) markDropTarget(event.currentTarget);
+        },
+        ondragleave: (event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) clearDropTarget(event.currentTarget);
+        },
         ondrop: (event) => {
           event.preventDefault();
+          clearDropTarget(event.currentTarget);
           const fromId = this.draggedRowId;
           this.draggedRowId = null;
           if (fromId && fromId !== row.id) handlers.onMoveRow(fromId, row.id);

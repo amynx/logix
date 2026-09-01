@@ -119,7 +119,8 @@ export function dataReferenceLabel(entry) {
 }
 
 // Tirador de arrastre. La identidad viaja por el id de la actividad; `setDragged`
-// registra (o limpia) la actividad que se está arrastrando en la vista.
+// registra (o limpia) la actividad que se está arrastrando en la vista. Marca el
+// elemento arrastrado (atenuado) para que sea identificable durante el arrastre.
 export function dragHandle(rowId, setDragged) {
   return el(
     "span",
@@ -134,11 +135,27 @@ export function dragHandle(rowId, setDragged) {
           event.dataTransfer.effectAllowed = "move";
           event.dataTransfer.setData("text/plain", rowId);
         }
+        event.currentTarget.closest("[data-row-id]")?.classList.add("is-dragging");
       },
-      ondragend: () => setDragged(null),
+      ondragend: (event) => {
+        setDragged(null);
+        event.currentTarget.closest("[data-row-id]")?.classList.remove("is-dragging");
+        // Limpia cualquier resaltado de destino que quedara si no hubo "drop".
+        document.querySelectorAll(".is-drop-target").forEach((node) => node.classList.remove("is-drop-target"));
+      },
     },
     "⠿",
   );
+}
+
+// Resalta (o limpia) un elemento como posible destino del arrastre. Se usa en los
+// eventos dragover/dragleave/drop de las filas y tarjetas.
+export function markDropTarget(element) {
+  element.classList.add("is-drop-target");
+}
+
+export function clearDropTarget(element) {
+  element.classList.remove("is-drop-target");
 }
 
 // Pasa la actividad a modo edición (mostrada en el modo de visualización).
