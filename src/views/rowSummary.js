@@ -53,7 +53,7 @@ function commentText(value) {
 
 function dataChip(datum) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600" }, [
-    el("span", {}, datum.name || "(sin nombre)"),
+    el("span", { class: "whitespace-nowrap" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);
 }
@@ -62,7 +62,7 @@ function dataChip(datum) {
 function inputChip(datum, produced) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-slate-600" }, [
     produced ? producedBadge() : null,
-    el("span", {}, datum.name || "(sin nombre)"),
+    el("span", { class: "whitespace-nowrap" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);
 }
@@ -79,10 +79,10 @@ function expressionNode(tokens, resolve) {
 
 function partNode(part) {
   if (part.kind === "ref") {
-    return el("span", { class: "rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-700" }, part.text);
+    return el("span", { class: "whitespace-nowrap rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-700" }, part.text);
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
-  return el("span", { class: "rounded bg-amber-50 px-1 py-0.5 text-amber-700" }, part.text || "∅");
+  return el("span", { class: "whitespace-nowrap rounded bg-amber-50 px-1 py-0.5 text-amber-700" }, part.text || "∅");
 }
 
 // Actividad donde se reutilizará el dato producido: pendiente (ámbar) o la

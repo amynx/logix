@@ -315,7 +315,7 @@ function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, 
       },
     },
     [
-      el("span", {}, text),
+      el("span", { class: "whitespace-nowrap" }, text),
       el("button", { type: "button", class: "text-slate-400 hover:text-red-600", title: "Quitar", onclick: onRemove }, "×"),
     ],
   );

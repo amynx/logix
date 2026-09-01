@@ -155,7 +155,7 @@ function expressionEl(parts, tone = "sky") {
 function partNode(part, tone) {
   if (part.kind === "ref") {
     const style = tone === "emerald" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-700";
-    return el("span", { class: `rounded px-1 py-0.5 text-xs font-medium ${style}`, title: "Dato utilizado" }, part.text);
+    return el("span", { class: `whitespace-nowrap rounded px-1 py-0.5 text-xs font-medium ${style}`, title: "Dato utilizado" }, part.text);
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
   return el("span", {}, part.text);
@@ -189,7 +189,7 @@ function stepCard(step, activities) {
 
 function smallChip(datum) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, [
-    el("span", {}, datum.name || "(sin nombre)"),
+    el("span", { class: "whitespace-nowrap" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);
 }
@@ -199,7 +199,7 @@ function smallChip(datum) {
 function inputChip(datum) {
   return el("span", { class: "inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" }, [
     datum.produced ? producedBadge() : null,
-    el("span", {}, datum.name || "(sin nombre)"),
+    el("span", { class: "whitespace-nowrap" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
   ]);
 }
