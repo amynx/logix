@@ -9,7 +9,8 @@ import { createId } from "../utils/id.js";
 // posterior y ramas como expresiones. v7: el uso posterior vuelve a texto (un
 // "comentario"). v8: se registra la información de los estudiantes. v9: cada fila
 // puede declarar en qué actividad se usará su dato producido (o dejarlo pendiente).
-export const ANALYSIS_VERSION = 9;
+// v10: la información de estudiantes se reduce al grupo (todos comparten grupo).
+export const ANALYSIS_VERSION = 10;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -17,10 +18,6 @@ export const PENDING_ACTIVITY = "pending";
 
 export function createDataEntry(overrides = {}) {
   return { id: createId(), name: "", type: "", ...overrides };
-}
-
-export function createStudent(overrides = {}) {
-  return { id: createId(), idNumber: "", fullName: "", group: "", ...overrides };
 }
 
 export function createBranch(overrides = {}) {
@@ -51,34 +48,13 @@ export function createAnalysis(overrides = {}) {
     id: createId(),
     title: "",
     description: "",
-    students: [],
+    group: "",
     data: [],
     rows: [],
     createdAt: now,
     updatedAt: now,
     ...overrides,
   };
-}
-
-// --- Estudiantes ---
-
-export function addStudent(analysis) {
-  const student = createStudent();
-  analysis.students.push(student);
-  touch(analysis);
-  return student;
-}
-
-export function updateStudent(analysis, studentId, changes) {
-  const student = analysis.students.find((candidate) => candidate.id === studentId);
-  if (!student) return analysis;
-  Object.assign(student, changes);
-  return touch(analysis);
-}
-
-export function removeStudent(analysis, studentId) {
-  analysis.students = analysis.students.filter((student) => student.id !== studentId);
-  return touch(analysis);
 }
 
 // Marca el análisis como modificado en este instante.

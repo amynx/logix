@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
 
 import { AnalysisView } from "../src/views/analysisView.js";
-import { StudentsView } from "../src/views/studentsView.js";
+import { GroupView } from "../src/views/groupView.js";
 import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { CardsView } from "../src/views/cardsView.js";
@@ -40,7 +40,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="group-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -55,7 +55,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
       toolbarContainer: doc.getElementById("toolbar"),
       infoContainer: doc.getElementById("analysis-info"),
     }),
-    studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
+    groupView: new GroupView({ container: doc.getElementById("group-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     cardsView: new CardsView({ container: doc.getElementById("table-container") }),
@@ -563,24 +563,15 @@ test("the condition is a free-text natural-language question", async () => {
   assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
 });
 
-test("the students section records identification, name and group", async () => {
+test("the students section records the group", async () => {
   const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("#students-container button")].find((b) => b.textContent === "+ Agregar estudiante").click();
-  assert.equal(controller.analysis.students.length, 1);
+  const input = doc.getElementById("analysis-group");
+  assert.ok(input, "hay un campo de grupo");
 
-  const inputs = doc.querySelectorAll("#students-container input");
-  const set = (input, value) => {
-    input.value = value;
-    fire(input, "input");
-  };
-  set(inputs[0], "123");
-  set(inputs[1], "Ana Pérez");
-  set(inputs[2], "N1");
+  input.value = "N1";
+  fire(input, "input");
 
-  const student = controller.analysis.students[0];
-  assert.equal(student.idNumber, "123");
-  assert.equal(student.fullName, "Ana Pérez");
-  assert.equal(student.group, "N1");
+  assert.equal(controller.analysis.group, "N1");
 });
 
 test("the branch builder appears only when the path is a response", async () => {
@@ -726,8 +717,7 @@ test("auto-saves the analysis after an edit", async () => {
 test("exporting to PDF includes only the selected sections plus the timestamp", async () => {
   const { doc, controller } = await mountApp();
   controller.analysis.title = "Mi análisis";
-  controller.addStudent();
-  controller.analysis.students[0].fullName = "Ana Pérez";
+  controller.analysis.group = "N1";
 
   [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Exportar PDF").click();
 
@@ -735,14 +725,14 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
   const checks = [...doc.querySelectorAll('input[type="checkbox"]')];
   assert.ok(checks.every((c) => c.checked), "todas marcadas por defecto");
   checks.forEach((c) => {
-    if (c.dataset.key !== "students") c.checked = false;
+    if (c.dataset.key !== "group") c.checked = false;
   });
   [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Generar PDF").click();
   await flush();
 
   const printText = doc.getElementById("print-area").textContent;
   assert.match(printText, /Información de los estudiantes/);
-  assert.match(printText, /Ana Pérez/);
+  assert.match(printText, /Grupo: N1/);
   assert.match(printText, /Exportado:/, "muestra la fecha y hora automática");
   assert.doesNotMatch(printText, /Tabla de datos/, "no incluye lo no seleccionado");
 });

@@ -35,7 +35,16 @@ export function migrateAnalysis(data) {
   if (current.version < 7) current = migrateV6toV7(current);
   if (current.version < 8) current = migrateV7toV8(current);
   if (current.version < 9) current = migrateV8toV9(current);
+  if (current.version < 10) current = migrateV9toV10(current);
   return current;
+}
+
+// v10: la información de estudiantes se reduce al grupo. Se conserva el primer
+// grupo no vacío de los estudiantes anteriores y se descarta el resto.
+function migrateV9toV10(old) {
+  const group = (old.students ?? []).map((student) => student?.group).find((value) => value) ?? "";
+  const { students, ...rest } = old;
+  return { ...rest, version: 10, group };
 }
 
 // v9: cada fila puede declarar la actividad donde se usará su dato producido.

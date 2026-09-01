@@ -32,7 +32,7 @@ export class ChainView {
     this.container.append(
       el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
         sectionHeader({
-          step: 4,
+          step: 5,
           title: "Cadena del análisis",
           subtitle: "Cómo fluyen los datos: entran, se procesan y salen.",
           iconName: "chain",

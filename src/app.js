@@ -2,7 +2,7 @@
 // persistencia y el controlador, y arranca la aplicación.
 
 import { AnalysisView } from "./views/analysisView.js";
-import { StudentsView } from "./views/studentsView.js";
+import { GroupView } from "./views/groupView.js";
 import { InputsView } from "./views/inputsView.js";
 import { TableView } from "./views/tableView.js";
 import { CardsView } from "./views/cardsView.js";
@@ -17,8 +17,8 @@ function main() {
     infoContainer: document.getElementById("analysis-info"),
   });
 
-  const studentsView = new StudentsView({
-    container: document.getElementById("students-container"),
+  const groupView = new GroupView({
+    container: document.getElementById("group-container"),
   });
 
   const inputsView = new InputsView({
@@ -43,7 +43,7 @@ function main() {
 
   const controller = new AnalysisController({
     analysisView,
-    studentsView,
+    groupView,
     inputsView,
     tableView,
     cardsView,

@@ -11,7 +11,7 @@ import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 
 // Secciones que el usuario puede incluir o excluir (todas marcadas por defecto).
 export const PDF_SECTIONS = [
-  { key: "students", label: "Información de los estudiantes" },
+  { key: "group", label: "Información de los estudiantes" },
   { key: "table", label: "Tabla de datos" },
   { key: "chain", label: "Cadena de análisis (entradas)" },
   { key: "process", label: "Proceso" },
@@ -48,7 +48,7 @@ function renderForPrint(container, analysis, { sections, exportedAt }) {
   const resolve = (id) => dataById.get(id) ?? null;
 
   const blocks = [printHeader(analysis, exportedAt)];
-  if (has("students")) blocks.push(studentsBlock(analysis.students));
+  if (has("group")) blocks.push(groupBlock(analysis.group));
   if (has("table")) blocks.push(tableBlock(analysis, resolve));
 
   if (has("chain") || has("process") || has("output")) {
@@ -73,15 +73,12 @@ function sectionTitle(text) {
   return el("h2", { class: "mb-2 text-base font-semibold text-slate-800" }, text);
 }
 
-function studentsBlock(students) {
-  const rows = students.map((s) =>
-    el("tr", {}, [td(s.idNumber), td(s.fullName), td(s.group)]),
-  );
+function groupBlock(group) {
   return el("div", {}, [
     sectionTitle("Información de los estudiantes"),
-    students.length > 0
-      ? printableTable(["N.º de identificación", "Nombre completo", "Grupo"], rows)
-      : el("p", { class: "text-slate-500" }, "Sin estudiantes registrados."),
+    group
+      ? el("p", { class: "text-slate-700" }, [el("span", { class: "font-medium" }, "Grupo: "), group])
+      : el("p", { class: "text-slate-500" }, "Sin grupo registrado."),
   ]);
 }
 

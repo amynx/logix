@@ -38,7 +38,7 @@ export class CardsView {
 
     this.container.append(
       sectionHeader({
-        step: 3,
+        step: 4,
         title: "Actividades",
         subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
         iconName: "activities",

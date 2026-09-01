@@ -30,7 +30,7 @@ export class InputsView {
     this.container.append(
       el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
         sectionHeader({
-          step: 2,
+          step: 3,
           title: "Datos de entrada",
           subtitle: "Datos que el programa recibe. En las actividades solo se reutilizan estos.",
           iconName: "data",
