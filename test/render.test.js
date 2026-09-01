@@ -770,6 +770,19 @@ test("the help button opens the documentation dialog", async () => {
   assert.ok(dialog, "se abre un diálogo");
   assert.match(dialog.textContent, /Cómo usar Logix/);
   assert.match(dialog.textContent, /Cómo se construyen las operaciones/);
+  // Guía pedagógica ampliada (convenciones, condiciones y expresiones).
+  assert.match(dialog.textContent, /cantidadUnidadesProducidas/);
+  assert.match(dialog.textContent, /Jerarquía de operadores/);
+});
+
+test("the help dialog groups content into tabs", async () => {
+  const { doc } = await mountApp();
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ayuda").click();
+  const dialog = doc.querySelector('[role="dialog"]');
+  const tabLabels = ["Interfaz", "Datos y operaciones", "Condiciones y expresiones"];
+  tabLabels.forEach((label) => {
+    assert.ok([...dialog.querySelectorAll("button")].some((b) => b.textContent === label), `pestaña «${label}»`);
+  });
 });
 
 test("creating a new analysis resets to a single empty row", async () => {

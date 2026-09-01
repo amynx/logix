@@ -1,7 +1,7 @@
-// Documentación de ayuda: un modal con explicaciones sencillas de los símbolos,
-// controles y conceptos de la herramienta. Reutiliza los mismos badges de la
-// interfaz para que los ejemplos coincidan con lo que el estudiante ve. Solo se
-// ocupa del DOM.
+// Documentación de ayuda: un modal con explicaciones sencillas y una guía
+// pedagógica para construir el análisis (nombrar datos, condiciones y expresiones
+// algorítmicas). Se organiza en pestañas para mantener la legibilidad y reutiliza
+// los mismos badges de la interfaz. Solo se ocupa del DOM.
 
 import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
@@ -15,6 +15,35 @@ export function openHelp() {
   };
   const onKey = (event) => {
     if (event.key === "Escape") close();
+  };
+
+  const tabs = [
+    { label: "Interfaz", sections: interfaceSections },
+    { label: "Datos y operaciones", sections: dataSections },
+    { label: "Condiciones y expresiones", sections: expressionSections },
+  ];
+
+  const panels = tabs.map((tab, index) => {
+    const panel = el("div", { class: "space-y-6" }, tab.sections());
+    panel.hidden = index !== 0;
+    return panel;
+  });
+
+  const tabButtons = tabs.map((tab, index) =>
+    el(
+      "button",
+      {
+        type: "button",
+        class: tabButtonClass(index === 0),
+        onclick: () => activate(index),
+      },
+      tab.label,
+    ),
+  );
+
+  const activate = (active) => {
+    panels.forEach((panel, index) => (panel.hidden = index !== active));
+    tabButtons.forEach((button, index) => (button.className = tabButtonClass(index === active)));
   };
 
   const overlay = el(
@@ -31,7 +60,8 @@ export function openHelp() {
           el("div", { class: "flex items-center gap-2" }, [icon("help", "h-5 w-5 text-indigo-500"), el("h2", { class: "text-base font-semibold text-slate-900" }, "Cómo usar Logix")]),
           el("button", { type: "button", class: "rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700", title: "Cerrar", "aria-label": "Cerrar ayuda", onclick: close }, "✕"),
         ]),
-        el("div", { class: "space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, content()),
+        el("div", { class: "flex gap-1 overflow-x-auto border-b border-slate-200 px-3 py-2" }, tabButtons),
+        el("div", { class: "space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, panels),
       ]),
     ],
   );
@@ -40,7 +70,13 @@ export function openHelp() {
   document.addEventListener("keydown", onKey);
 }
 
-function content() {
+function tabButtonClass(active) {
+  return `shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition ${active ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-100"}`;
+}
+
+// --- Pestaña 1: Interfaz ---
+
+function interfaceSections() {
   return [
     intro(),
     section("Símbolos de tipo de dato", [
@@ -66,6 +102,35 @@ function content() {
         [purposeBadge("response"), "Propósito del dato: es una respuesta o información final."],
       ]),
     ]),
+    section("¿Cómo se reorganizan las actividades?", [
+      row([el("span", { class: "text-slate-400" }, "⠿"), "Arrastra una tarjeta o fila desde su tirador y suéltala sobre otra para cambiar el orden. Funciona en la vista de Tabla y en la de Tarjetas."]),
+    ]),
+    section("¿Cómo se exporta el análisis?", [
+      row([badge("Guardar archivo", "border border-slate-300 text-slate-600"), "descarga un archivo .analisis que puedes volver a abrir con «Abrir análisis» para seguir trabajando."]),
+      row([badge("Exportar PDF", "bg-indigo-600 text-white"), "genera un PDF; primero eliges qué secciones incluir."]),
+    ]),
+  ];
+}
+
+// --- Pestaña 2: Datos y operaciones ---
+
+function dataSections() {
+  return [
+    section("Cómo nombrar los datos", [
+      "Usa nombres descriptivos y consistentes, tanto para los datos de entrada como para los resultantes. Un buen nombre permite comprender qué representa el dato sin releer su descripción.",
+      el("div", { class: "flex flex-wrap gap-2" }, [
+        el("span", { class: "inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-700" }, ["✓", el("span", { class: "font-medium" }, "Cantidad de unidades producidas")]),
+        el("span", { class: "inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-1 text-rose-600" }, ["✗", "Cantidad, Dato1, X"]),
+      ]),
+      "Convenciones recomendadas para escribir el nombre (elige una y úsala siempre):",
+      twoColTable(["Convención", "Ejemplo"], [
+        ["camelCase", code("cantidadUnidadesProducidas")],
+        ["snake_case", code("cantidad_unidades_producidas")],
+        ["PascalCase", code("CantidadUnidadesProducidas")],
+        ["kebab-case", code("cantidad-unidades-producidas")],
+      ]),
+      "Lo más importante, sea cual sea la convención, es que los nombres sean descriptivos, claros y coherentes con el dato que representan.",
+    ]),
     section("¿Cómo se construyen las operaciones?", [
       "Una operación se arma combinando piezas, sin escribirla como texto:",
       bullets([
@@ -79,27 +144,83 @@ function content() {
       "Cuando una actividad produce un «Dato resultante» y le pones nombre, ese dato queda disponible para las demás actividades: aparece en los selectores de «Datos de entrada» y de «Operación».",
       "Además, en «Actividad asociada» puedes indicar en qué actividad se usará. Si esa actividad aún no existe, déjalo como «Pendiente» y vincúlalo más tarde.",
     ]),
-    section("¿Cómo funcionan las condiciones y sus caminos?", [
-      "La «Condición» es una pregunta en lenguaje natural que el programa debe responder (por ejemplo: ¿el promedio es mayor o igual a 3?).",
-      "Según su respuesta, el proceso sigue un camino u otro:",
-      bullets([
-        ["Si se cumple, entonces:", " → la acción que se ejecuta cuando la condición es verdadera."],
-        ["Si no se cumple, entonces:", " → la acción cuando es falsa."],
+  ];
+}
+
+// --- Pestaña 3: Condiciones y expresiones ---
+
+function expressionSections() {
+  return [
+    section("¿Qué es una condición?", [
+      "Una condición es una pregunta que el programa necesita responder para validar una situación y decidir qué hacer a continuación.",
+      "Normalmente su respuesta es Sí/No (verdadero/falso), y esa respuesta determina el camino que seguirá el proceso.",
+      example("¿La cantidad de unidades producidas es mayor o igual a 100?"),
+      "Según la respuesta, el proceso continúa por un camino («Si se cumple») o por otro («Si no se cumple»).",
+    ]),
+    section("De lenguaje natural a una expresión algorítmica", [
+      "No se trata de traducir palabra por palabra: primero identifica qué pregunta responde el programa, qué datos intervienen y qué relación hay entre ellos.",
+      stepFlow([
+        { label: "Lenguaje natural", code: "¿La cantidad de unidades producidas es mayor o igual a 100?" },
+        { label: "Identificar los elementos", node: bullets([["Dato:", " cantidad de unidades producidas"], ["Operador relacional:", " >="], ["Valor de comparación:", " 100"]]) },
+        { label: "Expresión algorítmica", code: "cantidadUnidadesProducidas >= 100" },
+      ]),
+      "Otros ejemplos con distintos operadores relacionales:",
+      twoColTable(["Lenguaje natural", "Expresión algorítmica"], [
+        ["¿La cantidad de unidades producidas es mayor que 500?", code("cantidadUnidadesProducidas > 500")],
+        ["¿El inventario es igual a 0?", code("inventario == 0")],
+        ["¿El tiempo de producción es menor a 8 horas?", code("tiempoProduccion < 8")],
+        ["¿La cantidad disponible es diferente de 0?", code("cantidadDisponible != 0")],
       ]),
     ]),
-    section("¿Cómo se reorganizan las actividades?", [
-      row([el("span", { class: "text-slate-400" }, "⠿"), "Arrastra una tarjeta o fila desde su tirador y suéltala sobre otra para cambiar el orden. Puedes hacerlo tanto en la vista de Tabla como en la de Tarjetas."]),
+    section("Operadores lógicos", [
+      "Combinan o modifican condiciones para construir expresiones más complejas:",
+      defList([
+        [code("&&"), "AND: exige que todas las condiciones se cumplan."],
+        [code("||"), "OR: basta con que al menos una condición se cumpla."],
+        [code("!"), "NOT: niega o invierte el resultado de una condición."],
+      ]),
+      example("¿La cantidad producida es mayor que 100 y el inventario disponible es menor que 50?"),
+      codeBlock("cantidadProducida > 100 && inventarioDisponible < 50"),
     ]),
-    section("¿Cómo se exporta el análisis?", [
-      row([badge("Guardar archivo", "border border-slate-300 text-slate-600"), "descarga un archivo .analisis que puedes volver a abrir con «Abrir análisis» para seguir trabajando."]),
-      row([badge("Exportar PDF", "bg-indigo-600 text-white"), "genera un PDF; primero eliges qué secciones incluir."]),
+    section("Jerarquía de operadores", [
+      "Cuando una expresión mezcla operaciones, no se resuelven en el orden en que aparecen escritas, sino por su prioridad:",
+      orderedList([
+        ["Paréntesis", " ( ) — se evalúa primero lo que encierran."],
+        ["Operadores unarios", " como ! (NOT)."],
+        ["Operaciones aritméticas", " × ÷ + −."],
+        ["Operadores relacionales", " >, <, >=, <=, ==, !=."],
+        ["Operadores lógicos", " && antes que ||."],
+      ]),
+      "Los paréntesis permiten establecer explícitamente qué parte se evalúa primero, además de mejorar la legibilidad.",
+    ]),
+    section("Expresiones combinadas, paso a paso", [
+      "Una expresión compleja se resuelve por partes; cada resultado se usa en el siguiente paso:",
+      codeBlock("(cantidadProducida * precioUnidad) >= 100000 && inventarioDisponible > 0"),
+      stepFlow([
+        { label: "Operación aritmética", code: "cantidadProducida * precioUnidad" },
+        { label: "Resultado de la operación", code: "valorProduccion" },
+        { label: "Expresión relacional", code: "valorProduccion >= 100000" },
+        { label: "Segunda condición", code: "inventarioDisponible > 0" },
+        { label: "Operador lógico", code: "condición1 && condición2" },
+        { label: "Resultado final", code: "Sí / No" },
+      ]),
+    ]),
+    section("Los paréntesis cambian el resultado", [
+      "Cambiar los paréntesis puede dar un resultado distinto, porque altera qué se evalúa primero:",
+      twoColTable(["Expresión", "Resultado"], [
+        [code("2 + 3 * 4"), "14 — primero se resuelve 3 * 4"],
+        [code("(2 + 3) * 4"), "20 — el paréntesis obliga a sumar primero"],
+      ]),
+      "Ante la duda, usa paréntesis: dejan la intención clara y evitan errores.",
     ]),
   ];
 }
 
+// --- Bloques de contenido reutilizables ---
+
 function intro() {
   return el("p", { class: "text-slate-600" },
-    "Logix te ayuda a analizar un problema antes de diseñar su algoritmo: identifica los datos, descompón el proceso en actividades y observa cómo se encadena todo. Aquí tienes el significado de los símbolos y controles principales.");
+    "Logix te ayuda a analizar un problema antes de diseñar su algoritmo: identifica los datos, descompón el proceso en actividades y observa cómo se encadena todo. Aquí tienes el significado de los símbolos y una guía para construir tu análisis.");
 }
 
 function section(title, children) {
@@ -128,7 +249,55 @@ function bullets(items) {
   ));
 }
 
+// Lista numerada con un término resaltado + explicación (para la jerarquía).
+function orderedList(items) {
+  return el("ol", { class: "list-decimal space-y-1 pl-5" }, items.map(([term, text]) =>
+    el("li", {}, [el("span", { class: "font-medium text-slate-800" }, term), text]),
+  ));
+}
+
 // Insignia de ejemplo (imita el estilo real de un botón o marcador).
 function badge(text, cls) {
   return el("span", { class: `inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${cls}` }, text);
+}
+
+// Fragmento de código en línea.
+function code(text) {
+  return el("code", { class: "rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-indigo-700" }, text);
+}
+
+// Bloque de código resaltado (fondo oscuro) para expresiones completas.
+function codeBlock(text) {
+  return el("div", { class: "overflow-x-auto rounded-md bg-slate-900 px-3 py-2 font-mono text-[13px] text-slate-100" }, text);
+}
+
+// Pregunta de ejemplo destacada (misma idea que la condición en las tarjetas).
+function example(text) {
+  return el("div", { class: "rounded-md border border-indigo-100 bg-indigo-50/50 px-3 py-2 italic text-slate-700" }, `“${text}”`);
+}
+
+// Tabla de dos columnas. Las celdas pueden ser texto o nodos.
+function twoColTable(headers, rows) {
+  const cell = (content, extra = "") => el("td", { class: `py-1.5 align-top ${extra}` }, typeof content === "string" ? content : [content]);
+  return el("div", { class: "overflow-x-auto" }, [
+    el("table", { class: "w-full border-collapse text-sm" }, [
+      el("thead", {}, [el("tr", { class: "border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-400" }, headers.map((h) => el("th", { class: "py-1.5 pr-3 font-semibold" }, h)))]),
+      el("tbody", {}, rows.map(([left, right]) => el("tr", { class: "border-b border-slate-100" }, [cell(left, "pr-3"), cell(right)]))),
+    ]),
+  ]);
+}
+
+// Flujo de resolución paso a paso: cada etapa en su caja, unidas por una flecha ↓.
+function stepFlow(stages) {
+  const nodes = [];
+  stages.forEach((stage, index) => {
+    if (index > 0) nodes.push(el("div", { class: "flex justify-center py-0.5 text-slate-300" }, "↓"));
+    nodes.push(
+      el("div", { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2" }, [
+        el("div", { class: "mb-1 text-xs font-medium text-slate-500" }, `${index + 1}. ${stage.label}`),
+        stage.code ? codeBlock(stage.code) : stage.node,
+      ]),
+    );
+  });
+  return el("div", {}, nodes);
 }
