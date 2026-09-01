@@ -7,6 +7,7 @@ import { InputsView } from "./views/inputsView.js";
 import { TableView } from "./views/tableView.js";
 import { CardsView } from "./views/cardsView.js";
 import { ChainView } from "./views/chainView.js";
+import { CompletenessView } from "./views/completenessView.js";
 import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
@@ -42,6 +43,10 @@ function main() {
     container: document.getElementById("chain-container"),
   });
 
+  const completenessView = new CompletenessView({
+    container: document.getElementById("completeness-container"),
+  });
+
   const pdfView = new PdfView({
     container: document.getElementById("print-area"),
   });
@@ -53,6 +58,7 @@ function main() {
     tableView,
     cardsView,
     chainView,
+    completenessView,
     pdfView,
     storage: new StorageService(),
   });

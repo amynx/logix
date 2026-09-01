@@ -80,6 +80,11 @@ html.dark {
 .dark .hover\:bg-indigo-50:hover { background-color: rgba(99, 102, 241, 0.15); }
 .dark .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.15); }
 
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12); }
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.12); }
+.dark .text-amber-800 { color: #fcd34d; }
+.dark .text-emerald-700 { color: #6ee7b7; }
+
 .dark input::placeholder,
 .dark textarea::placeholder { color: #64748b; }
 

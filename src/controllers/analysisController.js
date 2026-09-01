@@ -35,10 +35,11 @@ const DEFAULT_SAVE_DELAY = 500;
 export class AnalysisController {
   #saveTimer = null;
 
-  constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, completenessView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
     this.studentsView = studentsView;
     this.inputsView = inputsView;
+    this.completenessView = completenessView;
     this.tableView = tableView;
     this.cardsView = cardsView;
     this.viewMode = "table"; // "table" | "cards"
@@ -70,7 +71,12 @@ export class AnalysisController {
     this.renderInfo();
     this.renderInputs();
     this.renderTable();
+    this.renderCompleteness();
     this.renderChain();
+  }
+
+  renderCompleteness() {
+    this.completenessView.render(collectAnalysisWarnings(this.analysis));
   }
 
   renderStudents() {
@@ -137,6 +143,7 @@ export class AnalysisController {
 
   // Tras cualquier cambio del modelo: refresca la cadena derivada y agenda el guardado.
   #afterChange() {
+    this.renderCompleteness();
     this.renderChain();
     this.#scheduleSave();
   }

@@ -11,6 +11,7 @@ import { InputsView } from "../src/views/inputsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { CardsView } from "../src/views/cardsView.js";
 import { ChainView } from "../src/views/chainView.js";
+import { CompletenessView } from "../src/views/completenessView.js";
 import { PdfView } from "../src/views/pdfView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
 import { createAnalysis, addRow, findData } from "../src/models/analysisModel.js";
@@ -40,7 +41,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -61,6 +62,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     cardsView: new CardsView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),
+    completenessView: new CompletenessView({ container: doc.getElementById("completeness-container") }),
     pdfView: new PdfView({ container: doc.getElementById("print-area") }),
     storage,
     saveDelay: 0,
@@ -774,6 +776,18 @@ test("the example button loads a complete sample analysis", async () => {
   const decision = controller.analysis.rows[2];
   assert.equal(decision.purpose, "decision");
   assert.ok(decision.operation.some((t) => t.kind === "ref"), "la decisión referencia datos");
+});
+
+test("the completeness indicator lists pending items and clears when complete", async () => {
+  const { doc } = await mountApp();
+  const panel = () => doc.getElementById("completeness-container");
+  // Análisis nuevo sin título: hay pendientes en vivo.
+  assert.match(panel().textContent, /Por completar/);
+  assert.match(panel().textContent, /título/);
+
+  // El ejemplo está completo: el indicador lo confirma.
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo").click();
+  assert.match(panel().textContent, /completo/);
 });
 
 test("the theme button toggles dark mode", async () => {

@@ -187,16 +187,16 @@ export function collectAnalysisWarnings(analysis) {
     const result = findData(analysis, row.resultId);
 
     if (row.operation.length > 0 && !(result && result.name.trim())) {
-      warnings.push(`Fila ${position}: la operación produce un dato sin nombre.`);
+      warnings.push(`Actividad ${position}: la operación produce un dato sin nombre.`);
     }
     if (result && result.name.trim() && !result.type) {
-      warnings.push(`Fila ${position}: el dato "${result.name}" no tiene tipo.`);
+      warnings.push(`Actividad ${position}: el dato "${result.name}" no tiene tipo.`);
     }
     if (row.purpose === "decision" && !row.condition.trim()) {
-      warnings.push(`Fila ${position}: la decisión no tiene una condición definida.`);
+      warnings.push(`Actividad ${position}: la decisión no tiene una condición definida.`);
     }
     if (row.purpose === "response" && !row.resultId && !row.subsequentUse.trim()) {
-      warnings.push(`Fila ${position}: falta indicar qué información se proporcionará.`);
+      warnings.push(`Actividad ${position}: falta indicar qué información se proporcionará.`);
     }
   });
 
