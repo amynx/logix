@@ -22,6 +22,7 @@ import {
   updateStudent,
   removeStudent,
 } from "../models/analysisModel.js";
+import { createExampleAnalysis } from "../models/exampleAnalysis.js";
 import { confirmDialog, messageDialog, selectSectionsDialog } from "../views/dialogs.js";
 import { PDF_SECTIONS } from "../views/pdfView.js";
 import { exportAnalysis, importAnalysis } from "../services/file/fileService.js";
@@ -52,6 +53,7 @@ export class AnalysisController {
   async start() {
     this.analysisView.renderToolbar({
       onNew: () => this.newAnalysis(),
+      onLoadExample: () => this.loadExample(),
       onOpenFile: (file) => this.openFile(file),
       onSaveFile: () => this.saveToFile(),
       onExportPdf: () => this.exportPdf(),
@@ -341,6 +343,12 @@ export class AnalysisController {
     addRow(analysis);
     const seededRow = analysis.rows[analysis.rows.length - 1];
     this.loadAnalysis(analysis, [seededRow.id]);
+  }
+
+  // Carga un análisis de ejemplo completo (en modo visualización) para aprender de
+  // un caso terminado. Es un análisis nuevo más; el anterior sigue en el historial.
+  loadExample() {
+    this.loadAnalysis(createExampleAnalysis());
   }
 
   async saveToFile() {

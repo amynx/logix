@@ -758,9 +758,22 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
 
 test("toolbar exposes new, open, save, export and help actions", async () => {
   const { doc } = await mountApp();
-  const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
+  const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent).filter(Boolean);
   // "Menú" es el control que despliega las acciones en móvil.
-  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
+  assert.deepEqual(labels, ["Nuevo análisis", "Ejemplo", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
+});
+
+test("the example button loads a complete sample analysis", async () => {
+  const { doc, controller } = await mountApp();
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo").click();
+
+  assert.match(controller.analysis.title, /orden de producción/i);
+  assert.equal(controller.analysis.rows.length, 3);
+  assert.ok(controller.analysis.data.length >= 5, "trae datos de entrada y producidos");
+  // Un resultado producido se referencia en la operación de la decisión.
+  const decision = controller.analysis.rows[2];
+  assert.equal(decision.purpose, "decision");
+  assert.ok(decision.operation.some((t) => t.kind === "ref"), "la decisión referencia datos");
 });
 
 test("the theme button toggles dark mode", async () => {

@@ -71,7 +71,7 @@ export class AnalysisView {
     this.setSaveStatus("idle");
   }
 
-  renderToolbar({ onNew, onOpenFile, onSaveFile, onExportPdf }) {
+  renderToolbar({ onNew, onLoadExample, onOpenFile, onSaveFile, onExportPdf }) {
     clear(this.toolbarContainer);
 
     const fileInput = el("input", {
@@ -99,6 +99,7 @@ export class AnalysisView {
       },
       [
         toolbarButton("Nuevo análisis", onNew, "new"),
+        toolbarButton("Ejemplo", onLoadExample, "example"),
         toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
         toolbarButton("Guardar archivo", onSaveFile, "save"),
         toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
