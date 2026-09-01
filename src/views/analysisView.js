@@ -27,17 +27,47 @@ function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
   ]);
 }
 
+// Estados del guardado. Se usan etiquetas cortas y un ancho reservado para que el
+// cambio de estado no altere el layout del navbar; el icono distingue cada estado.
 const SAVE_STATUS = {
-  saving: { text: "Guardando…", class: "text-slate-500" },
-  saved: { text: "✓ Guardado automáticamente", class: "text-emerald-600" },
-  error: { text: "No se pudo guardar", class: "text-red-600" },
+  idle: { text: "", pill: "text-transparent", icon: () => null },
+  saving: { text: "Guardando…", pill: "bg-slate-100 text-slate-500", icon: spinner },
+  saved: { text: "Guardado", pill: "bg-emerald-50 text-emerald-600", icon: () => icon("check", "h-3.5 w-3.5") },
+  error: { text: "Sin guardar", pill: "bg-red-50 text-red-600", icon: dot },
 };
 
+// Pequeño anillo giratorio para el estado "Guardando…".
+function spinner() {
+  return el("span", { class: "h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500" });
+}
+
+// Punto sólido para el estado de error.
+function dot() {
+  return el("span", { class: "h-2 w-2 rounded-full bg-red-500" });
+}
+
 export class AnalysisView {
-  constructor({ toolbarContainer, infoContainer }) {
+  constructor({ toolbarContainer, infoContainer, statusContainer }) {
     this.toolbarContainer = toolbarContainer;
     this.infoContainer = infoContainer;
-    this.statusElement = null;
+    this.statusContainer = statusContainer;
+    this.statusIcon = null;
+    this.statusLabel = null;
+  }
+
+  // Indicador de guardado en una ranura estable del header. Reserva un ancho fijo
+  // y transiciona solo el color, sin desplazar los demás elementos.
+  renderStatus() {
+    clear(this.statusContainer);
+    this.statusIcon = el("span", { class: "flex h-3.5 w-3.5 items-center justify-center" });
+    this.statusLabel = el("span", {}, "");
+    this.statusContainer.append(
+      el("span", { class: "inline-flex min-w-[6.5rem] items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors" }, [
+        this.statusIcon,
+        this.statusLabel,
+      ]),
+    );
+    this.setSaveStatus("idle");
   }
 
   renderToolbar({ onNew, onOpenFile, onSaveFile, onExportPdf }) {
@@ -53,8 +83,6 @@ export class AnalysisView {
         event.target.value = ""; // permite reabrir el mismo archivo
       },
     });
-
-    this.statusElement = el("span", { class: "px-2 text-xs text-slate-400 md:px-0" }, "");
 
     // En móvil las acciones se agrupan en un menú desplegable; en pantallas
     // grandes se muestran en línea (md:flex las revela pese a la clase "hidden").
@@ -74,7 +102,6 @@ export class AnalysisView {
         toolbarButton("Guardar archivo", onSaveFile, "save"),
         toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
         toolbarButton("Ayuda", () => openHelp(), "help"),
-        this.statusElement,
       ],
     );
 
@@ -104,10 +131,14 @@ export class AnalysisView {
   }
 
   setSaveStatus(state) {
-    if (!this.statusElement) return;
-    const status = SAVE_STATUS[state] ?? { text: "", class: "text-slate-400" };
-    this.statusElement.textContent = status.text;
-    this.statusElement.className = `text-xs ${status.class}`;
+    if (!this.statusLabel) return;
+    const status = SAVE_STATUS[state] ?? SAVE_STATUS.idle;
+    this.statusLabel.textContent = status.text;
+    clear(this.statusIcon);
+    const iconNode = status.icon();
+    if (iconNode) this.statusIcon.append(iconNode);
+    this.statusIcon.parentElement.className =
+      `inline-flex min-w-[6.5rem] items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${status.pill}`;
   }
 
   renderInfo(analysis, { onTitleChange, onDescriptionChange }) {

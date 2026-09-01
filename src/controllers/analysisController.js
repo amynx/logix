@@ -56,6 +56,7 @@ export class AnalysisController {
       onSaveFile: () => this.saveToFile(),
       onExportPdf: () => this.exportPdf(),
     });
+    this.analysisView.renderStatus();
     const { analysis, editingRowIds } = await this.#recoverOrCreate();
     this.analysis = analysis;
     this.editingRows = new Set(editingRowIds);

@@ -40,7 +40,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -54,6 +54,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     analysisView: new AnalysisView({
       toolbarContainer: doc.getElementById("toolbar"),
       infoContainer: doc.getElementById("analysis-info"),
+      statusContainer: doc.getElementById("save-status"),
     }),
     studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
@@ -760,6 +761,18 @@ test("toolbar exposes new, open, save, export and help actions", async () => {
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
   // "Menú" es el control que despliega las acciones en móvil.
   assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Menú"]);
+});
+
+test("the save indicator lives in a stable slot outside the toolbar", async () => {
+  const { doc, controller } = await mountApp();
+  const slot = doc.getElementById("save-status");
+  assert.ok(slot, "existe la ranura del indicador");
+  assert.equal(doc.querySelector("#toolbar #save-status"), null, "no está dentro del toolbar");
+
+  controller.analysisView.setSaveStatus("saving");
+  assert.match(slot.textContent, /Guardando/);
+  controller.analysisView.setSaveStatus("saved");
+  assert.match(slot.textContent, /Guardado/);
 });
 
 test("the help button opens the documentation dialog", async () => {

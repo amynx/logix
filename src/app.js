@@ -15,6 +15,7 @@ function main() {
   const analysisView = new AnalysisView({
     toolbarContainer: document.getElementById("toolbar"),
     infoContainer: document.getElementById("analysis-info"),
+    statusContainer: document.getElementById("save-status"),
   });
 
   const studentsView = new StudentsView({
