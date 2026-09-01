@@ -27,12 +27,16 @@ export class PdfView {
     renderForPrint(this.container, analysis, options);
   }
 
-  // Renderiza el contenido y abre el diálogo de impresión del navegador.
+  // Renderiza el contenido y abre el diálogo de impresión del navegador. El PDF se
+  // imprime siempre en claro, aunque la interfaz esté en modo oscuro.
   print(analysis, options) {
     this.render(analysis, options);
     document.body.classList.add("printing");
+    const wasDark = document.documentElement.classList.contains("dark");
+    if (wasDark) document.documentElement.classList.remove("dark");
     const cleanup = () => {
       document.body.classList.remove("printing");
+      if (wasDark) document.documentElement.classList.add("dark");
       clear(this.container);
       window.removeEventListener("afterprint", cleanup);
     };

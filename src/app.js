@@ -11,8 +11,11 @@ import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
 import { initSectionNav } from "./views/sectionNav.js";
+import { initTheme } from "./utils/theme.js";
 
 function main() {
+  initTheme();
+
   const analysisView = new AnalysisView({
     toolbarContainer: document.getElementById("toolbar"),
     infoContainer: document.getElementById("analysis-info"),

@@ -760,7 +760,19 @@ test("toolbar exposes new, open, save, export and help actions", async () => {
   const { doc } = await mountApp();
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent);
   // "Menú" es el control que despliega las acciones en móvil.
-  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Menú"]);
+  assert.deepEqual(labels, ["Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
+});
+
+test("the theme button toggles dark mode", async () => {
+  const { doc } = await mountApp();
+  const button = [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Tema");
+  assert.ok(button, "hay un botón de tema");
+
+  const before = doc.documentElement.classList.contains("dark");
+  button.click();
+  assert.notEqual(doc.documentElement.classList.contains("dark"), before, "cambia el modo");
+  button.click();
+  assert.equal(doc.documentElement.classList.contains("dark"), before, "vuelve al estado inicial");
 });
 
 test("the save indicator lives in a stable slot outside the toolbar", async () => {
