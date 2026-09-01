@@ -43,6 +43,35 @@
   }
 }
 
+/* Navegación por pasos (barra bajo la cabecera). */
+.section-step {
+  flex-shrink: 0;
+  white-space: nowrap;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: #64748b; /* slate-500 */
+}
+.section-step:hover {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #334155; /* slate-700 */
+}
+.section-step.is-active {
+  background-color: #4f46e5; /* indigo-600 */
+  color: #ffffff;
+}
+
+/* Compensa la cabecera fija al saltar a una sección. */
+#students-container,
+#analysis-info,
+#inputs-container,
+#table-container,
+#chain-container {
+  scroll-margin-top: 7rem;
+}
+
 /* Retroalimentación al arrastrar y soltar actividades (tarjetas y filas). */
 .is-dragging {
   opacity: 0.4;

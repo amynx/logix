@@ -10,6 +10,7 @@ import { ChainView } from "./views/chainView.js";
 import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
+import { initSectionNav } from "./views/sectionNav.js";
 
 function main() {
   const analysisView = new AnalysisView({
@@ -54,6 +55,7 @@ function main() {
   });
 
   controller.start();
+  initSectionNav();
 }
 
 main();
