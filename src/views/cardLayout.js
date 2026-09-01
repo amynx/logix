@@ -29,6 +29,16 @@ export function stepNumber(position) {
   );
 }
 
+// Caja para una nota de texto libre (comentario): entre comillas y en cursiva,
+// visualmente diferenciada del resto de la información.
+export function commentBox(text) {
+  return el(
+    "blockquote",
+    { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm italic text-slate-600" },
+    `“${text}”`,
+  );
+}
+
 // Fila etiqueta→valor en línea (compacta), para el modo de visualización.
 export function inlineRow(label, value) {
   return el("div", { class: "flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-slate-700" }, [

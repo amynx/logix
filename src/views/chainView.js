@@ -7,7 +7,7 @@ import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { typeBadge, purposeBadge } from "./badges.js";
 import { usedInNode } from "./rowSummary.js";
-import { activityZones, stepNumber, inlineRow } from "./cardLayout.js";
+import { activityZones, stepNumber, inlineRow, commentBox } from "./cardLayout.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -171,7 +171,7 @@ function stepCard(step, activities) {
     result: step.result ? smallChip(step.result) : null,
     purpose: purposeBadge(step.purpose),
     usedIn: step.result ? usedInNode(step.usedInRowId, activities) : null,
-    comment: step.comment ? textLine(step.comment) : null,
+    comment: step.comment ? commentBox(step.comment) : null,
     ifTrue: isDecision ? branchDetail(step.ifTrue) : null,
     ifFalse: isDecision ? branchDetail(step.ifFalse) : null,
   };

@@ -8,6 +8,7 @@ import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { expressionParts } from "../models/operators.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 import { typeBadge, purposeBadge } from "./badges.js";
+import { commentBox } from "./cardLayout.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
@@ -26,7 +27,7 @@ export function buildRowSummary(row, dataById, activities = []) {
     result: result ? dataChip(result) : null,
     purpose: purposeBadge(row.purpose),
     usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
-    comment: textNode(row.subsequentUse),
+    comment: commentText(row.subsequentUse),
     ifTrue: isDecision ? branchNode(row.ifTrue, resolve) : null,
     ifFalse: isDecision ? branchNode(row.ifFalse, resolve) : null,
   };
@@ -40,6 +41,11 @@ export function isSummaryEmpty(summary) {
 function textNode(value) {
   const text = (value ?? "").trim();
   return text ? el("span", { class: "whitespace-pre-wrap text-slate-700" }, text) : null;
+}
+
+function commentText(value) {
+  const text = (value ?? "").trim();
+  return text ? commentBox(text) : null;
 }
 
 function dataChip(datum) {
