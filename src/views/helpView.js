@@ -6,7 +6,7 @@
 import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
-import { startGuide } from "./guideView.js";
+import { startGuide, startExampleTutorial } from "./guideView.js";
 
 // Abre el panel de ayuda. Se cierra al pulsar la ×, el fondo o la tecla Escape.
 // Si ya hay un panel abierto, no abre otro.
@@ -61,19 +61,15 @@ export function openHelp(initialTab = 0) {
         el("button", { type: "button", class: "rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700", title: "Cerrar", "aria-label": "Cerrar ayuda", onclick: close }, "✕"),
       ]),
       el("div", { class: "flex gap-1 overflow-x-auto border-b border-slate-200 px-3 py-2" }, tabButtons),
-      el("div", { class: "border-b border-slate-200 px-5 py-2" }, [
-        el(
-          "button",
-          {
-            type: "button",
-            class: "inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100",
-            onclick: () => {
-              close();
-              startGuide();
-            },
-          },
-          [icon("activities", "h-4 w-4"), "Ver guía de inicio paso a paso"],
-        ),
+      el("div", { class: "flex flex-wrap gap-2 border-b border-slate-200 px-5 py-2.5" }, [
+        guideLaunchButton("activities", "Recorrer las secciones", () => {
+          close();
+          startGuide();
+        }),
+        guideLaunchButton("example", "Ejemplo guiado: ¿el estudiante aprueba?", () => {
+          close();
+          startExampleTutorial();
+        }),
       ]),
       el("div", { class: "flex-1 space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, panels),
     ],
@@ -101,6 +97,19 @@ export function helpButton(initialTab = 0) {
       onclick: () => openHelp(initialTab),
     },
     "?",
+  );
+}
+
+// Botón para lanzar una guía interactiva desde el panel de Ayuda.
+function guideLaunchButton(iconName, label, onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100",
+      onclick: onClick,
+    },
+    [icon(iconName, "h-4 w-4"), label],
   );
 }
 

@@ -127,6 +127,13 @@ html.dark {
   transition: box-shadow 0.2s ease;
 }
 
+/* En una fila de la tabla el anillo externo se recorta; se usa fondo + borde interior. */
+tr.guide-highlight {
+  border-radius: 0;
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  box-shadow: inset 0 0 0 2px #6366f1;
+}
+
 /* Retroalimentación al arrastrar y soltar actividades (tarjetas y filas). */
 .is-dragging {
   opacity: 0.4;

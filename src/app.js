@@ -12,7 +12,7 @@ import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
 import { initSectionNav } from "./views/sectionNav.js";
-import { maybeStartGuide } from "./views/guideView.js";
+import { maybeStartGuide, setExampleTutorialLoader } from "./views/guideView.js";
 import { initTheme } from "./utils/theme.js";
 
 function main() {
@@ -64,6 +64,8 @@ function main() {
     pdfView,
     storage: new StorageService(),
   });
+
+  setExampleTutorialLoader(() => controller.loadStudentGradeExample());
 
   controller.start();
   initSectionNav();

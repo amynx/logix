@@ -1,50 +1,54 @@
-// Guía de inicio: un recorrido paso a paso que resalta cada sección y explica qué
-// hace, para qué sirve y por qué existe. Es una tarjeta flotante que no bloquea la
-// interfaz. Se muestra en la primera visita y puede reabrirse desde la Ayuda.
+// Guías interactivas: recorridos paso a paso que resaltan una sección (o una fila)
+// y la explican. Hay dos: el recorrido de las secciones y un ejemplo guiado que
+// muestra cómo se rellena cada parte (fila por fila en la tabla). Son tarjetas
+// flotantes que no bloquean la interfaz. Solo se ocupan del DOM.
 
 import { el, clear } from "../utils/dom.js";
 
 const GUIDE_SEEN_KEY = "logix-guide-seen";
 
-const STEPS = [
+// Resuelve el objetivo de un paso: un id de sección o una función que devuelve el
+// elemento (p. ej. una fila concreta de la tabla).
+const rowTarget = (index) => () => document.querySelectorAll("#table-container [data-row-id]")[index];
+
+const SECTION_STEPS = [
   {
     title: "Bienvenido a Logix",
     target: null,
     body: "Logix te ayuda a analizar un problema antes de diseñar su algoritmo: identificas los datos, descompones el proceso en pasos y ves cómo se encadena todo. Esta guía recorre cada sección.",
   },
-  {
-    title: "1 · Estudiantes",
-    target: "students-container",
-    body: "Registra el grupo (común a todos) y los estudiantes que participan. Sirve para identificar quién realiza el análisis; se incluye al exportar el PDF.",
-  },
-  {
-    title: "2 · Análisis",
-    target: "analysis-info",
-    body: "Escribe el título y describe el problema del mundo real que vas a resolver. Enmarca el análisis: qué necesidad debe atender el programa.",
-  },
-  {
-    title: "3 · Datos de entrada",
-    target: "inputs-container",
-    body: "Identifica los datos que el programa recibe (nombre y tipo). Se declaran una vez aquí y luego se reutilizan en las actividades, evitando reescribirlos y cometer errores.",
-  },
+  { title: "1 · Estudiantes", target: "students-container", body: "Registra el grupo (común a todos) y los estudiantes que participan. Sirve para identificar quién realiza el análisis; se incluye al exportar el PDF." },
+  { title: "2 · Análisis", target: "analysis-info", body: "Escribe el título y describe el problema del mundo real que vas a resolver. Enmarca el análisis: qué necesidad debe atender el programa." },
+  { title: "3 · Datos de entrada", target: "inputs-container", body: "Identifica los datos que el programa recibe (nombre y tipo). Se declaran una vez aquí y luego se reutilizan en las actividades, evitando reescribirlos y cometer errores." },
   {
     title: "4 · Actividades",
     target: "table-container",
-    body: "Es el corazón del análisis: descompones el proceso en pasos. En cada uno defines las entradas, una operación o condición y el dato resultante; en las decisiones, los caminos a seguir.",
+    body: "Es el corazón del análisis. Cada FILA es un paso del proceso, y cada COLUMNA una parte: Datos de entrada (qué usa), Condición (la pregunta, en decisiones), Operación (cómo se calcula), Dato resultante (qué produce), Propósito y, en las decisiones, «Si se cumple / Si no se cumple». Para verlo con detalle, prueba el «Ejemplo guiado» desde Ayuda.",
   },
-  {
-    title: "5 · Cadena del análisis",
-    target: "chain-container",
-    body: "Visualiza el análisis completo como un flujo: qué entra, cómo se procesa y qué sale. Te permite revisar de un vistazo que todo esté encadenado.",
-  },
-  {
-    title: "¡Listo para empezar!",
-    target: null,
-    body: "Pulsa «Ejemplo» para ver un caso completo, usa «Ayuda» o los «?» de cada sección cuando tengas dudas, y recuerda que puedes deshacer con Ctrl+Z. ¡A analizar!",
-  },
+  { title: "5 · Cadena del análisis", target: "chain-container", body: "Visualiza el análisis completo como un flujo: qué entra, cómo se procesa y qué sale. Te permite revisar de un vistazo que todo esté encadenado." },
+  { title: "¡Listo para empezar!", target: null, body: "Pulsa «Ejemplo» para ver un caso completo, usa «Ayuda» o los «?» de cada sección cuando tengas dudas, y recuerda que puedes deshacer con Ctrl+Z. ¡A analizar!" },
 ];
 
-// Abre la guía si el estudiante no la ha visto todavía.
+const EXAMPLE_STEPS = [
+  { title: "Ejemplo guiado", target: null, body: "Vamos a recorrer un análisis ya construido: decidir si un estudiante aprueba una asignatura a partir de sus notas. Fíjate en cómo se rellena cada sección." },
+  { title: "1 · Estudiantes", target: "students-container", body: "Aquí van el grupo y los estudiantes. En el ejemplo: grupo N1 y una estudiante." },
+  { title: "2 · Análisis", target: "analysis-info", body: "El título plantea la pregunta central («¿El estudiante aprueba?») y la descripción resume el problema a resolver." },
+  { title: "3 · Datos de entrada", target: "inputs-container", body: "Se identifican los datos que se reciben: las tres notas y la nota aprobatoria, cada uno de tipo Numérico." },
+  { title: "4 · Actividades", target: "table-container", body: "Cada fila es un paso. Vamos a leerlas una por una, fijándonos en las columnas de la tabla." },
+  { title: "Actividad 1: sumar las notas", target: rowTarget(0), block: "center", body: "En «Datos de entrada» se referencian nota1, nota2 y nota3; en «Operación» se construye nota1 + nota2 + nota3; el «Dato resultante» es sumaNotas. El «Propósito» es una nueva operación." },
+  { title: "Actividad 2: calcular el promedio", target: rowTarget(1), block: "center", body: "Se reutiliza sumaNotas (marcado con ↩ porque se produjo en la actividad anterior) y se divide entre 3 con «÷ valor 3», obteniendo promedio." },
+  { title: "Actividad 3: la decisión", target: rowTarget(2), block: "center", body: "Es una decisión: la «Condición» es la pregunta (¿promedio ≥ nota aprobatoria?), la «Operación» la responde (promedio ≥ notaAprobatoria) y produce «aprobado». En «Si se cumple / Si no se cumple» se definen los caminos: Aprueba / Reprueba." },
+  { title: "5 · Cadena del análisis", target: "chain-container", body: "La cadena resume el flujo completo: entran las notas, se procesan (suma → promedio → decisión) y sale el resultado." },
+  { title: "Ahora te toca a ti", target: null, body: "Edita este ejemplo o crea uno nuevo con «Nuevo análisis». Puedes reabrir esta guía desde «Ayuda» cuando quieras." },
+];
+
+// Cargador del ejemplo del tutorial guiado (lo registra la app con el controlador).
+let exampleLoader = null;
+export function setExampleTutorialLoader(loader) {
+  exampleLoader = loader;
+}
+
+// Muestra el recorrido de secciones en la primera visita.
 export function maybeStartGuide() {
   let seen = false;
   try {
@@ -55,8 +59,17 @@ export function maybeStartGuide() {
   if (!seen) startGuide();
 }
 
-// Abre la guía de inicio. Si ya está abierta, no abre otra.
 export function startGuide() {
+  runTour(SECTION_STEPS, { markSeenOnClose: true });
+}
+
+export function startExampleTutorial() {
+  if (exampleLoader) exampleLoader(); // carga el ejemplo antes de recorrerlo
+  runTour(EXAMPLE_STEPS, {});
+}
+
+// Motor de recorrido: tarjeta flotante con pasos, resaltando el objetivo de cada uno.
+function runTour(steps, { markSeenOnClose = false }) {
   if (document.getElementById("guide-card")) return;
   let index = 0;
 
@@ -64,7 +77,7 @@ export function startGuide() {
     id: "guide-card",
     class: "fixed bottom-6 left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-xl border border-slate-200 bg-white p-4 shadow-2xl",
     role: "dialog",
-    "aria-label": "Guía de inicio",
+    "aria-label": "Guía",
   });
 
   const clearHighlight = () => document.querySelectorAll(".guide-highlight").forEach((node) => node.classList.remove("guide-highlight"));
@@ -73,10 +86,12 @@ export function startGuide() {
     clearHighlight();
     card.remove();
     document.removeEventListener("keydown", onKey);
-    try {
-      localStorage.setItem(GUIDE_SEEN_KEY, "1");
-    } catch {
-      // localStorage puede no estar disponible; no pasa nada.
+    if (markSeenOnClose) {
+      try {
+        localStorage.setItem(GUIDE_SEEN_KEY, "1");
+      } catch {
+        // localStorage puede no estar disponible; no pasa nada.
+      }
     }
   };
 
@@ -84,18 +99,22 @@ export function startGuide() {
     if (event.key === "Escape") close();
   };
 
+  const resolveTarget = (target) => {
+    if (typeof target === "function") return target();
+    if (typeof target === "string") return document.getElementById(target);
+    return null;
+  };
+
   const render = () => {
-    const step = STEPS[index];
+    const step = steps[index];
     clearHighlight();
-    if (step.target) {
-      const section = document.getElementById(step.target);
-      if (section) {
-        section.classList.add("guide-highlight");
-        section.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+    const target = resolveTarget(step.target);
+    if (target) {
+      target.classList.add("guide-highlight");
+      target.scrollIntoView({ behavior: "smooth", block: step.block ?? "start" });
     }
 
-    const isLast = index === STEPS.length - 1;
+    const isLast = index === steps.length - 1;
     clear(card);
     card.append(
       el("div", { class: "mb-2 flex items-start justify-between gap-3" }, [
@@ -103,9 +122,10 @@ export function startGuide() {
         el("button", { type: "button", class: "rounded-md px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700", title: "Cerrar guía", "aria-label": "Cerrar guía", onclick: close }, "✕"),
       ]),
       el("p", { class: "text-sm leading-relaxed text-slate-600" }, step.body),
-      el("div", { class: "mt-4 flex items-center justify-between" }, [
-        el("div", { class: "flex gap-1" }, STEPS.map((_, i) => el("span", { class: `h-1.5 w-1.5 rounded-full ${i === index ? "bg-indigo-600" : "bg-slate-300"}` }))),
-        el("div", { class: "flex gap-2" }, [
+      el("div", { class: "mt-4 flex items-center justify-between gap-2" }, [
+        el("button", { type: "button", class: "text-xs font-medium text-slate-400 hover:text-slate-600", onclick: close }, "Omitir"),
+        el("div", { class: "flex items-center gap-2" }, [
+          el("div", { class: "mr-1 flex gap-1" }, steps.map((_, i) => el("span", { class: `h-1.5 w-1.5 rounded-full ${i === index ? "bg-indigo-600" : "bg-slate-300"}` }))),
           el("button", {
             type: "button",
             class: "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40",
@@ -116,7 +136,7 @@ export function startGuide() {
             type: "button",
             class: "rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700",
             onclick: () => { if (isLast) close(); else { index += 1; render(); } },
-          }, isLast ? "Empezar" : "Siguiente"),
+          }, isLast ? "Terminar" : "Siguiente"),
         ]),
       ]),
     );
