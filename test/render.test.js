@@ -14,6 +14,7 @@ import { ChainView } from "../src/views/chainView.js";
 import { CompletenessView } from "../src/views/completenessView.js";
 import { PdfView } from "../src/views/pdfView.js";
 import { AnalysisController } from "../src/controllers/analysisController.js";
+import { setExampleTutorialLoader } from "../src/views/guideView.js";
 import { createAnalysis, addRow, findData } from "../src/models/analysisModel.js";
 import { serializeAnalysis } from "../src/services/file/fileService.js";
 
@@ -68,6 +69,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     storage,
     saveDelay: 0,
   });
+  setExampleTutorialLoader(() => controller.loadStudentGradeExample());
   await controller.start();
   return { dom, controller, doc, storage };
 }
@@ -777,17 +779,17 @@ test("toolbar exposes new, open, save, export and help actions", async () => {
   const { doc } = await mountApp();
   const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent).filter(Boolean);
   // "Menú" es el control que despliega las acciones en móvil.
-  assert.deepEqual(labels, ["Nuevo análisis", "Ejemplo", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
+  assert.deepEqual(labels, ["Nuevo análisis", "Ejemplo guiado", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
 });
 
-test("the example button loads a complete sample analysis", async () => {
+test("the guided example button loads the sample and opens the tutorial", async () => {
   const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo").click();
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo guiado").click();
 
-  assert.match(controller.analysis.title, /orden de producción/i);
+  assert.match(controller.analysis.title, /estudiante aprueba/i);
   assert.equal(controller.analysis.rows.length, 3);
   assert.ok(controller.analysis.data.length >= 5, "trae datos de entrada y producidos");
-  // Un resultado producido se referencia en la operación de la decisión.
+  assert.ok(doc.getElementById("guide-card"), "se abre el tutorial guiado");
   const decision = controller.analysis.rows[2];
   assert.equal(decision.purpose, "decision");
   assert.ok(decision.operation.some((t) => t.kind === "ref"), "la decisión referencia datos");
@@ -800,8 +802,8 @@ test("the completeness indicator lists pending items and clears when complete", 
   assert.match(panel().textContent, /Por completar/);
   assert.match(panel().textContent, /título/);
 
-  // El ejemplo está completo: el indicador lo confirma.
-  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo").click();
+  // El ejemplo guiado está completo: el indicador lo confirma.
+  [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo guiado").click();
   assert.match(panel().textContent, /completo/);
 });
 

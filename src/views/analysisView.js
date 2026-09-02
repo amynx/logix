@@ -6,6 +6,7 @@ import { el, clear } from "../utils/dom.js";
 import { icon } from "./icons.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { openHelp } from "./helpView.js";
+import { startExampleTutorial } from "./guideView.js";
 import { toggleTheme } from "../utils/theme.js";
 
 const INPUT_CLASS =
@@ -87,7 +88,7 @@ export class AnalysisView {
     this.setSaveStatus("idle");
   }
 
-  renderToolbar({ onNew, onLoadExample, onOpenFile, onSaveFile, onExportPdf, onUndo, onRedo }) {
+  renderToolbar({ onNew, onOpenFile, onSaveFile, onExportPdf, onUndo, onRedo }) {
     clear(this.toolbarContainer);
 
     const fileInput = el("input", {
@@ -115,7 +116,7 @@ export class AnalysisView {
       },
       [
         toolbarButton("Nuevo análisis", onNew, "new"),
-        toolbarButton("Ejemplo", onLoadExample, "example"),
+        toolbarButton("Ejemplo guiado", () => startExampleTutorial(), "example"),
         toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
         toolbarButton("Guardar archivo", onSaveFile, "save"),
         toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
