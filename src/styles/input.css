@@ -120,6 +120,13 @@ html.dark {
   scroll-margin-top: 7rem;
 }
 
+/* Resalta la sección enfocada durante la guía de inicio. */
+.guide-highlight {
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 3px #6366f1, 0 0 0 9px rgba(99, 102, 241, 0.18);
+  transition: box-shadow 0.2s ease;
+}
+
 /* Retroalimentación al arrastrar y soltar actividades (tarjetas y filas). */
 .is-dragging {
   opacity: 0.4;
