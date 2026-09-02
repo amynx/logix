@@ -53,6 +53,7 @@ export class AnalysisController {
     this.saveDelay = saveDelay;
     this.analysis = null;
     this.editingRows = new Set(); // ids de actividades en modo edición (estado de vista)
+    this.editingInputs = false; // sección de datos de entrada en modo edición
   }
 
   async start() {
@@ -133,16 +134,25 @@ export class AnalysisController {
   }
 
   renderInputs() {
-    this.inputsView.render(listInputs(this.analysis), {
+    this.inputsView.render(listInputs(this.analysis), this.editingInputs, {
       onAddInput: () => this.addInput(),
       onInputChange: (dataId, changes) => this.updateInput(dataId, changes),
       onRemoveInput: (dataId) => this.removeInput(dataId),
+      onEditInputs: () => this.setEditingInputs(true),
+      onDoneInputs: () => this.setEditingInputs(false),
     });
   }
 
+  setEditingInputs(editing) {
+    this.editingInputs = editing;
+    this.renderInputs();
+  }
+
   // Alta de un dato de entrada: aparece en la sección y en los selectores de las filas.
+  // Agregar un dato entra (o permanece) en modo edición para poder completarlo.
   addInput() {
     addInput(this.analysis);
+    this.editingInputs = true;
     this.renderInputs();
     this.renderTable();
     this.#afterChange();
@@ -427,6 +437,7 @@ export class AnalysisController {
   loadAnalysis(analysis, editingRowIds = []) {
     this.analysis = analysis;
     this.editingRows = new Set(editingRowIds);
+    this.editingInputs = false; // la sección de datos empieza en modo visualización
     this.render();
     this.#afterChange();
     this.#resetHistory(); // un análisis cargado empieza un historial nuevo

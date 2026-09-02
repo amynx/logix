@@ -352,6 +352,20 @@ test("detaching an input from a row keeps it declared globally", async () => {
   assert.ok(findData(controller.analysis, inputId), "el dato declarado persiste");
 });
 
+test("the inputs section collapses to read-only chips when done", async () => {
+  const { doc, controller } = await mountApp();
+  declareInput(doc, controller, "edad", "numeric");
+  assert.ok(doc.querySelector('#inputs-container input[type="text"]'), "en edición hay campos");
+
+  const btn = (re) => [...doc.querySelectorAll("#inputs-container button")].find((b) => re.test(b.textContent));
+  btn(/Listo/).click();
+  assert.equal(doc.querySelector("#inputs-container input"), null, "en visualización se ocultan los controles");
+  assert.match(doc.getElementById("inputs-container").textContent, /edad/, "muestra el dato registrado");
+
+  btn(/Editar datos/).click();
+  assert.ok(doc.querySelector("#inputs-container input"), "los controles reaparecen para agregar más");
+});
+
 test("removing a declared input from its section deletes it and prunes references", async () => {
   const { doc, controller } = await mountApp();
   const inputId = declareInput(doc, controller, "nota1", "numeric");
