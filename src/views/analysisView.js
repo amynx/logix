@@ -8,6 +8,7 @@ import { sectionHeader } from "./sectionHeader.js";
 import { openHelp } from "./helpView.js";
 import { startExampleTutorial } from "./guideView.js";
 import { toggleTheme } from "../utils/theme.js";
+import { trackEvent } from "../utils/analytics.js";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
@@ -121,7 +122,7 @@ export class AnalysisView {
         toolbarButton("Guardar archivo", onSaveFile, "save"),
         toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
         toolbarButton("Ayuda", () => openHelp(), "help"),
-        toolbarButton("Tema", () => toggleTheme(), "contrast"),
+        toolbarButton("Tema", () => trackEvent("toggle_theme", { dark: toggleTheme() }), "contrast"),
       ],
     );
 

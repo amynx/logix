@@ -4,6 +4,7 @@
 // flotantes que no bloquean la interfaz. Solo se ocupan del DOM.
 
 import { el, clear } from "../utils/dom.js";
+import { trackEvent } from "../utils/analytics.js";
 
 const GUIDE_SEEN_KEY = "logix-guide-seen";
 
@@ -60,10 +61,12 @@ export function maybeStartGuide() {
 }
 
 export function startGuide() {
+  trackEvent("start_section_guide");
   runTour(SECTION_STEPS, { markSeenOnClose: true });
 }
 
 export function startExampleTutorial() {
+  trackEvent("start_tutorial");
   if (exampleLoader) exampleLoader(); // carga el ejemplo antes de recorrerlo
   runTour(EXAMPLE_STEPS, {});
 }

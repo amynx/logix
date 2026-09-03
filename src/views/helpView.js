@@ -7,11 +7,13 @@ import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { startGuide, startExampleTutorial } from "./guideView.js";
+import { trackEvent } from "../utils/analytics.js";
 
 // Abre el panel de ayuda. Se cierra al pulsar la ×, el fondo o la tecla Escape.
 // Si ya hay un panel abierto, no abre otro.
 export function openHelp(initialTab = 0) {
   if (document.getElementById("help-panel")) return;
+  trackEvent("open_help", { tab: initialTab });
 
   const close = () => {
     panel.classList.add("translate-x-full");

@@ -29,6 +29,7 @@ import { exportAnalysis, importAnalysis } from "../services/file/fileService.js"
 import { collectAnalysisWarnings, migrateAnalysis } from "../validation/analysisValidation.js";
 import { buildChain } from "../models/chainModel.js";
 import { inferResultType } from "../models/operators.js";
+import { trackEvent } from "../utils/analytics.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
@@ -155,6 +156,7 @@ export class AnalysisController {
     this.renderInputs();
     this.renderTable();
     this.#afterChange();
+    trackEvent("add_input");
   }
 
   // Edición de un dato de entrada desde su sección. Se re-renderiza la tabla (para
@@ -392,6 +394,7 @@ export class AnalysisController {
     this.editingRows.add(newRow.id);
     this.renderTable();
     this.#afterChange();
+    trackEvent("add_activity");
   }
 
   async deleteRow(rowId) {
@@ -447,6 +450,7 @@ export class AnalysisController {
     addRow(analysis);
     const seededRow = analysis.rows[analysis.rows.length - 1];
     this.loadAnalysis(analysis, [seededRow.id]);
+    trackEvent("new_analysis");
   }
 
   // Carga un análisis de ejemplo completo (en modo visualización) para aprender de
@@ -469,6 +473,7 @@ export class AnalysisController {
       if (!proceed) return;
     }
     exportAnalysis(this.analysis);
+    trackEvent("save_file");
   }
 
   // Exporta a PDF: el usuario elige las secciones; la fecha/hora es automática.
@@ -476,12 +481,14 @@ export class AnalysisController {
     const sections = await selectSectionsDialog(PDF_SECTIONS, { title: "Exportar a PDF" });
     if (!sections) return;
     this.pdfView.print(this.analysis, { sections, exportedAt: new Date().toISOString() });
+    trackEvent("export_pdf", { sections: sections.length });
   }
 
   async openFile(file) {
     try {
       const analysis = await importAnalysis(file);
       this.loadAnalysis(analysis);
+      trackEvent("open_file");
     } catch (error) {
       // Aviso informativo: no se bloquea el flujo esperando a que se cierre.
       messageDialog({ title: "No se pudo abrir el análisis", message: error.message });
