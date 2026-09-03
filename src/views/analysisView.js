@@ -251,18 +251,26 @@ export class AnalysisView {
       oninput: (event) => onDescriptionChange(event.target.value),
     });
 
-    // Enunciado del problema: el texto sobre el que se identifican los datos.
+    // Enunciado del problema: el texto sobre el que se identifican los datos. El
+    // textarea crece con el contenido (conserva saltos de línea y párrafos) hasta
+    // un máximo, para que un enunciado largo no quede apretado.
     const statement = el("textarea", {
       id: "analysis-statement",
-      rows: 5,
       value: analysis.statement,
       placeholder: "Pega aquí el enunciado completo del problema. Luego selecciona un fragmento (p. ej. «500 unidades») para agregarlo como dato de entrada.",
-      class: `${INPUT_CLASS} resize-y`,
-      oninput: (event) => onStatementChange(event.target.value),
+      class: `${INPUT_CLASS} min-h-[7rem] max-h-[36rem] resize-none overflow-y-auto leading-relaxed`,
+      oninput: (event) => {
+        onStatementChange(event.target.value);
+        autoGrow();
+      },
       onmouseup: () => updateSelectionBar(),
       onkeyup: () => updateSelectionBar(),
       onselect: () => updateSelectionBar(),
     });
+    const autoGrow = () => {
+      statement.style.height = "auto";
+      statement.style.height = `${statement.scrollHeight}px`;
+    };
 
     const selectionBar = el("div", { class: "mt-2 flex min-h-[2rem] items-center" });
     const selectedFragment = () => statement.value.substring(statement.selectionStart, statement.selectionEnd).trim();
@@ -318,5 +326,6 @@ export class AnalysisView {
     );
 
     updateSelectionBar();
+    autoGrow();
   }
 }
