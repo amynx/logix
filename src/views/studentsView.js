@@ -1,24 +1,29 @@
-// Vista de la sección "Estudiantes": el grupo es común a todos (un solo campo) y,
-// debajo, la lista de estudiantes que participan (identificación y nombre). Solo
-// se ocupa del DOM; notifica los cambios mediante callbacks.
+// Vista de la sección "Estudiantes": el grupo es común a todos (un solo campo,
+// siempre editable) y, debajo, la lista de estudiantes. La lista tiene dos modos:
+// edición (campos + controles) y visualización (solo la información, en fichas),
+// para que la sección quede limpia al terminar. Solo se ocupa del DOM.
 
 import { el, clear } from "../utils/dom.js";
 import { sectionHeader, emptyState } from "./sectionHeader.js";
+import { icon } from "./icons.js";
 
 const CONTROL_CLASS =
   "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
   "outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
 
-const ADD_BUTTON_CLASS =
+const GHOST_BUTTON_CLASS =
   "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 " +
   "text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
+
+const PRIMARY_BUTTON_CLASS =
+  "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700";
 
 export class StudentsView {
   constructor({ container }) {
     this.container = container;
   }
 
-  render(group, students, handlers) {
+  render(group, students, editing, handlers) {
     clear(this.container);
 
     const groupInput = el("input", {
@@ -30,10 +35,29 @@ export class StudentsView {
       oninput: (event) => handlers.onGroupChange(event.target.value),
     });
 
-    const list =
-      students.length > 0
-        ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
-        : emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
+    const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante");
+
+    let list;
+    let actions;
+    if (students.length === 0 && !editing) {
+      list = emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
+      actions = [addButton];
+    } else if (editing) {
+      list =
+        students.length > 0
+          ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
+          : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer estudiante.");
+      actions = [
+        addButton,
+        el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneStudents() }, [icon("check", "h-4 w-4"), "Listo"]),
+      ];
+    } else {
+      // Modo visualización: solo los estudiantes registrados, en fichas.
+      list = el("div", { class: "flex flex-wrap gap-2" }, students.map(studentChip));
+      actions = [
+        el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditStudents() }, [icon("edit", "h-4 w-4"), "Editar estudiantes"]),
+      ];
+    }
 
     this.container.append(
       el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
@@ -43,12 +67,17 @@ export class StudentsView {
           el("div", { class: "mt-1" }, [groupInput]),
         ]),
         list,
-        el("div", { class: "mt-3" }, [
-          el("button", { type: "button", class: ADD_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante"),
-        ]),
+        el("div", { class: "mt-3 flex flex-wrap gap-2" }, actions),
       ]),
     );
   }
+}
+
+// Ficha de solo lectura de un estudiante: identificación · nombre.
+function studentChip(student) {
+  const parts = [student.idNumber, student.fullName].map((value) => (value ?? "").trim()).filter(Boolean);
+  const label = parts.length > 0 ? parts.join(" · ") : "(estudiante sin datos)";
+  return el("span", { class: "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm text-slate-700" }, label);
 }
 
 function studentRow(student, handlers) {

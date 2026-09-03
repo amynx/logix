@@ -354,6 +354,26 @@ test("detaching an input from a row keeps it declared globally", async () => {
   assert.ok(findData(controller.analysis, inputId), "el dato declarado persiste");
 });
 
+test("the students section collapses to read-only chips when done", async () => {
+  const { doc } = await mountApp();
+  [...doc.querySelectorAll("#students-container button")].find((b) => b.textContent === "+ Agregar estudiante").click();
+  const inputs = () => doc.querySelectorAll("#students-container input:not(#analysis-group)");
+  inputs()[0].value = "1001";
+  fire(inputs()[0], "input");
+  inputs()[1].value = "Ana Pérez";
+  fire(inputs()[1], "input");
+  assert.ok(inputs().length > 0, "en edición hay campos del estudiante");
+
+  const btn = (re) => [...doc.querySelectorAll("#students-container button")].find((b) => re.test(b.textContent));
+  btn(/Listo/).click();
+  assert.equal(inputs().length, 0, "en visualización se ocultan los controles del estudiante");
+  assert.match(doc.getElementById("students-container").textContent, /Ana Pérez/, "muestra el estudiante registrado");
+  assert.ok(doc.getElementById("analysis-group"), "el grupo sigue editable");
+
+  btn(/Editar estudiantes/).click();
+  assert.ok(inputs().length > 0, "los controles reaparecen para editar");
+});
+
 test("the inputs section collapses to read-only chips when done", async () => {
   const { doc, controller } = await mountApp();
   declareInput(doc, controller, "edad", "numeric");

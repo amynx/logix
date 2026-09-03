@@ -55,6 +55,7 @@ export class AnalysisController {
     this.analysis = null;
     this.editingRows = new Set(); // ids de actividades en modo edición (estado de vista)
     this.editingInputs = false; // sección de datos de entrada en modo edición
+    this.editingStudents = false; // sección de estudiantes en modo edición
   }
 
   async start() {
@@ -107,16 +108,25 @@ export class AnalysisController {
   }
 
   renderStudents() {
-    this.studentsView.render(this.analysis.group, this.analysis.students, {
+    this.studentsView.render(this.analysis.group, this.analysis.students, this.editingStudents, {
       onGroupChange: (group) => this.updateInfo({ group }),
       onAddStudent: () => this.addStudent(),
       onStudentChange: (studentId, changes) => this.updateStudent(studentId, changes),
       onRemoveStudent: (studentId) => this.removeStudent(studentId),
+      onEditStudents: () => this.setEditingStudents(true),
+      onDoneStudents: () => this.setEditingStudents(false),
     });
   }
 
+  setEditingStudents(editing) {
+    this.editingStudents = editing;
+    this.renderStudents();
+  }
+
+  // Agregar un estudiante entra (o permanece) en modo edición para completarlo.
   addStudent() {
     addStudent(this.analysis);
+    this.editingStudents = true;
     this.renderStudents();
     this.#afterChange();
   }
@@ -440,6 +450,7 @@ export class AnalysisController {
     this.analysis = analysis;
     this.editingRows = new Set(editingRowIds);
     this.editingInputs = false; // la sección de datos empieza en modo visualización
+    this.editingStudents = false; // la sección de estudiantes también
     this.render();
     this.#afterChange();
     this.#resetHistory(); // un análisis cargado empieza un historial nuevo
