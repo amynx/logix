@@ -795,11 +795,14 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
   assert.doesNotMatch(printText, /Tabla de datos/, "no incluye lo no seleccionado");
 });
 
-test("toolbar exposes new, open, save, export and help actions", async () => {
+test("toolbar exposes the file group and key actions", async () => {
   const { doc } = await mountApp();
-  const labels = [...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent).filter(Boolean);
-  // "Menú" es el control que despliega las acciones en móvil.
-  assert.deepEqual(labels, ["Nuevo análisis", "Ejemplo guiado", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ayuda", "Tema", "Menú"]);
+  const labels = new Set([...doc.querySelectorAll("#toolbar button")].map((b) => b.textContent.trim()).filter(Boolean));
+  // "Archivo" agrupa nuevo/abrir/guardar; "Menú" despliega todo en móvil.
+  const expected = ["Archivo", "Nuevo análisis", "Abrir análisis", "Guardar archivo", "Exportar PDF", "Ejemplo guiado", "Ayuda", "Tema", "Menú"];
+  for (const label of expected) {
+    assert.ok(labels.has(label), `falta la acción «${label}»`);
+  }
 });
 
 test("the guided example button loads the sample and opens the tutorial", async () => {

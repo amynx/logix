@@ -17,10 +17,9 @@ const INPUT_CLASS =
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
-// Botón de la barra: fantasma (por defecto) o primario (índigo sólido). Ocupa todo
-// el ancho en el menú móvil y vuelve a su ancho natural en pantallas grandes.
-function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
-  const base = "inline-flex w-full items-center justify-start gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium md:w-auto md:justify-center";
+// Botón en línea de la barra (escritorio): fantasma o primario (índigo sólido).
+function barButton(label, onClick, iconName, { primary = false } = {}) {
+  const base = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium";
   const variant = primary
     ? "bg-indigo-600 text-white hover:bg-indigo-700"
     : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
@@ -28,6 +27,59 @@ function toolbarButton(label, onClick, iconName, { primary = false } = {}) {
     iconName ? icon(iconName, "h-4 w-4") : null,
     label,
   ]);
+}
+
+// Botón solo-icono de la barra (p. ej. Tema).
+function iconBarButton(iconName, label, onClick) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
+      title: label,
+      "aria-label": label,
+      onclick: onClick,
+    },
+    [icon(iconName, "h-4 w-4")],
+  );
+}
+
+// Opción a todo el ancho para un menú desplegable (Archivo / menú móvil).
+function menuItem(label, onClick, iconName) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "inline-flex w-full items-center justify-start gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700",
+      onclick: onClick,
+    },
+    [iconName ? icon(iconName, "h-4 w-4") : null, label],
+  );
+}
+
+// Menú desplegable: el disparador abre un panel de opciones. Cierra al elegir una,
+// pulsar fuera o volver a pulsar el disparador. `align` fija el borde del panel.
+function dropdownMenu(trigger, items, { align = "right" } = {}) {
+  const panel = el(
+    "div",
+    {
+      class: `absolute ${align === "left" ? "left-0" : "right-0"} top-full z-30 mt-1 hidden w-56 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg`,
+      onclick: (event) => {
+        if (event.target.closest("button")) close();
+      },
+    },
+    items,
+  );
+  const close = () => panel.classList.replace("flex", "hidden");
+  trigger.addEventListener("click", (event) => {
+    event.stopPropagation();
+    panel.classList.contains("hidden") ? panel.classList.replace("hidden", "flex") : close();
+  });
+  const wrapper = el("div", { class: "relative" }, [trigger, panel]);
+  document.addEventListener("click", (event) => {
+    if (panel.classList.contains("flex") && !wrapper.contains(event.target)) close();
+  });
+  return wrapper;
 }
 
 // Estados del guardado. Se usan etiquetas cortas y un ancho reservado para que el
@@ -103,50 +155,48 @@ export class AnalysisView {
       },
     });
 
-    // En móvil las acciones se agrupan en un menú desplegable; en pantallas
-    // grandes se muestran en línea (md:flex las revela pese a la clase "hidden").
-    const menu = el(
-      "div",
-      {
-        class:
-          "hidden absolute right-4 top-14 z-30 w-56 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg " +
-          "md:flex md:static md:right-auto md:top-auto md:z-auto md:w-auto md:flex-row md:items-center md:gap-2 md:border-0 md:bg-transparent md:p-0 md:shadow-none",
-        onclick: (event) => {
-          if (event.target.closest("button")) closeMenu();
-        },
-      },
-      [
-        toolbarButton("Nuevo análisis", onNew, "new"),
-        toolbarButton("Ejemplo guiado", () => startExampleTutorial(), "example"),
-        toolbarButton("Abrir análisis", () => fileInput.click(), "open"),
-        toolbarButton("Guardar archivo", onSaveFile, "save"),
-        toolbarButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
-        toolbarButton("Ayuda", () => openHelp(), "help"),
-        toolbarButton("Tema", () => trackEvent("toggle_theme", { dark: toggleTheme() }), "contrast"),
-      ],
+    const toggleThemeTracked = () => trackEvent("toggle_theme", { dark: toggleTheme() });
+
+    // Barra de escritorio: las acciones de archivo se agrupan en "Archivo" y las
+    // acciones clave quedan a la vista.
+    const archivoTrigger = el(
+      "button",
+      { type: "button", class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700" },
+      [icon("folder", "h-4 w-4"), "Archivo", icon("chevron", "h-3.5 w-3.5")],
     );
+    const archivo = dropdownMenu(
+      archivoTrigger,
+      [
+        menuItem("Nuevo análisis", onNew, "new"),
+        menuItem("Abrir análisis", () => fileInput.click(), "open"),
+        menuItem("Guardar archivo", onSaveFile, "save"),
+      ],
+      { align: "left" },
+    );
+    const desktopBar = el("div", { class: "hidden items-center gap-2 md:flex" }, [
+      archivo,
+      barButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
+      barButton("Ejemplo guiado", () => startExampleTutorial(), "example"),
+      barButton("Ayuda", () => openHelp(), "help"),
+      iconBarButton("contrast", "Tema", toggleThemeTracked),
+    ]);
 
-    const closeMenu = () => menu.classList.replace("flex", "hidden");
-    const toggleMenu = () => (menu.classList.contains("hidden") ? menu.classList.replace("hidden", "flex") : closeMenu());
-
+    // Menú móvil: una hamburguesa con todas las acciones en una lista plana.
     const hamburger = el(
       "button",
-      {
-        type: "button",
-        class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 md:hidden",
-        "aria-label": "Abrir menú",
-        onclick: (event) => {
-          event.stopPropagation();
-          toggleMenu();
-        },
-      },
+      { type: "button", class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50", "aria-label": "Abrir menú" },
       [icon("menu", "h-4 w-4"), "Menú"],
     );
-
-    // Cierra el menú móvil al pulsar fuera de él.
-    document.addEventListener("click", (event) => {
-      if (menu.classList.contains("flex") && !menu.contains(event.target) && !hamburger.contains(event.target)) closeMenu();
-    });
+    const mobileMenu = dropdownMenu(hamburger, [
+      menuItem("Nuevo análisis", onNew, "new"),
+      menuItem("Abrir análisis", () => fileInput.click(), "open"),
+      menuItem("Guardar archivo", onSaveFile, "save"),
+      menuItem("Exportar PDF", onExportPdf, "pdf"),
+      menuItem("Ejemplo guiado", () => startExampleTutorial(), "example"),
+      menuItem("Ayuda", () => openHelp(), "help"),
+      menuItem("Tema", toggleThemeTracked, "contrast"),
+    ]);
+    mobileMenu.classList.add("md:hidden");
 
     // Deshacer/rehacer: botones compactos junto al indicador de guardado (izquierda).
     this.undoButton = historyButton("undo", "Deshacer", onUndo);
@@ -154,7 +204,7 @@ export class AnalysisView {
     clear(this.historyContainer);
     this.historyContainer.append(this.undoButton, this.redoButton);
 
-    this.toolbarContainer.append(menu, hamburger, fileInput);
+    this.toolbarContainer.append(desktopBar, mobileMenu, fileInput);
   }
 
   // Habilita o deshabilita los botones de deshacer/rehacer según el historial.
