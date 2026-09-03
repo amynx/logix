@@ -33,8 +33,8 @@ const SECTION_STEPS = [
 const EXAMPLE_STEPS = [
   { title: "Ejemplo guiado", target: null, body: "Vamos a recorrer un análisis ya construido: decidir si un estudiante aprueba una asignatura a partir de sus notas. Fíjate en cómo se rellena cada sección." },
   { title: "1 · Estudiantes", target: "students-container", body: "Aquí van el grupo y los estudiantes. En el ejemplo: grupo N1 y una estudiante." },
-  { title: "2 · Análisis", target: "analysis-info", body: "El título plantea la pregunta central («¿El estudiante aprueba?») y la descripción resume el problema a resolver." },
-  { title: "3 · Datos de entrada", target: "inputs-container", body: "Se identifican los datos que se reciben: las tres notas y la nota aprobatoria, cada uno de tipo Numérico." },
+  { title: "2 · Análisis", target: "analysis-info", body: "El título plantea la pregunta y la descripción resume el problema. En el «Enunciado» está el texto completo: desde ahí identificas los datos seleccionando un fragmento (p. ej. «4 en el primer parcial») y pulsando «Agregar como dato de entrada»." },
+  { title: "3 · Datos de entrada", target: "inputs-container", body: "Cada dato conserva el FRAGMENTO del que salió, su VALOR y el NOMBRE que le das: nota1, nota2, nota3 y notaAprobatoria. Con «Formatear nombres» puedes aplicar una convención (p. ej. camelCase) a todos a la vez." },
   { title: "4 · Actividades", target: "table-container", body: "Cada fila es un paso. Vamos a leerlas una por una, fijándonos en las columnas de la tabla." },
   { title: "Actividad 1: sumar las notas", target: rowTarget(0), block: "center", body: "En «Datos de entrada» se referencian nota1, nota2 y nota3; en «Operación» se construye nota1 + nota2 + nota3; el «Dato resultante» es sumaNotas. El «Propósito» es una nueva operación." },
   { title: "Actividad 2: calcular el promedio", target: rowTarget(1), block: "center", body: "Se reutiliza sumaNotas (marcado con ↩ porque se produjo en la actividad anterior) y se divide entre 3 con «÷ valor 3», obteniendo promedio." },

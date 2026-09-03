@@ -14,14 +14,17 @@ export function createStudentGradeExample() {
   const analysis = createAnalysis({
     title: "¿El estudiante aprueba la asignatura?",
     description: "A partir de tres notas, calcular el promedio y decidir si el estudiante aprueba según la nota aprobatoria.",
+    statement:
+      "Un estudiante obtuvo 4 en el primer parcial, 3 en el segundo y 5 en el tercero. La nota aprobatoria de la asignatura es 3. Calcule el promedio de las tres notas y determine si el estudiante aprueba.",
     group: "N1",
   });
   analysis.students = [createStudent({ idNumber: "1001", fullName: "Ana Pérez" })];
 
-  const nota1 = createDataEntry({ name: "nota1", type: "numeric" });
-  const nota2 = createDataEntry({ name: "nota2", type: "numeric" });
-  const nota3 = createDataEntry({ name: "nota3", type: "numeric" });
-  const notaAprobatoria = createDataEntry({ name: "notaAprobatoria", type: "numeric" });
+  // Datos de entrada identificados a partir del enunciado (fragmento + valor).
+  const nota1 = createDataEntry({ name: "nota1", type: "numeric", source: "4 en el primer parcial", value: "4" });
+  const nota2 = createDataEntry({ name: "nota2", type: "numeric", source: "3 en el segundo", value: "3" });
+  const nota3 = createDataEntry({ name: "nota3", type: "numeric", source: "5 en el tercero", value: "5" });
+  const notaAprobatoria = createDataEntry({ name: "notaAprobatoria", type: "numeric", source: "La nota aprobatoria de la asignatura es 3", value: "3" });
   const sumaNotas = createDataEntry({ name: "sumaNotas", type: "numeric" });
   const promedio = createDataEntry({ name: "promedio", type: "numeric" });
   const aprobado = createDataEntry({ name: "aprobado", type: "logical" });

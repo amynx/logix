@@ -502,9 +502,12 @@ export class AnalysisController {
 
   // Carga un análisis de ejemplo completo (en modo visualización) para aprender de
   // un caso terminado. Es un análisis nuevo más; el anterior sigue en el historial.
-  // Carga el ejemplo del tutorial guiado (¿el estudiante aprueba?).
+  // Carga el ejemplo del tutorial guiado (¿el estudiante aprueba?). Abre la sección
+  // de datos en edición para que se vea la traza fragmento → valor → nombre.
   loadStudentGradeExample() {
     this.loadAnalysis(createStudentGradeExample());
+    this.editingInputs = true;
+    this.renderInputs();
   }
 
   async saveToFile() {
