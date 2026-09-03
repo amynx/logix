@@ -102,26 +102,33 @@ function runTour(steps, { markSeenOnClose = false }) {
     if (event.key === "Escape") close();
   };
 
-  const resolveTarget = (target) => {
+  // Elemento a resaltar: la tarjeta interior para que el anillo la ciña (evita el
+  // relleno del contenedor); si la sección tiene varias partes, el contenedor.
+  const resolveHighlight = (target) => {
     if (typeof target === "function") return target();
     if (typeof target === "string") {
       const container = document.getElementById(target);
       if (!container) return null;
-      // Resalta la tarjeta interior para que el anillo la ciña (evita el relleno
-      // del contenedor); si la sección tiene varias partes, resalta el contenedor.
       return container.childElementCount === 1 ? container.firstElementChild : container;
     }
+    return null;
+  };
+
+  // Elemento al que hacer scroll: el contenedor de la sección, que tiene el
+  // `scroll-margin-top` para no quedar bajo la cabecera fija (una fila se centra).
+  const resolveScroll = (target) => {
+    if (typeof target === "function") return target();
+    if (typeof target === "string") return document.getElementById(target);
     return null;
   };
 
   const render = () => {
     const step = steps[index];
     clearHighlight();
-    const target = resolveTarget(step.target);
-    if (target) {
-      target.classList.add("guide-highlight");
-      target.scrollIntoView({ behavior: "smooth", block: step.block ?? "start" });
-    }
+    const highlight = resolveHighlight(step.target);
+    if (highlight) highlight.classList.add("guide-highlight");
+    const scrollTo = resolveScroll(step.target);
+    if (scrollTo) scrollTo.scrollIntoView({ behavior: "smooth", block: step.block ?? "start" });
 
     const isLast = index === steps.length - 1;
     clear(card);
