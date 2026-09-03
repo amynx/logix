@@ -368,10 +368,11 @@ test("the students section collapses to read-only chips when done", async () => 
   btn(/Listo/).click();
   assert.equal(inputs().length, 0, "en visualización se ocultan los controles del estudiante");
   assert.match(doc.getElementById("students-container").textContent, /Ana Pérez/, "muestra el estudiante registrado");
-  assert.ok(doc.getElementById("analysis-group"), "el grupo sigue editable");
+  assert.equal(doc.getElementById("analysis-group"), null, "el grupo también se colapsa en visualización");
 
   btn(/Editar estudiantes/).click();
   assert.ok(inputs().length > 0, "los controles reaparecen para editar");
+  assert.ok(doc.getElementById("analysis-group"), "el grupo vuelve a ser editable");
 });
 
 test("the inputs section collapses to read-only chips when done", async () => {
@@ -647,16 +648,16 @@ test("the condition is a free-text natural-language question", async () => {
 test("the students section records a shared group and the participants", async () => {
   const { doc, controller } = await mountApp();
 
-  // El grupo es un único campo compartido por todos.
+  // Agregar un estudiante entra en edición y muestra el grupo y los campos juntos.
+  [...doc.querySelectorAll("#students-container button")].find((b) => b.textContent === "+ Agregar estudiante").click();
+  assert.equal(controller.analysis.students.length, 1);
+
+  // El grupo es un único campo compartido, editable junto con los estudiantes.
   const groupInput = doc.getElementById("analysis-group");
-  assert.ok(groupInput, "hay un campo de grupo");
+  assert.ok(groupInput, "hay un campo de grupo en edición");
   groupInput.value = "N1";
   fire(groupInput, "input");
   assert.equal(controller.analysis.group, "N1");
-
-  // Se pueden agregar estudiantes (identificación y nombre, sin grupo propio).
-  [...doc.querySelectorAll("#students-container button")].find((b) => b.textContent === "+ Agregar estudiante").click();
-  assert.equal(controller.analysis.students.length, 1);
 
   const studentInputs = doc.querySelectorAll("#students-container input:not(#analysis-group)");
   studentInputs[0].value = "123";

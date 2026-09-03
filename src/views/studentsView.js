@@ -26,23 +26,26 @@ export class StudentsView {
   render(group, students, editing, handlers) {
     clear(this.container);
 
-    const groupInput = el("input", {
-      id: "analysis-group",
-      type: "text",
-      value: group ?? "",
-      placeholder: "N1, N2, N3…",
-      class: `${CONTROL_CLASS} w-40`,
-      oninput: (event) => handlers.onGroupChange(event.target.value),
-    });
-
     const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante");
 
+    let groupBlock;
     let list;
     let actions;
-    if (students.length === 0 && !editing) {
-      list = emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
-      actions = [addButton];
-    } else if (editing) {
+    if (editing) {
+      // Modo edición: el grupo y los estudiantes se editan juntos.
+      groupBlock = el("div", { class: "mb-4" }, [
+        el("label", { for: "analysis-group", class: "block text-sm font-medium text-slate-700" }, "Grupo"),
+        el("div", { class: "mt-1" }, [
+          el("input", {
+            id: "analysis-group",
+            type: "text",
+            value: group ?? "",
+            placeholder: "N1, N2, N3…",
+            class: `${CONTROL_CLASS} w-40`,
+            oninput: (event) => handlers.onGroupChange(event.target.value),
+          }),
+        ]),
+      ]);
       list =
         students.length > 0
           ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
@@ -52,20 +55,24 @@ export class StudentsView {
         el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneStudents() }, [icon("check", "h-4 w-4"), "Listo"]),
       ];
     } else {
-      // Modo visualización: solo los estudiantes registrados, en fichas.
-      list = el("div", { class: "flex flex-wrap gap-2" }, students.map(studentChip));
-      actions = [
-        el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditStudents() }, [icon("edit", "h-4 w-4"), "Editar estudiantes"]),
-      ];
+      // Modo visualización: grupo y estudiantes de solo lectura.
+      groupBlock = el("div", { class: "mb-4 text-sm" }, [
+        el("span", { class: "font-medium text-slate-700" }, "Grupo: "),
+        group ? el("span", { class: "text-slate-700" }, group) : el("span", { class: "text-slate-400" }, "sin asignar"),
+      ]);
+      if (students.length > 0) {
+        list = el("div", { class: "flex flex-wrap gap-2" }, students.map(studentChip));
+        actions = [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditStudents() }, [icon("edit", "h-4 w-4"), "Editar estudiantes"])];
+      } else {
+        list = emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
+        actions = [addButton];
+      }
     }
 
     this.container.append(
       el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
         sectionHeader({ step: 1, title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
-        el("div", { class: "mb-4" }, [
-          el("label", { for: "analysis-group", class: "block text-sm font-medium text-slate-700" }, "Grupo"),
-          el("div", { class: "mt-1" }, [groupInput]),
-        ]),
+        groupBlock,
         list,
         el("div", { class: "mt-3 flex flex-wrap gap-2" }, actions),
       ]),
