@@ -85,15 +85,14 @@ function declareInput(doc, controller, name = "", type = "") {
   const before = new Set(controller.analysis.data.map((d) => d.id));
   [...doc.querySelectorAll("#inputs-container button")].find((b) => b.textContent === "+ Agregar dato").click();
   const entry = controller.analysis.data.find((d) => !before.has(d.id));
-  const names = doc.querySelectorAll("#inputs-container input");
-  const nameInput = names[names.length - 1];
+  const nameInput = [...doc.querySelectorAll('#inputs-container input[placeholder="nombre"]')].at(-1);
   if (name) {
     nameInput.value = name;
     fire(nameInput, "input");
   }
   if (type) {
-    const selects = doc.querySelectorAll("#inputs-container select");
-    const sel = selects[selects.length - 1];
+    // El select de tipo es el que ofrece el tipo pedido (no el de "Formatear nombres").
+    const sel = [...doc.querySelectorAll("#inputs-container select")].find((s) => [...s.options].some((o) => o.value === type));
     sel.value = type;
     fire(sel, "change");
   }
@@ -102,7 +101,7 @@ function declareInput(doc, controller, name = "", type = "") {
 
 // Referencia un dato de entrada (por id) en la columna de la fila indicada.
 function referenceInput(doc, rowIndex, dataId) {
-  const cell = doc.querySelectorAll("tbody tr")[rowIndex].querySelectorAll("td")[2];
+  const cell = doc.querySelectorAll("#table-container tbody tr")[rowIndex].querySelectorAll("td")[2];
   const picker = [...cell.querySelectorAll("select")].find((s) => [...s.options].some((o) => o.value === dataId));
   picker.value = dataId;
   fire(picker, "change");
@@ -115,8 +114,8 @@ test("renders analysis info and a seeded row with all columns", async () => {
   assert.ok(doc.getElementById("analysis-description"), "description textarea exists");
 
   assert.equal(doc.querySelectorAll("thead th").length, 12, "12 header cells (# + 10 columns + actions)");
-  assert.equal(doc.querySelectorAll("tbody tr").length, 1, "one seeded row");
-  assert.equal(doc.querySelectorAll("tbody tr td").length, 12, "row has 12 cells");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "one seeded row");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr td").length, 12, "row has 12 cells");
 });
 
 test("dragging a row onto another reorders the analysis", async () => {
@@ -124,8 +123,8 @@ test("dragging a row onto another reorders the analysis", async () => {
   controller.addRow(); // dos filas
   const [firstId, secondId] = controller.analysis.rows.map((row) => row.id);
 
-  const firstHandle = doc.querySelectorAll("tbody tr")[0].querySelector("span[draggable]");
-  const secondRow = doc.querySelectorAll("tbody tr")[1];
+  const firstHandle = doc.querySelectorAll("#table-container tbody tr")[0].querySelector("span[draggable]");
+  const secondRow = doc.querySelectorAll("#table-container tbody tr")[1];
   firstHandle.dispatchEvent(new globalThis.window.Event("dragstart"));
   secondRow.dispatchEvent(new globalThis.window.Event("drop"));
 
@@ -143,7 +142,7 @@ test("switching to the cards view shows the same activities and preserves order"
 
   [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
   assert.equal(controller.viewMode, "cards");
-  assert.equal(doc.querySelectorAll("tbody tr").length, 0, "ya no hay tabla");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 0, "ya no hay tabla");
   const cards = doc.querySelectorAll("#table-container [data-row-id]");
   assert.equal(cards.length, 2, "una card por actividad");
   assert.deepEqual([...cards].map((c) => c.dataset.rowId), ids, "mismo orden");
@@ -165,7 +164,7 @@ test("editing in the cards view updates the same analysis", async () => {
   assert.equal(result.name, "promedio");
 
   [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tabla").click();
-  assert.equal(doc.querySelectorAll("tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
 });
 
 test("a card toggles between edit and view mode", async () => {
@@ -194,15 +193,15 @@ test("finishing edit in the table shows the read-only summary with an Editar act
   const { doc, controller } = await mountApp();
 
   // Registra un resultado y termina la edición de la fila inicial.
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "promedio";
   fire(resultName, "input");
   const rowId = controller.analysis.rows[0].id;
 
-  [...doc.querySelector("tbody tr").querySelectorAll("button")].find((b) => /Listo/.test(b.textContent)).click();
+  [...doc.querySelector("#table-container tbody tr").querySelectorAll("button")].find((b) => /Listo/.test(b.textContent)).click();
 
   assert.equal(controller.editingRows.has(rowId), false);
-  const row = doc.querySelector("tbody tr");
+  const row = doc.querySelector("#table-container tbody tr");
   assert.equal(row.dataset.editing, "false");
   assert.equal(row.querySelectorAll("input, select, textarea").length, 0, "sin controles en visualización");
   assert.match(row.querySelectorAll("td")[5].textContent, /promedio/, "muestra la información registrada");
@@ -229,7 +228,7 @@ test("adding a row appends a new editable row", async () => {
   addButton.click();
 
   assert.equal(controller.analysis.rows.length, 2);
-  assert.equal(doc.querySelectorAll("tbody tr").length, 2);
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 2);
 });
 
 test("deleting a row removes it after confirmation", async () => {
@@ -258,20 +257,20 @@ test("editing the title updates the model without re-rendering", async () => {
 
 test("changing purpose updates the model and re-renders the table", async () => {
   const { doc, controller } = await mountApp();
-  const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
 
   purposeSelect.value = "decision";
   fire(purposeSelect, "change");
 
   assert.equal(controller.analysis.rows[0].purpose, "decision");
-  assert.equal(doc.querySelectorAll("tbody tr").length, 1, "still one row after re-render");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "still one row after re-render");
 });
 
 test("condition and branches show as 'no aplica' outside of decisions", async () => {
   const { doc } = await mountApp();
-  const conditionCell = () => doc.querySelectorAll("tbody tr td")[3];
-  const branchCell = () => doc.querySelectorAll("tbody tr td")[9];
-  const purposeSelect = () => doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  const conditionCell = () => doc.querySelectorAll("#table-container tbody tr td")[3];
+  const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
+  const purposeSelect = () => doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
 
   // Sin propósito aún: la condición sigue disponible; las ramas no aplican.
   assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
@@ -299,14 +298,14 @@ test("a row references a declared input, shown as a read-only chip", async () =>
   referenceInput(doc, 0, inputId);
 
   assert.deepEqual(controller.analysis.rows[0].inputIds, [inputId]);
-  const cell = doc.querySelectorAll("tbody tr td")[2];
+  const cell = doc.querySelectorAll("#table-container tbody tr td")[2];
   assert.match(cell.textContent, /nota1/);
   assert.equal(cell.querySelectorAll("input").length, 0, "no hay campo editable en la celda");
 });
 
 test("editing result name then type keeps both (no stale overwrite)", async () => {
   const { doc, controller } = await mountApp();
-  const resultCell = doc.querySelectorAll("tbody tr td")[5];
+  const resultCell = doc.querySelectorAll("#table-container tbody tr td")[5];
   const nameInput = resultCell.querySelector("input");
   const typeSelect = resultCell.querySelector("select");
 
@@ -324,14 +323,14 @@ test("a produced result is selectable in another row's input column", async () =
   const { doc, controller } = await mountApp();
 
   // La fila 0 produce "buenas".
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "buenas";
   fire(resultName, "input");
   const buenasId = controller.analysis.rows[0].resultId;
 
   // La fila 1 puede referenciarlo desde su columna "Datos de entrada".
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
-  const inputsCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[2];
+  const inputsCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[2];
   const picker = [...inputsCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === buenasId),
   );
@@ -347,7 +346,7 @@ test("detaching an input from a row keeps it declared globally", async () => {
   const inputId = declareInput(doc, controller, "nota1", "numeric");
   referenceInput(doc, 0, inputId);
 
-  const cell = () => doc.querySelectorAll("tbody tr td")[2];
+  const cell = () => doc.querySelectorAll("#table-container tbody tr td")[2];
   [...cell().querySelectorAll("button")].find((b) => b.textContent === "×").click();
 
   assert.equal(controller.analysis.rows[0].inputIds.length, 0, "se quita la referencia");
@@ -445,13 +444,13 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
   const { doc, controller } = await mountApp();
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
 
-  const resultName = () => doc.querySelectorAll("tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
+  const resultName = () => doc.querySelectorAll("#table-container tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
   resultName().focus();
   resultName().value = "promedio";
   fire(resultName(), "input");
 
   const promedioId = controller.analysis.rows[0].resultId;
-  const opCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[4];
+  const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
   assert.ok(
     [...opCell.querySelectorAll("select option")].some((o) => o.value === promedioId),
     "otra fila ya puede referenciar el resultado recién nombrado",
@@ -468,7 +467,7 @@ test("renaming a declared input updates its references in the rows live", async 
   nameInput.value = "promedioFinal";
   fire(nameInput, "input");
 
-  const cell = doc.querySelectorAll("tbody tr td")[2];
+  const cell = doc.querySelectorAll("#table-container tbody tr td")[2];
   assert.match(cell.textContent, /promedioFinal/, "la ficha de la fila se actualiza al instante");
 });
 
@@ -476,14 +475,14 @@ test("deleting a row warns when its datum is used in another operation", async (
   const { doc, controller } = await mountApp();
 
   // La fila 0 produce "promedio".
-  const resultInput = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultInput = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultInput.value = "promedio";
   fire(resultInput, "input");
   const promedioId = controller.analysis.rows[0].resultId;
 
   // La fila 1 lo referencia en su operación.
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
-  const opCell = doc.querySelectorAll("tbody tr")[1].querySelectorAll("td")[4];
+  const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
   const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === promedioId),
   );
@@ -491,7 +490,7 @@ test("deleting a row warns when its datum is used in another operation", async (
   fire(dataSelect, "change");
   const secondRowId = controller.analysis.rows[1].id;
 
-  doc.querySelectorAll("tbody tr")[0].querySelector('[title="Eliminar actividad"]').click();
+  doc.querySelectorAll("#table-container tbody tr")[0].querySelector('[title="Eliminar actividad"]').click();
   assert.match(doc.body.textContent, /reutilizado en/, "el aviso menciona la reutilización");
   [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
   await flush();
@@ -510,7 +509,7 @@ test("the operation builder offers all data, not only the row's inputs", async (
   const inputId = declareInput(doc, controller, "nota1", "numeric");
 
   // Sin referenciarlo en la columna de entrada, ya está disponible en la operación.
-  const opCell = doc.querySelectorAll("tbody tr td")[4];
+  const opCell = doc.querySelectorAll("#table-container tbody tr td")[4];
   const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === inputId),
   );
@@ -525,7 +524,7 @@ test("building an operation references data and shows it in the chain", async ()
   referenceInput(doc, 0, dataId);
 
   // Construye la operación: referencia nota1, operador ÷ y literal 3.
-  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
   const dataSelect = [...opCell().querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === dataId),
   );
@@ -550,7 +549,7 @@ test("building an operation references data and shows it in the chain", async ()
 
 test("operation tokens can be reordered by drag and drop", async () => {
   const { doc, controller } = await mountApp();
-  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
   const addLiteral = (value) => {
     const literal = opCell().querySelector('input[placeholder="valor"]');
     literal.value = value;
@@ -568,7 +567,7 @@ test("operation tokens can be reordered by drag and drop", async () => {
 
 test("parentheses are available as grouping operators", async () => {
   const { doc, controller } = await mountApp();
-  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
   const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === "lparen"),
   );
@@ -582,11 +581,11 @@ test("parentheses are available as grouping operators", async () => {
 test("the result type is suggested from the operation when unset", async () => {
   const { doc, controller } = await mountApp();
 
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "promedio";
   fire(resultName, "input");
 
-  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
   const addLiteral = (value) => {
     const literal = opCell().querySelector('input[placeholder="valor"]');
     literal.value = value;
@@ -608,7 +607,7 @@ test("the result type is suggested when the result is named after the operation"
   const { doc, controller } = await mountApp();
 
   // Primero se construye la operación 2 + 3...
-  const opCell = () => doc.querySelectorAll("tbody tr td")[4];
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
   const addLiteral = (value) => {
     const literal = opCell().querySelector('input[placeholder="valor"]');
     literal.value = value;
@@ -623,20 +622,20 @@ test("the result type is suggested when the result is named after the operation"
   addLiteral("3");
 
   // ...y luego se nombra el resultado.
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "suma";
   fire(resultName, "input");
 
   const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
   assert.equal(result.type, "numeric");
-  const typeSelect = doc.querySelectorAll("tbody tr td")[5].querySelector("select");
+  const typeSelect = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("select");
   assert.equal(typeSelect.value, "numeric", "el select refleja la sugerencia");
 });
 
 test("the condition is a free-text natural-language question", async () => {
   const { doc, controller } = await mountApp();
 
-  const conditionField = doc.querySelectorAll("tbody tr td")[3].querySelector("textarea");
+  const conditionField = doc.querySelectorAll("#table-container tbody tr td")[3].querySelector("textarea");
   assert.ok(conditionField, "la condición es un campo de texto, no un constructor");
 
   conditionField.value = "¿El promedio es mayor o igual a 3?";
@@ -673,11 +672,11 @@ test("the students section records a shared group and the participants", async (
 
 test("the branch builder appears only when the path is a response", async () => {
   const { doc } = await mountApp();
-  const purpose = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  const purpose = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
   purpose.value = "decision";
   fire(purpose, "change");
 
-  const branchCell = () => doc.querySelectorAll("tbody tr td")[9];
+  const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
   const typeSelect = () => branchCell().querySelector("select");
 
   assert.equal(branchCell().querySelectorAll("select").length, 1, "sin tipo: solo el selector");
@@ -695,14 +694,14 @@ test("a decision branch response can reference existing data", async () => {
   const { doc, controller } = await mountApp();
 
   // La fila 0 produce "promedio".
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "promedio";
   fire(resultName, "input");
   const promedioId = controller.analysis.rows[0].resultId;
 
   // Fila 1: decisión con rama "Si se cumple" de tipo Respuesta que referencia el dato.
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
-  const row1 = () => doc.querySelectorAll("tbody tr")[1];
+  const row1 = () => doc.querySelectorAll("#table-container tbody tr")[1];
   row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
   fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");
 
@@ -726,11 +725,11 @@ test("a produced datum can stay pending and later link to a new activity", async
   const { doc, controller } = await mountApp();
 
   // La fila 0 produce "buenas": aparece el selector de actividad asociada.
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "buenas";
   fire(resultName, "input");
 
-  const usedInSelect = () => doc.querySelectorAll("tbody tr td")[7].querySelector("select");
+  const usedInSelect = () => doc.querySelectorAll("#table-container tbody tr td")[7].querySelector("select");
   assert.ok(usedInSelect(), "hay selector cuando la fila produce un dato");
 
   // Aún no existe la actividad destino: se deja pendiente de asignación.
@@ -750,7 +749,7 @@ test("a produced datum can stay pending and later link to a new activity", async
 test("deleting the target activity reverts the link to pending", async () => {
   const { doc, controller } = await mountApp();
 
-  const resultName = doc.querySelectorAll("tbody tr td")[5].querySelector("input");
+  const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "buenas";
   fire(resultName, "input");
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
@@ -758,7 +757,7 @@ test("deleting the target activity reverts the link to pending", async () => {
   controller.setUsedIn(sourceId, targetId);
 
   // Se elimina la actividad destino: la relación no se pierde, queda pendiente.
-  doc.querySelectorAll("tbody tr")[1].querySelector('[title="Eliminar actividad"]').click();
+  doc.querySelectorAll("#table-container tbody tr")[1].querySelector('[title="Eliminar actividad"]').click();
   [...doc.querySelectorAll("body > div button")].find((b) => b.textContent === "Eliminar").click();
   await flush();
 
@@ -773,12 +772,12 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   // "nota1" declarado como dato de entrada aparece en las ENTRADAS de la cadena.
   declareInput(doc, controller, "nota1", "numeric");
 
-  const purposeSelect = doc.querySelectorAll("tbody tr td")[6].querySelector("select");
+  const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
   purposeSelect.value = "response";
   fire(purposeSelect, "change");
 
   // El comentario es texto libre.
-  const comment = doc.querySelectorAll("tbody tr td")[8].querySelector("textarea");
+  const comment = doc.querySelectorAll("#table-container tbody tr td")[8].querySelector("textarea");
   comment.value = "Mostrar el resultado";
   fire(comment, "input");
 
@@ -965,7 +964,7 @@ test("creating a new analysis resets to a single empty row", async () => {
 
   assert.notEqual(controller.analysis.id, previousId);
   assert.equal(controller.analysis.rows.length, 1);
-  assert.equal(doc.querySelectorAll("tbody tr").length, 1);
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1);
 });
 
 test("opening a valid file loads it into the editor", async () => {
@@ -979,7 +978,7 @@ test("opening a valid file loads it into the editor", async () => {
 
   assert.equal(controller.analysis.id, source.id);
   assert.equal(doc.getElementById("analysis-title").value, "Importado");
-  assert.equal(doc.querySelectorAll("tbody tr").length, 2);
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 2);
 });
 
 test("opening an invalid file shows a friendly message and keeps the analysis", async () => {
