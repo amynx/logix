@@ -388,6 +388,47 @@ test("the inputs section collapses to read-only chips when done", async () => {
   assert.ok(doc.querySelector("#inputs-container input"), "los controles reaparecen para agregar más");
 });
 
+test("selecting a fragment of the statement adds it as an input datum", async () => {
+  const { doc, controller } = await mountApp();
+  const statement = doc.getElementById("analysis-statement");
+  assert.ok(statement, "existe el campo de enunciado");
+
+  statement.value = "Una empresa produce 500 unidades utilizando 10 trabajadores.";
+  fire(statement, "input");
+  const start = statement.value.indexOf("500 unidades");
+  statement.setSelectionRange(start, start + "500 unidades".length);
+  fire(statement, "mouseup");
+
+  const addBtn = [...doc.querySelectorAll("#analysis-info button")].find((b) => /como dato de entrada/.test(b.textContent));
+  assert.ok(addBtn, "aparece la acción para agregar la selección");
+  addBtn.click();
+
+  assert.equal(controller.analysis.data.length, 1, "se agrega un dato");
+  const entry = controller.analysis.data[0];
+  assert.equal(entry.source, "500 unidades", "conserva el fragmento de origen");
+  assert.equal(entry.value, "500", "extrae el valor evidente");
+  assert.equal(entry.name, "", "el nombre lo pone el estudiante");
+});
+
+test("formatting input names applies the chosen convention", async () => {
+  const { doc, controller } = await mountApp();
+  const declare = (name) => {
+    [...doc.querySelectorAll("#inputs-container button")].find((b) => b.textContent === "+ Agregar dato").click();
+    const nameInput = [...doc.querySelectorAll('#inputs-container input[placeholder="nombre"]')].at(-1);
+    nameInput.value = name;
+    fire(nameInput, "input");
+  };
+  declare("unidades producidas");
+  declare("cantidad trabajadores");
+
+  const formatSelect = [...doc.querySelectorAll("#inputs-container select")].find((s) => [...s.options].some((o) => o.value === "camel"));
+  assert.ok(formatSelect, "hay un selector de formateo");
+  formatSelect.value = "camel";
+  fire(formatSelect, "change");
+
+  assert.deepEqual(controller.analysis.data.map((d) => d.name), ["unidadesProducidas", "cantidadTrabajadores"]);
+});
+
 test("removing a declared input from its section deletes it and prunes references", async () => {
   const { doc, controller } = await mountApp();
   const inputId = declareInput(doc, controller, "nota1", "numeric");
@@ -422,7 +463,7 @@ test("renaming a declared input updates its references in the rows live", async 
   const inputId = declareInput(doc, controller, "promedio", "numeric");
   referenceInput(doc, 0, inputId);
 
-  const nameInput = doc.querySelectorAll("#inputs-container input")[0];
+  const nameInput = doc.querySelector('#inputs-container input[placeholder="nombre"]');
   nameInput.value = "promedioFinal";
   fire(nameInput, "input");
 

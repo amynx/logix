@@ -17,6 +17,11 @@ const INPUT_CLASS =
 const LABEL_CLASS = "block text-sm font-medium text-slate-700";
 const HELP_CLASS = "mt-1 text-xs text-slate-500";
 
+// Acorta un fragmento largo para mostrarlo en una etiqueta.
+function truncate(text, max = 40) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
 // Botón en línea de la barra (escritorio): fantasma o primario (índigo sólido).
 function barButton(label, onClick, iconName, { primary = false } = {}) {
   const base = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium";
@@ -225,7 +230,7 @@ export class AnalysisView {
       `inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5 ${status.pill}`;
   }
 
-  renderInfo(analysis, { onTitleChange, onDescriptionChange }) {
+  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded }) {
     clear(this.infoContainer);
 
     const title = el("input", {
@@ -246,9 +251,54 @@ export class AnalysisView {
       oninput: (event) => onDescriptionChange(event.target.value),
     });
 
+    // Enunciado del problema: el texto sobre el que se identifican los datos.
+    const statement = el("textarea", {
+      id: "analysis-statement",
+      rows: 5,
+      value: analysis.statement,
+      placeholder: "Pega aquí el enunciado completo del problema. Luego selecciona un fragmento (p. ej. «500 unidades») para agregarlo como dato de entrada.",
+      class: `${INPUT_CLASS} resize-y`,
+      oninput: (event) => onStatementChange(event.target.value),
+      onmouseup: () => updateSelectionBar(),
+      onkeyup: () => updateSelectionBar(),
+      onselect: () => updateSelectionBar(),
+    });
+
+    const selectionBar = el("div", { class: "mt-2 flex min-h-[2rem] items-center" });
+    const selectedFragment = () => statement.value.substring(statement.selectionStart, statement.selectionEnd).trim();
+
+    const updateSelectionBar = () => {
+      clear(selectionBar);
+      const fragment = selectedFragment();
+      if (!fragment) {
+        selectionBar.append(el("span", { class: "text-xs text-slate-400" }, "Selecciona un fragmento del enunciado para agregarlo como dato de entrada."));
+        return;
+      }
+      if (isFragmentAdded(fragment)) {
+        selectionBar.append(el("span", { class: "inline-flex items-center gap-1.5 text-xs text-emerald-600" }, [icon("check", "h-3.5 w-3.5"), `«${truncate(fragment)}» ya está en Datos de entrada.`]));
+        return;
+      }
+      selectionBar.append(
+        el(
+          "button",
+          {
+            type: "button",
+            class: "inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-100",
+            // Evita que el botón robe el foco y pierda la selección del textarea.
+            onmousedown: (event) => event.preventDefault(),
+            onclick: () => {
+              onAddDataFromSelection(selectedFragment());
+              updateSelectionBar();
+            },
+          },
+          [icon("data", "h-4 w-4"), `Agregar «${truncate(fragment)}» como dato de entrada`],
+        ),
+      );
+    };
+
     this.infoContainer.append(
       el("div", { class: "space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({ step: 2, title: "Análisis", subtitle: "Título y descripción del problema.", iconName: "new" }),
+        sectionHeader({ step: 2, title: "Análisis", subtitle: "Título, descripción y enunciado del problema.", iconName: "new" }),
         el("div", {}, [
           el("label", { for: "analysis-title", class: LABEL_CLASS }, "Título del análisis"),
           el("div", { class: "mt-1" }, [title]),
@@ -258,7 +308,15 @@ export class AnalysisView {
           el("div", { class: "mt-1" }, [description]),
           el("p", { class: HELP_CLASS }, "Contexto general: qué necesidad debe resolver el programa."),
         ]),
+        el("div", {}, [
+          el("label", { for: "analysis-statement", class: LABEL_CLASS }, "Enunciado del problema"),
+          el("div", { class: "mt-1" }, [statement]),
+          el("p", { class: HELP_CLASS }, "El texto que analizarás para identificar los datos. Selecciona un fragmento para agregarlo como dato de entrada."),
+          selectionBar,
+        ]),
       ]),
     );
+
+    updateSelectionBar();
   }
 }

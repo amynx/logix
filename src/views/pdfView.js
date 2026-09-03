@@ -69,6 +69,7 @@ function printHeader(analysis, exportedAt) {
   return el("div", { class: "border-b border-slate-300 pb-3" }, [
     el("h1", { class: "text-xl font-semibold" }, analysis.title || "Análisis sin título"),
     analysis.description ? el("p", { class: "mt-1 text-slate-600" }, analysis.description) : null,
+    analysis.statement ? el("p", { class: "mt-2 whitespace-pre-wrap text-sm text-slate-700" }, [el("span", { class: "font-medium" }, "Enunciado: "), analysis.statement]) : null,
     el("p", { class: "mt-1 text-xs text-slate-500" }, `Exportado: ${formatDateTime(exportedAt)}`),
   ]);
 }

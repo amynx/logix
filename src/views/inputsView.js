@@ -5,6 +5,7 @@
 
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
+import { NAME_CONVENTIONS } from "../models/nameConventions.js";
 import { sectionHeader, emptyState } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { typeBadge } from "./badges.js";
@@ -41,10 +42,8 @@ export class InputsView {
         inputs.length > 0
           ? el("div", { class: "space-y-2" }, inputs.map((entry) => inputRow(entry, handlers)))
           : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer dato de entrada.");
-      actions = [
-        addButton,
-        el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]),
-      ];
+      const done = el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]);
+      actions = inputs.length > 0 ? [addButton, formatSelect(handlers.onFormatNames), done] : [addButton, done];
     } else {
       // Modo visualización: solo los datos registrados, en fichas de solo lectura.
       body = el("div", { class: "flex flex-wrap gap-2" }, inputs.map(dataChip));
@@ -81,16 +80,24 @@ function dataChip(entry) {
   ]);
 }
 
+// Fila de un dato de entrada: el fragmento del enunciado (si lo hay) → valor, tipo
+// y nombre. Deja explícita la transformación de un dato identificado a su nombre.
 function inputRow(entry, handlers) {
-  return el("div", { class: "flex items-center gap-2" }, [
-    el("input", {
-      type: "text",
-      value: entry.name ?? "",
-      placeholder: "nombre",
-      class: `${CONTROL_CLASS} w-48`,
-      oninput: (event) => handlers.onInputChange(entry.id, { name: event.target.value }),
-    }),
-    typeSelect(entry, handlers),
+  const change = (changes) => handlers.onInputChange(entry.id, changes);
+  const fields = [];
+  if ((entry.source ?? "").trim()) {
+    fields.push(
+      el("span", { class: "inline-flex max-w-[16rem] items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-sm text-slate-600", title: "Fragmento del enunciado" }, [
+        icon("data", "h-3.5 w-3.5 shrink-0 text-slate-400"),
+        el("span", { class: "truncate" }, entry.source),
+      ]),
+    );
+    fields.push(el("span", { class: "text-slate-300" }, "→"));
+  }
+  fields.push(textField("valor", entry.value, "w-24", (value) => change({ value })));
+  fields.push(typeSelect(entry, handlers));
+  fields.push(textField("nombre", entry.name, "w-56", (value) => change({ name: value })));
+  fields.push(
     el(
       "button",
       {
@@ -102,7 +109,38 @@ function inputRow(entry, handlers) {
       },
       "🗑",
     ),
-  ]);
+  );
+  return el("div", { class: "flex flex-wrap items-center gap-2" }, fields);
+}
+
+function textField(placeholder, value, widthClass, onInput) {
+  return el("input", {
+    type: "text",
+    value: value ?? "",
+    placeholder,
+    class: `${CONTROL_CLASS} ${widthClass}`,
+    oninput: (event) => onInput(event.target.value),
+  });
+}
+
+// Selector para aplicar una convención de nombres a los datos (solo si se elige).
+function formatSelect(onFormat) {
+  const select = el(
+    "select",
+    {
+      class: `${CONTROL_CLASS} text-sm`,
+      title: "Aplicar una convención a los nombres de los datos",
+      onchange: (event) => {
+        if (event.target.value) {
+          onFormat(event.target.value);
+          event.target.value = "";
+        }
+      },
+    },
+    [el("option", { value: "" }, "Formatear nombres…"), ...Object.entries(NAME_CONVENTIONS).map(([key, label]) => el("option", { value: key }, label))],
+  );
+  select.value = "";
+  return select;
 }
 
 function typeSelect(entry, handlers) {

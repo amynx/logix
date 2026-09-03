@@ -11,6 +11,7 @@ import {
   updateAnalysisInfo,
   updateData,
   addInput,
+  formatInputNames,
   removeData,
   listInputs,
   addExistingRowInput,
@@ -32,6 +33,13 @@ import { inferResultType } from "../models/operators.js";
 import { trackEvent } from "../utils/analytics.js";
 
 const DEFAULT_SAVE_DELAY = 500;
+
+// Extrae un valor evidente (el primer número) de un fragmento del enunciado. Si no
+// hay ninguno, devuelve "" y el estudiante lo completa. Es solo una ayuda editable.
+function valueFromFragment(fragment) {
+  const match = String(fragment).match(/-?\d+(?:[.,]\d+)?/);
+  return match ? match[0] : "";
+}
 
 export class AnalysisController {
   #saveTimer = null;
@@ -150,7 +158,18 @@ export class AnalysisController {
       onRemoveInput: (dataId) => this.removeInput(dataId),
       onEditInputs: () => this.setEditingInputs(true),
       onDoneInputs: () => this.setEditingInputs(false),
+      onFormatNames: (convention) => this.formatInputNames(convention),
     });
+  }
+
+  // Aplica la convención elegida a los nombres de los datos de entrada (a petición
+  // del estudiante). Se re-renderiza la tabla para reflejar los nombres en las fichas.
+  formatInputNames(convention) {
+    formatInputNames(this.analysis, convention);
+    this.renderInputs();
+    this.renderTable();
+    this.#afterChange();
+    trackEvent("format_input_names", { convention });
   }
 
   setEditingInputs(editing) {
@@ -259,7 +278,24 @@ export class AnalysisController {
     this.analysisView.renderInfo(this.analysis, {
       onTitleChange: (title) => this.updateInfo({ title }),
       onDescriptionChange: (description) => this.updateInfo({ description }),
+      onStatementChange: (statement) => this.updateInfo({ statement }),
+      onAddDataFromSelection: (fragment) => this.addDataFromSelection(fragment),
+      isFragmentAdded: (fragment) => this.analysis.data.some((entry) => (entry.source ?? "").trim() === fragment),
     });
+  }
+
+  // Convierte un fragmento seleccionado del enunciado en un dato de entrada: guarda
+  // el fragmento como origen y extrae un valor evidente (editable). El estudiante
+  // completa el tipo y el nombre. No decide el nombre por él.
+  addDataFromSelection(fragment) {
+    const text = fragment.trim();
+    if (!text) return;
+    addInput(this.analysis, { source: text, value: valueFromFragment(text) });
+    this.editingInputs = true;
+    this.renderInputs();
+    this.renderTable();
+    this.#afterChange();
+    trackEvent("add_data_from_selection");
   }
 
   // Vista activa de las actividades (tabla o tarjetas): ambas comparten handlers.
