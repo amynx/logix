@@ -37,7 +37,14 @@ export function migrateAnalysis(data) {
   if (current.version < 9) current = migrateV8toV9(current);
   if (current.version < 10) current = migrateV9toV10(current);
   if (current.version < 11) current = migrateV10toV11(current);
+  if (current.version < 12) current = migrateV11toV12(current);
   return current;
+}
+
+// v12: enunciado del problema y, en cada dato, el fragmento de origen y su valor.
+function migrateV11toV12(old) {
+  const data = (old.data ?? []).map((entry) => ({ ...entry, source: entry.source ?? "", value: entry.value ?? "" }));
+  return { ...old, version: 12, statement: old.statement ?? "", data };
 }
 
 // v11: vuelven los estudiantes (id, nombre). El grupo sigue siendo único.

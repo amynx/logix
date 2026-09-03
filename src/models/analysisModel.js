@@ -4,6 +4,7 @@
 // una única fuente de verdad que el controlador coordina con la vista y el storage.
 
 import { createId } from "../utils/id.js";
+import { applyNameConvention } from "./nameConventions.js";
 
 // Versión del formato del análisis. v5: la condición es texto libre. v6: uso
 // posterior y ramas como expresiones. v7: el uso posterior vuelve a texto (un
@@ -12,14 +13,17 @@ import { createId } from "../utils/id.js";
 // v10: la información de estudiantes se reduce al grupo (todos comparten grupo).
 // v11: se registran de nuevo los estudiantes (id, nombre), pero el grupo sigue
 // siendo un único campo compartido por todos (ya no es propio de cada estudiante).
-export const ANALYSIS_VERSION = 11;
+// v12: se registra el enunciado del problema y cada dato conserva el fragmento del
+// enunciado del que salió (`source`) y su valor (`value`).
+export const ANALYSIS_VERSION = 12;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
 export const PENDING_ACTIVITY = "pending";
 
 export function createDataEntry(overrides = {}) {
-  return { id: createId(), name: "", type: "", ...overrides };
+  // `source`: fragmento del enunciado del que salió el dato. `value`: su valor.
+  return { id: createId(), name: "", type: "", source: "", value: "", ...overrides };
 }
 
 // Un estudiante que participa en el análisis. El grupo es común a todos, así que
@@ -56,6 +60,7 @@ export function createAnalysis(overrides = {}) {
     id: createId(),
     title: "",
     description: "",
+    statement: "", // enunciado completo del problema (para identificar los datos)
     group: "",
     students: [],
     data: [],
@@ -191,8 +196,17 @@ export function listInputs(analysis) {
 }
 
 // Agrega un nuevo dato de entrada (vacío) al catálogo.
-export function addInput(analysis) {
-  return addData(analysis);
+export function addInput(analysis, values = {}) {
+  return addData(analysis, values);
+}
+
+// Aplica una convención de nombres a los datos de entrada declarados. Solo cuando
+// el estudiante lo solicita; los nombres vacíos se dejan como están.
+export function formatInputNames(analysis, convention) {
+  for (const entry of listInputs(analysis)) {
+    entry.name = applyNameConvention(entry.name, convention);
+  }
+  return touch(analysis);
 }
 
 function tokensReference(tokens, dataId) {

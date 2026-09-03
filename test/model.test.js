@@ -18,7 +18,9 @@ import {
   addStudent,
   updateStudent,
   removeStudent,
+  formatInputNames,
 } from "../src/models/analysisModel.js";
+import { applyNameConvention } from "../src/models/nameConventions.js";
 
 function analysisWithRow() {
   const analysis = createAnalysis({ title: "Demo" });
@@ -104,6 +106,36 @@ test("removeRow keeps a datum whose origin row remains", () => {
   removeRow(analysis, consumer.id); // se borra el consumidor, no el origen
   assert.ok(findData(analysis, dataId), "el dato permanece porque su origen sigue");
   assert.equal(producer.resultId, dataId);
+});
+
+test("a datum keeps its source fragment and value; the analysis has a statement", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  assert.equal(analysis.statement, "", "el análisis empieza sin enunciado");
+
+  const input = addInput(analysis, { source: "500 unidades", value: "500" });
+  assert.equal(input.source, "500 unidades");
+  assert.equal(input.value, "500");
+  assert.equal(input.name, "", "el nombre lo pone el estudiante");
+  assert.equal(input.type, "");
+});
+
+test("applyNameConvention formats a readable name per convention", () => {
+  assert.equal(applyNameConvention("unidades producidas", "camel"), "unidadesProducidas");
+  assert.equal(applyNameConvention("unidades producidas", "snake"), "unidades_producidas");
+  assert.equal(applyNameConvention("unidades producidas", "pascal"), "UnidadesProducidas");
+  assert.equal(applyNameConvention("", "camel"), "", "un nombre vacío no cambia");
+  assert.equal(applyNameConvention("yaEnCamel", "snake"), "ya_en_camel", "re-convierte camelCase");
+});
+
+test("formatInputNames applies a convention only to declared inputs", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  addInput(analysis, { name: "unidades producidas" });
+  addInput(analysis, { name: "" }); // vacío: no cambia
+  addInput(analysis, { name: "cantidad trabajadores" });
+
+  formatInputNames(analysis, "camel");
+  const names = listInputs(analysis).map((entry) => entry.name);
+  assert.deepEqual(names, ["unidadesProducidas", "", "cantidadTrabajadores"]);
 });
 
 test("the analysis records a single group shared by all students", () => {
