@@ -101,7 +101,13 @@ function runTour(steps, { markSeenOnClose = false }) {
 
   const resolveTarget = (target) => {
     if (typeof target === "function") return target();
-    if (typeof target === "string") return document.getElementById(target);
+    if (typeof target === "string") {
+      const container = document.getElementById(target);
+      if (!container) return null;
+      // Resalta la tarjeta interior para que el anillo la ciña (evita el relleno
+      // del contenedor); si la sección tiene varias partes, resalta el contenedor.
+      return container.childElementCount === 1 ? container.firstElementChild : container;
+    }
     return null;
   };
 
