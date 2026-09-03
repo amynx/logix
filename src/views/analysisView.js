@@ -131,9 +131,10 @@ export class AnalysisView {
   renderStatus() {
     clear(this.statusContainer);
     this.statusIcon = el("span", { class: "flex h-3.5 w-3.5 items-center justify-center" });
-    this.statusLabel = el("span", {}, "");
+    // La etiqueta se oculta en móvil (solo el icono) para no desbordar la cabecera.
+    this.statusLabel = el("span", { class: "hidden md:inline" }, "");
     this.statusContainer.append(
-      el("span", { class: "inline-flex min-w-[6.5rem] items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors" }, [
+      el("span", { class: "inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5" }, [
         this.statusIcon,
         this.statusLabel,
       ]),
@@ -221,7 +222,7 @@ export class AnalysisView {
     const iconNode = status.icon();
     if (iconNode) this.statusIcon.append(iconNode);
     this.statusIcon.parentElement.className =
-      `inline-flex min-w-[6.5rem] items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${status.pill}`;
+      `inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5 ${status.pill}`;
   }
 
   renderInfo(analysis, { onTitleChange, onDescriptionChange }) {
