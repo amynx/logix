@@ -8,12 +8,13 @@ import { BRANCH_TYPES, labelOf } from "../models/dataTypes.js";
 import { expressionParts } from "../models/operators.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
-import { commentBox, questionBox, formulaBox, withEquals, withArrow } from "./cardLayout.js";
+import { commentBox, questionBox, formulaBox, withEquals, withArrow, referencedText } from "./cardLayout.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
 export function buildRowSummary(row, dataById, activities = [], producedIds = new Set()) {
   const resolve = (id) => dataById.get(id) ?? null;
+  const resolveName = referenceResolver(dataById, producedIds);
   const isDecision = row.purpose === "decision";
   const conditionApplies = isDecision || row.usesCondition;
   const inputs = row.inputIds.map(resolve).filter(Boolean);
@@ -21,16 +22,16 @@ export function buildRowSummary(row, dataById, activities = [], producedIds = ne
   const result = row.resultId ? resolve(row.resultId) : null;
 
   return {
-    problem: textNode(row.problem),
+    problem: textNode(row.problem, resolveName),
     inputs: inputs.length > 0
       ? el("div", { class: "flex flex-wrap gap-1" }, inputs.map((datum) => inputChip(datum, producedIds.has(datum.id))))
       : null,
-    condition: conditionApplies && conditionText ? questionBox(conditionText) : null,
+    condition: conditionApplies && conditionText ? questionBox(referencedText(conditionText, resolveName)) : null,
     operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve)) : null,
     result: result ? withEquals(dataChip(result)) : null,
     purpose: purposeBadge(row.purpose),
     usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
-    comment: commentText(row.subsequentUse),
+    comment: commentText(row.subsequentUse, resolveName),
     ifTrue: isDecision ? branchNode(row.ifTrue, resolve) : null,
     ifFalse: isDecision ? branchNode(row.ifFalse, resolve) : null,
   };
@@ -41,14 +42,28 @@ export function isSummaryEmpty(summary) {
   return Object.values(summary).every((node) => node == null);
 }
 
-function textNode(value) {
-  const text = (value ?? "").trim();
-  return text ? el("span", { class: "whitespace-pre-wrap text-slate-700" }, text) : null;
+// Resuelve un nombre referenciado (`[nombre]`) a un dato del catálogo, indicando si
+// lo produce otra actividad, para resaltar las referencias insertadas con «/».
+function referenceResolver(dataById, producedIds) {
+  const byName = new Map();
+  for (const datum of dataById.values()) {
+    const name = (datum.name ?? "").trim();
+    if (name) byName.set(name, datum);
+  }
+  return (name) => {
+    const datum = byName.get(name);
+    return datum ? { produced: producedIds.has(datum.id) } : null;
+  };
 }
 
-function commentText(value) {
+function textNode(value, resolveName) {
   const text = (value ?? "").trim();
-  return text ? commentBox(text) : null;
+  return text ? el("span", { class: "whitespace-pre-wrap text-slate-700" }, referencedText(text, resolveName)) : null;
+}
+
+function commentText(value, resolveName) {
+  const text = (value ?? "").trim();
+  return text ? commentBox(referencedText(text, resolveName)) : null;
 }
 
 function dataChip(datum) {

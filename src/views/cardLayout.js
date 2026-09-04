@@ -32,21 +32,54 @@ export function stepNumber(position) {
 }
 
 // Caja para una nota de texto libre (comentario): entre comillas y en cursiva,
-// visualmente diferenciada del resto de la información.
-export function commentBox(text) {
+// visualmente diferenciada del resto de la información. `content` puede ser texto
+// o nodos (p. ej. texto con referencias `[nombre]` resaltadas).
+export function commentBox(content) {
+  const inner = Array.isArray(content) ? content : [content];
   return el(
     "blockquote",
     { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm italic text-slate-600" },
-    `“${text}”`,
+    ["“", ...inner, "”"],
   );
 }
 
 // Caja para la condición: se lee como una pregunta (icono de interrogación + cursiva).
-export function questionBox(text) {
+// `content` puede ser texto o nodos con referencias resaltadas.
+export function questionBox(content) {
   return el("div", { class: "flex items-start gap-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 py-1.5 text-sm italic text-slate-700" }, [
     icon("help", "h-3.5 w-3.5 mt-0.5 text-indigo-400"),
-    el("span", { class: "min-w-0 whitespace-pre-wrap" }, text),
+    el("span", { class: "min-w-0 whitespace-pre-wrap" }, content),
   ]);
+}
+
+// Convierte un texto con referencias `[nombre]` en una lista de nodos: cada
+// referencia que corresponde a un dato real se resalta como ficha (entrada = azul,
+// resultado = violeta); el resto queda como texto. `resolveName(name)` devuelve
+// `{ produced }` si el nombre es un dato, o null. Así una referencia insertada con
+// el menú «/» se lee como referencia y no como texto entre corchetes.
+export function referencedText(text, resolveName) {
+  const nodes = [];
+  const pattern = /\[([^[\]]+)\]/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const info = typeof resolveName === "function" ? resolveName(match[1]) : null;
+    nodes.push(info ? referenceChip(match[1], info.produced) : match[0]);
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
+
+function referenceChip(name, produced) {
+  return el(
+    "span",
+    {
+      class: `inline-flex items-center gap-1 rounded px-1 py-0.5 align-middle not-italic ${produced ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`,
+    },
+    [icon(produced ? "reuse" : "data", `h-3 w-3 ${produced ? "text-violet-500" : "text-sky-500"}`), el("span", {}, name)],
+  );
 }
 
 // Caja para la operación: se lee como una fórmula (recuadro tenue, monoespaciada).
