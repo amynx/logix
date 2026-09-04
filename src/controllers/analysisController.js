@@ -287,6 +287,7 @@ export class AnalysisController {
       isFragmentAdded: (fragment) => this.analysis.data.some((entry) => (entry.source ?? "").trim() === fragment),
       showStatement: this.showStatement,
       onToggleStatement: () => this.toggleStatement(),
+      getDataMentions: () => this.#dataMentions(),
     });
   }
 
@@ -358,7 +359,17 @@ export class AnalysisController {
       onUsedInChange: (rowId, usedInRowId) => this.setUsedIn(rowId, usedInRowId),
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
       formatName: (name) => conventionalName(this.analysis, name),
+      getDataMentions: () => this.#dataMentions(),
     };
+  }
+
+  // Datos disponibles para mencionar en los campos de texto (menú "/"): entradas y
+  // resultados con nombre, marcando cuáles produce otra actividad.
+  #dataMentions() {
+    const produced = new Set(this.analysis.rows.map((row) => row.resultId).filter(Boolean));
+    return this.analysis.data
+      .filter((entry) => (entry.name ?? "").trim())
+      .map((entry) => ({ id: entry.id, name: entry.name, type: entry.type, produced: produced.has(entry.id) }));
   }
 
   // Cambia la operación (lista de tokens) y sugiere el tipo del dato resultante

@@ -6,6 +6,7 @@ import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
+import { attachMentions } from "./mentionMenu.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
@@ -37,6 +38,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
   const isDecision = row.purpose === "decision";
+  const mentions = handlers.getDataMentions; // menú "/" para insertar referencias
   const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
   const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
   const allData = [...dataById.values()].filter((entry) => entry.id !== row.resultId);
@@ -44,15 +46,15 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const resolveData = (id) => dataById.get(id) ?? null;
 
   return {
-    problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst }),
+    problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst, mentions }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
-    condition: conditionField(row, isDecision, field, structural),
+    condition: conditionField(row, isDecision, field, structural, mentions),
     operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
-    comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value }))),
+    comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
     ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
     ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
   };
@@ -250,9 +252,9 @@ export function normalizeFieldOnBlur(event, transform, persist) {
 }
 
 // `normalize` corrige la forma del texto al desenfocar (no mientras se escribe,
-// para no interrumpir). Actualiza el valor visible y persiste el resultado.
-function textField(value, placeholder, onInput, { normalize } = {}) {
-  return el("textarea", {
+// para no interrumpir). `mentions` activa el menú de datos al escribir "/".
+function textField(value, placeholder, onInput, { normalize, mentions } = {}) {
+  const field = el("textarea", {
     rows: 2,
     value: value ?? "",
     placeholder,
@@ -260,14 +262,17 @@ function textField(value, placeholder, onInput, { normalize } = {}) {
     oninput: (event) => onInput(event.target.value),
     onblur: normalize ? (event) => normalizeFieldOnBlur(event, normalize, onInput) : null,
   });
+  if (mentions) attachMentions(field, mentions);
+  return field;
 }
 
 // Campo de condición. Una decisión la usa siempre (es su pregunta de bifurcación);
 // en las demás actividades es opcional y explícita: un interruptor la activa, y solo
 // entonces aparece el campo, para que su ausencia no parezca un campo olvidado.
-function conditionField(row, isDecision, field, structural) {
+function conditionField(row, isDecision, field, structural, mentions) {
   const input = textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })), {
     normalize: formatAsQuestion,
+    mentions,
   });
   if (isDecision) return input;
   const toggle = conditionToggle(row.usesCondition, (checked) => structural(() => ({ usesCondition: checked })));

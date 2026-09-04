@@ -10,6 +10,7 @@ import { startExampleTutorial } from "./guideView.js";
 import { toggleTheme } from "../utils/theme.js";
 import { trackEvent } from "../utils/analytics.js";
 import { capitalizeFirst } from "../models/textNormalization.js";
+import { attachMentions } from "./mentionMenu.js";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
@@ -231,7 +232,7 @@ export class AnalysisView {
       `inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5 ${status.pill}`;
   }
 
-  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded, showStatement, onToggleStatement }) {
+  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded, showStatement, onToggleStatement, getDataMentions }) {
     clear(this.infoContainer);
 
     const title = el("input", {
@@ -259,6 +260,7 @@ export class AnalysisView {
         }
       },
     });
+    if (getDataMentions) attachMentions(description, getDataMentions);
 
     // Enunciado del problema: el texto sobre el que se identifican los datos. El
     // textarea crece con el contenido (conserva saltos de línea y párrafos) hasta
