@@ -306,33 +306,36 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
     "Agregar",
   );
 
-  // Botones rápidos de operadores, agrupados por tipo.
+  // Botones rápidos de operadores, agrupados por categoría con su rótulo visible.
   const operatorButtons = Object.values(OPERATOR_GROUPS).map((group) =>
-    el(
-      "div",
-      { class: "flex gap-0.5" },
-      Object.entries(group.operators).map(([key, symbol]) =>
-        el(
-          "button",
-          {
-            type: "button",
-            title: `${group.label}: ${symbol}`,
-            dataset: { op: key },
-            class: "min-w-[1.6rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
-            onmousedown: (event) => event.preventDefault(),
-            onclick: () => append({ kind: "op", op: key }),
-          },
-          symbol,
+    el("div", { class: "flex flex-col gap-0.5" }, [
+      el("span", { class: "text-[0.65rem] font-medium uppercase tracking-wide text-slate-400" }, group.label),
+      el(
+        "div",
+        { class: "flex gap-0.5" },
+        Object.entries(group.operators).map(([key, symbol]) =>
+          el(
+            "button",
+            {
+              type: "button",
+              title: `${group.label}: ${symbol}`,
+              dataset: { op: key },
+              class: "min-w-[1.6rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
+              onmousedown: (event) => event.preventDefault(),
+              onclick: () => append({ kind: "op", op: key }),
+            },
+            symbol,
+          ),
         ),
       ),
-    ),
+    ]),
   );
 
   return el("div", { class: "space-y-1.5" }, [
     tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
-    el("div", { class: "flex flex-wrap items-center gap-x-3 gap-y-1.5" }, [
+    el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, [
       el("div", { class: "flex items-center gap-1" }, [input, datalist, addButton]),
-      el("div", { class: "flex flex-wrap items-center gap-1.5" }, operatorButtons),
+      el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, operatorButtons),
     ]),
   ]);
 }
