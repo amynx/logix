@@ -49,14 +49,14 @@ export function buildRowFields(row, dataById, handlers, activities = []) {
     condition: conditionApplies
       ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
       : null,
-    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater)),
+    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value }))),
-    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData }) : null,
-    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData }) : null,
+    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id }) : null,
+    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id }) : null,
   };
 }
 
@@ -236,9 +236,14 @@ function selectField(options, value, onChange, { placeholder } = {}) {
   return select;
 }
 
-function expressionEditor(tokens, refs, resolve, onChange) {
+// Constructor visual de una expresión: fichas de tokens (dato/operador/valor) que
+// se agregan, borran y reordenan. Los datos y valores se agregan con un campo de
+// autocompletado; los operadores, con botones rápidos. `focusKey` identifica el
+// campo de este editor para conservar el foco al re-renderizar (encadenar rápido).
+function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
   const append = (token) => onChange((current) => [...current, token]);
   const removeAt = (index) => onChange((current) => current.filter((_, i) => i !== index));
+  const removeLast = () => onChange((current) => current.slice(0, -1));
 
   let draggedIndex = null;
   const moveToken = (from, to) => {
@@ -266,44 +271,79 @@ function expressionEditor(tokens, refs, resolve, onChange) {
     }),
   );
 
-  const controls = [];
-  if (refs.length > 0) {
-    const dataSelect = selectField(
-      refs.map((entry) => ({ value: entry.id, label: entry.name || "(sin nombre)" })),
-      "",
-      (dataId) => dataId && append({ kind: "ref", dataId }),
-      { placeholder: "+ dato" },
-    );
-    dataSelect.classList.add("text-xs");
-    controls.push(dataSelect);
-  }
-  controls.push(operatorSelect((op) => append({ kind: "op", op })));
-
-  const literal = el("input", { type: "text", placeholder: "valor", class: `${CONTROL_CLASS} w-16 text-xs` });
-  const addLiteral = () => {
-    const value = literal.value.trim();
-    if (value) append({ kind: "literal", value });
+  // Campo de dato o valor con autocompletado de los datos disponibles. Al confirmar,
+  // si el texto coincide con el nombre de un dato se agrega como referencia; si no,
+  // como valor constante. El estudiante decide qué usar; la búsqueda solo localiza.
+  const named = refs.filter((entry) => (entry.name ?? "").trim());
+  const listId = `expr-data-${focusKey}`.replace(/[^a-zA-Z0-9_-]/g, "-");
+  const datalist = el("datalist", { id: listId }, named.map((entry) => el("option", { value: entry.name })));
+  const input = el("input", {
+    type: "text",
+    placeholder: "dato o valor…",
+    autocomplete: "off",
+    class: `${CONTROL_CLASS} w-40 text-xs`,
+    dataset: { focusKey: `expr:${focusKey}` },
+    onkeydown: (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commit();
+      } else if (event.key === "Backspace" && input.value === "" && tokens.length > 0) {
+        event.preventDefault();
+        removeLast();
+      }
+    },
+  });
+  input.setAttribute("list", listId); // `list` es de solo lectura como propiedad
+  const commit = () => {
+    const text = input.value.trim();
+    if (!text) return;
+    const match = named.find((entry) => entry.name.toLowerCase() === text.toLowerCase());
+    append(match ? { kind: "ref", dataId: match.id } : { kind: "literal", value: text });
   };
-  controls.push(
-    el("div", { class: "flex items-center gap-1" }, [
-      literal,
-      el("button", { type: "button", class: "shrink-0 rounded px-1.5 py-1 text-xs font-medium text-slate-500 hover:text-slate-700", onclick: addLiteral }, "+ valor"),
-    ]),
+  const addButton = el(
+    "button",
+    { type: "button", class: "shrink-0 rounded px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-700", title: "Agregar dato o valor", onmousedown: (event) => event.preventDefault(), onclick: commit },
+    "Agregar",
   );
 
-  return el("div", { class: "space-y-1" }, [
+  // Botones rápidos de operadores, agrupados por tipo.
+  const operatorButtons = Object.values(OPERATOR_GROUPS).map((group) =>
+    el(
+      "div",
+      { class: "flex gap-0.5" },
+      Object.entries(group.operators).map(([key, symbol]) =>
+        el(
+          "button",
+          {
+            type: "button",
+            title: `${group.label}: ${symbol}`,
+            dataset: { op: key },
+            class: "min-w-[1.6rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
+            onmousedown: (event) => event.preventDefault(),
+            onclick: () => append({ kind: "op", op: key }),
+          },
+          symbol,
+        ),
+      ),
+    ),
+  );
+
+  return el("div", { class: "space-y-1.5" }, [
     tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
-    el("div", { class: "flex flex-wrap gap-1" }, controls),
+    el("div", { class: "flex flex-wrap items-center gap-x-3 gap-y-1.5" }, [
+      el("div", { class: "flex items-center gap-1" }, [input, datalist, addButton]),
+      el("div", { class: "flex flex-wrap items-center gap-1.5" }, operatorButtons),
+    ]),
   ]);
 }
 
 function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, onDrop }) {
-  const { text, className } = describeToken(token, resolve);
+  const { leading, text, className, extra = "" } = describeToken(token, resolve);
   const cursor = draggable ? "cursor-move" : "";
   return el(
     "span",
     {
-      class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${cursor} ${className}`,
+      class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${extra} ${cursor} ${className}`,
       draggable: draggable ? "true" : null,
       title: draggable ? "Arrastra para reordenar" : null,
       ondragstart: onDragStart,
@@ -315,41 +355,33 @@ function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, 
       },
     },
     [
+      leading,
       el("span", { class: "whitespace-nowrap" }, text),
       el("button", { type: "button", class: "text-slate-400 hover:text-red-600", title: "Quitar", onclick: onRemove }, "×"),
     ],
   );
 }
 
+// Describe una ficha por tipo. Cada tipo se distingue por FORMA además del color:
+// dato = icono de datos; operador = símbolo monoespaciado en negrita; valor = «#».
 function describeToken(token, resolve) {
   if (token.kind === "ref") {
     const datum = resolve(token.dataId);
     return {
+      leading: icon("data", "h-3 w-3 shrink-0 text-sky-500"),
       text: datum ? datum.name || "(sin nombre)" : "(dato eliminado)",
       className: "border border-sky-200 bg-sky-50 text-sky-700",
     };
   }
   if (token.kind === "op") {
-    return { text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "bg-slate-100 font-semibold text-slate-700" };
+    return { leading: null, text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "bg-slate-200 text-slate-700", extra: "font-mono font-bold" };
   }
-  return { text: token.value || "∅", className: "border border-amber-200 bg-amber-50 text-amber-700" };
-}
-
-function operatorSelect(onPick) {
-  const groups = Object.values(OPERATOR_GROUPS).map((group) =>
-    el(
-      "optgroup",
-      { label: group.label },
-      Object.entries(group.operators).map(([key, symbol]) => el("option", { value: key }, symbol)),
-    ),
-  );
-  const select = el(
-    "select",
-    { class: `${CONTROL_CLASS} text-xs`, onchange: (event) => event.target.value && onPick(event.target.value) },
-    [el("option", { value: "" }, "+ operador"), ...groups],
-  );
-  select.value = "";
-  return select;
+  return {
+    leading: icon("hash", "h-3 w-3 shrink-0 text-amber-500"),
+    text: token.value || "∅",
+    className: "border border-amber-200 bg-amber-50 text-amber-700",
+    extra: "font-mono",
+  };
 }
 
 function resultEditor(rowId, result, handlers) {
@@ -387,7 +419,7 @@ function usedInSelect(row, activities, onChange) {
 }
 
 // Camino de una decisión: el constructor de la respuesta solo aparece para "Respuesta".
-function branchEditor(branch, key, { structural, refs, resolve }) {
+function branchEditor(branch, key, { structural, refs, resolve, rowId }) {
   const children = [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => structural((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
@@ -395,8 +427,12 @@ function branchEditor(branch, key, { structural, refs, resolve }) {
   ];
   if (branch.type === "response") {
     children.push(
-      expressionEditor(branch.value, refs, resolve, (updater) =>
-        structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
+      expressionEditor(
+        branch.value,
+        refs,
+        resolve,
+        (updater) => structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
+        `br:${rowId}:${key}`,
       ),
     );
   }

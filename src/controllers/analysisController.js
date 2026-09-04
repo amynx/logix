@@ -364,7 +364,7 @@ export class AnalysisController {
     if (!row) return;
     updateRow(this.analysis, rowId, { operation: tokensUpdater(row.operation) });
     this.#suggestResultType(row);
-    this.renderTable();
+    this.#renderTableKeepingFocus(); // conserva el foco del constructor de expresiones
     this.#afterChange();
   }
 
@@ -432,7 +432,7 @@ export class AnalysisController {
     const changes = this.#resolveRowChanges(rowId, updater);
     if (!changes) return;
     updateRow(this.analysis, rowId, changes);
-    this.renderTable();
+    this.#renderTableKeepingFocus(); // conserva el foco del constructor en las ramas
     this.#afterChange();
   }
 

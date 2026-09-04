@@ -107,6 +107,17 @@ function referenceInput(doc, rowIndex, dataId) {
   fire(picker, "change");
 }
 
+// Constructor visual de expresiones: agrega un dato o valor (escribiendo el texto)
+// o un operador (por su clave, con el botón rápido). `cell` es la celda editable.
+function addExprElement(cell, text) {
+  const input = cell.querySelector("input[list]");
+  input.value = text;
+  [...cell.querySelectorAll("button")].find((b) => b.textContent === "Agregar").click();
+}
+function addExprOperator(cell, opKey) {
+  cell.querySelector(`button[data-op="${opKey}"]`).click();
+}
+
 test("renders analysis info and a seeded row with all columns", async () => {
   const { doc } = await mountApp();
 
@@ -453,10 +464,9 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
   resultName().value = "promedio";
   fire(resultName(), "input");
 
-  const promedioId = controller.analysis.rows[0].resultId;
   const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
   assert.ok(
-    [...opCell.querySelectorAll("select option")].some((o) => o.value === promedioId),
+    [...opCell.querySelectorAll("datalist option")].some((o) => o.value === "promedio"),
     "otra fila ya puede referenciar el resultado recién nombrado",
   );
   assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
@@ -487,11 +497,7 @@ test("deleting a row warns when its datum is used in another operation", async (
   // La fila 1 lo referencia en su operación.
   [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
   const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
-  const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === promedioId),
-  );
-  dataSelect.value = promedioId;
-  fire(dataSelect, "change");
+  addExprElement(opCell, "promedio");
   const secondRowId = controller.analysis.rows[1].id;
 
   doc.querySelectorAll("#table-container tbody tr")[0].querySelector('[title="Eliminar actividad"]').click();
@@ -514,10 +520,10 @@ test("the operation builder offers all data, not only the row's inputs", async (
 
   // Sin referenciarlo en la columna de entrada, ya está disponible en la operación.
   const opCell = doc.querySelectorAll("#table-container tbody tr td")[4];
-  const dataSelect = [...opCell.querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === inputId),
+  assert.ok(
+    [...opCell.querySelectorAll("datalist option")].some((o) => o.value === "nota1"),
+    "la operación ofrece el dato aunque la fila no lo consuma como entrada",
   );
-  assert.ok(dataSelect, "la operación ofrece el dato aunque la fila no lo consuma como entrada");
 });
 
 test("building an operation references data and shows it in the chain", async () => {
@@ -527,23 +533,11 @@ test("building an operation references data and shows it in the chain", async ()
   const dataId = declareInput(doc, controller, "nota1", "numeric");
   referenceInput(doc, 0, dataId);
 
-  // Construye la operación: referencia nota1, operador ÷ y literal 3.
+  // Construye la operación: referencia nota1, operador ÷ y valor 3.
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const dataSelect = [...opCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === dataId),
-  );
-  dataSelect.value = dataId;
-  fire(dataSelect, "change");
-
-  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === "div"),
-  );
-  opSelect.value = "div";
-  fire(opSelect, "change");
-
-  const literal = opCell().querySelector('input[placeholder="valor"]');
-  literal.value = "3";
-  [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
+  addExprElement(opCell(), "nota1");
+  addExprOperator(opCell(), "div");
+  addExprElement(opCell(), "3");
 
   const operation = controller.analysis.rows[0].operation;
   assert.deepEqual(operation.map((t) => t.kind), ["ref", "op", "literal"]);
@@ -554,13 +548,8 @@ test("building an operation references data and shows it in the chain", async ()
 test("operation tokens can be reordered by drag and drop", async () => {
   const { doc, controller } = await mountApp();
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const addLiteral = (value) => {
-    const literal = opCell().querySelector('input[placeholder="valor"]');
-    literal.value = value;
-    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
-  };
-  addLiteral("A");
-  addLiteral("B");
+  addExprElement(opCell(), "A");
+  addExprElement(opCell(), "B");
 
   const chips = opCell().querySelectorAll("span[draggable]");
   fire(chips[1], "dragstart");
@@ -572,12 +561,8 @@ test("operation tokens can be reordered by drag and drop", async () => {
 test("parentheses are available as grouping operators", async () => {
   const { doc, controller } = await mountApp();
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === "lparen"),
-  );
-  assert.ok(opSelect, "el selector ofrece paréntesis");
-  opSelect.value = "lparen";
-  fire(opSelect, "change");
+  assert.ok(opCell().querySelector('button[data-op="lparen"]'), "hay botón de paréntesis");
+  addExprOperator(opCell(), "lparen");
 
   assert.deepEqual(controller.analysis.rows[0].operation, [{ kind: "op", op: "lparen" }]);
 });
@@ -590,18 +575,9 @@ test("the result type is suggested from the operation when unset", async () => {
   fire(resultName, "input");
 
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const addLiteral = (value) => {
-    const literal = opCell().querySelector('input[placeholder="valor"]');
-    literal.value = value;
-    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
-  };
-  addLiteral("2");
-  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === "add"),
-  );
-  opSelect.value = "add";
-  fire(opSelect, "change");
-  addLiteral("3");
+  addExprElement(opCell(), "2");
+  addExprOperator(opCell(), "add");
+  addExprElement(opCell(), "3");
 
   const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
   assert.equal(result.type, "numeric", "operación aritmética sugiere Numérico");
@@ -612,18 +588,9 @@ test("the result type is suggested when the result is named after the operation"
 
   // Primero se construye la operación 2 + 3...
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const addLiteral = (value) => {
-    const literal = opCell().querySelector('input[placeholder="valor"]');
-    literal.value = value;
-    [...opCell().querySelectorAll("button")].find((b) => b.textContent === "+ valor").click();
-  };
-  addLiteral("2");
-  const opSelect = [...opCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === "add"),
-  );
-  opSelect.value = "add";
-  fire(opSelect, "change");
-  addLiteral("3");
+  addExprElement(opCell(), "2");
+  addExprOperator(opCell(), "add");
+  addExprElement(opCell(), "3");
 
   // ...y luego se nombra el resultado.
   const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
@@ -683,15 +650,15 @@ test("the branch builder appears only when the path is a response", async () => 
   const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
   const typeSelect = () => branchCell().querySelector("select");
 
-  assert.equal(branchCell().querySelectorAll("select").length, 1, "sin tipo: solo el selector");
+  assert.equal(branchCell().querySelector("input[list]"), null, "sin tipo: sin constructor");
 
   typeSelect().value = "operation";
   fire(typeSelect(), "change");
-  assert.equal(branchCell().querySelectorAll("select").length, 1, "operación: sin constructor");
+  assert.equal(branchCell().querySelector("input[list]"), null, "operación: sin constructor");
 
   typeSelect().value = "response";
   fire(typeSelect(), "change");
-  assert.ok(branchCell().querySelectorAll("select").length > 1, "respuesta: aparece el constructor");
+  assert.ok(branchCell().querySelector("input[list]"), "respuesta: aparece el constructor de expresión");
 });
 
 test("a decision branch response can reference existing data", async () => {
@@ -713,12 +680,8 @@ test("a decision branch response can reference existing data", async () => {
   branchCell().querySelector("select").value = "response"; // el tipo de la rama
   fire(branchCell().querySelector("select"), "change");
 
-  // Ahora aparece el constructor de la respuesta: se referencia el dato.
-  const dataSelect = [...branchCell().querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === promedioId),
-  );
-  dataSelect.value = promedioId;
-  fire(dataSelect, "change");
+  // Ahora aparece el constructor de la respuesta: se referencia el dato por nombre.
+  addExprElement(branchCell(), "promedio");
 
   const tokens = controller.analysis.rows[1].ifTrue.value;
   assert.deepEqual(tokens.map((t) => t.kind), ["ref"]);
