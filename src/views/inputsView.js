@@ -27,19 +27,25 @@ const TH_CLASS = "border-b border-slate-200 bg-slate-50 px-3 py-2 text-left alig
 const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
 
 // Columnas de la tabla: nombre + una nota de qué va en cada una.
-const COLUMNS = [
-  { label: "Dato identificado", help: "Fragmento del enunciado", width: "min-w-[14rem]" },
-  { label: "Valor", help: "Opcional (si el ejercicio lo indica)", width: "min-w-[6rem]" },
-  { label: "Tipo", help: "Numérico, Lógico o Texto", width: "min-w-[9rem]" },
-  { label: "Nombre", help: "Nombre en el algoritmo", width: "min-w-[12rem]" },
-];
+const IDENTIFIED_COLUMN = { label: "Dato identificado", help: "Fragmento del enunciado", width: "min-w-[14rem]" };
+const VALUE_COLUMN = { label: "Valor", help: "Opcional (si el ejercicio lo indica)", width: "min-w-[8rem]" };
+const TYPE_COLUMN = { label: "Tipo", help: "Numérico, Lógico o Texto", width: "min-w-[9rem]" };
+const NAME_COLUMN = { label: "Nombre", help: "Nombre en el algoritmo", width: "min-w-[12rem]" };
+
+// La estructura se adapta al modo de trabajo: con enunciado se muestra el fragmento
+// identificado; sin enunciado (entrada manual) se omite y el nombre va al frente.
+function columnsFor(usingStatement) {
+  return usingStatement
+    ? [IDENTIFIED_COLUMN, VALUE_COLUMN, TYPE_COLUMN, NAME_COLUMN]
+    : [NAME_COLUMN, TYPE_COLUMN, VALUE_COLUMN];
+}
 
 export class InputsView {
   constructor({ container }) {
     this.container = container;
   }
 
-  render(inputs, editing, handlers) {
+  render(inputs, editing, handlers, usingStatement = false) {
     clear(this.container);
 
     const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddInput() }, "+ Agregar dato");
@@ -52,12 +58,12 @@ export class InputsView {
     } else if (editing) {
       body =
         inputs.length > 0
-          ? inputsTable(inputs, true, handlers)
+          ? inputsTable(inputs, true, handlers, usingStatement)
           : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer dato de entrada.");
       const done = el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]);
       actions = inputs.length > 0 ? [addButton, formatSelect(handlers.onFormatNames), done] : [addButton, done];
     } else {
-      body = inputsTable(inputs, false, handlers);
+      body = inputsTable(inputs, false, handlers, usingStatement);
       actions = [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditInputs() }, [icon("edit", "h-4 w-4"), "Editar datos"])];
     }
 
@@ -79,8 +85,9 @@ export class InputsView {
 
 // Tabla de datos de entrada; en edición las celdas tienen controles, en
 // visualización muestran el valor de solo lectura.
-function inputsTable(inputs, editing, handlers) {
-  const headCells = COLUMNS.map((column) =>
+function inputsTable(inputs, editing, handlers, usingStatement) {
+  const columns = columnsFor(usingStatement);
+  const headCells = columns.map((column) =>
     el("th", { class: `${TH_CLASS} ${column.width}`, scope: "col" }, [
       el("div", { class: "font-semibold text-slate-700" }, column.label),
       el("div", { class: "mt-0.5 text-xs font-normal text-slate-400" }, column.help),
@@ -88,7 +95,7 @@ function inputsTable(inputs, editing, handlers) {
   );
   if (editing) headCells.push(el("th", { class: `${TH_CLASS} w-10` }, el("span", { class: "sr-only" }, "Acciones")));
 
-  const rows = inputs.map((entry) => (editing ? editRow(entry, handlers) : viewRow(entry)));
+  const rows = inputs.map((entry) => (editing ? editRow(entry, handlers, usingStatement) : viewRow(entry, usingStatement)));
 
   return el("div", { class: "overflow-x-auto rounded-lg border border-slate-200" }, [
     el("table", { class: "w-full border-collapse text-sm" }, [
@@ -98,13 +105,15 @@ function inputsTable(inputs, editing, handlers) {
   ]);
 }
 
-function editRow(entry, handlers) {
+function editRow(entry, handlers, usingStatement) {
   const change = (changes) => handlers.onInputChange(entry.id, changes);
-  return el("tr", { class: "align-top" }, [
-    el("td", { class: TD_CLASS }, [sourceCell(entry.source)]),
-    el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }))]),
-    el("td", { class: TD_CLASS }, [typeSelect(entry, handlers)]),
-    el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }))]),
+  const nameCell = el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }))]);
+  const typeCell = el("td", { class: TD_CLASS }, [typeSelect(entry, handlers)]);
+  const valueCell = el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }))]);
+  const cells = usingStatement
+    ? [el("td", { class: TD_CLASS }, [sourceCell(entry.source)]), valueCell, typeCell, nameCell]
+    : [nameCell, typeCell, valueCell];
+  cells.push(
     el("td", { class: `${TD_CLASS} text-center` }, [
       el(
         "button",
@@ -118,16 +127,18 @@ function editRow(entry, handlers) {
         "🗑",
       ),
     ]),
-  ]);
+  );
+  return el("tr", { class: "align-top" }, cells);
 }
 
-function viewRow(entry) {
-  return el("tr", {}, [
-    el("td", { class: TD_CLASS }, [sourceCell(entry.source)]),
-    el("td", { class: TD_CLASS }, entry.value ? el("span", { class: "text-slate-700" }, entry.value) : dash()),
-    el("td", { class: TD_CLASS }, entry.type ? typeBadge(entry.type) : dash()),
-    el("td", { class: TD_CLASS }, entry.name ? el("span", { class: "font-medium text-slate-700" }, entry.name) : dash()),
-  ]);
+function viewRow(entry, usingStatement) {
+  const nameCell = el("td", { class: TD_CLASS }, entry.name ? el("span", { class: "font-medium text-slate-700" }, entry.name) : dash());
+  const typeCell = el("td", { class: TD_CLASS }, entry.type ? typeBadge(entry.type) : dash());
+  const valueCell = el("td", { class: TD_CLASS }, entry.value ? el("span", { class: "text-slate-700" }, entry.value) : dash());
+  const cells = usingStatement
+    ? [el("td", { class: TD_CLASS }, [sourceCell(entry.source)]), valueCell, typeCell, nameCell]
+    : [nameCell, typeCell, valueCell];
+  return el("tr", {}, cells);
 }
 
 // Celda "Dato identificado": el fragmento del enunciado, completo. "—" si no lo hay.

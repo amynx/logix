@@ -161,7 +161,7 @@ export class AnalysisController {
       onEditInputs: () => this.setEditingInputs(true),
       onDoneInputs: () => this.setEditingInputs(false),
       onFormatNames: (convention) => this.formatInputNames(convention),
-    });
+    }, this.showStatement);
   }
 
   // Aplica la convención elegida a los nombres de los datos de entrada (a petición
@@ -292,6 +292,7 @@ export class AnalysisController {
   toggleStatement() {
     this.showStatement = !this.showStatement;
     this.renderInfo();
+    this.renderInputs(); // la estructura de columnas de la sección 3 depende del enunciado
   }
 
   // Convierte un fragmento seleccionado del enunciado en un dato de entrada: guarda
