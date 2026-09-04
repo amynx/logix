@@ -16,7 +16,9 @@ function branchFlow(type) {
 export function buildChain(analysis) {
   const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
   const resolve = (id) => dataById.get(id) ?? null;
-  const conditionLabels = new Map(analysis.conditions.map((condition, index) => [condition.id, `C${index + 1}`]));
+  const conditionLabels = new Map(
+    analysis.rows.filter((row) => row.kind === "condition").map((row, index) => [row.id, (row.conditionName ?? "").trim() || `C${index + 1}`]),
+  );
   const resolveCondition = (condId) => (conditionLabels.has(condId) ? { label: conditionLabels.get(condId) } : null);
   const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
 

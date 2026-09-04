@@ -41,10 +41,29 @@ export function migrateAnalysis(data) {
   if (current.version < 13) current = migrateV12toV13(current);
   if (current.version < 14) current = migrateV13toV14(current);
   if (current.version < 15) current = migrateV14toV15(current);
+  if (current.version < 16) current = migrateV15toV16(current);
   return current;
 }
 
-// v15: el análisis tiene un catálogo de condiciones reutilizables (vacío si no existía).
+// v16: las condiciones dejan de ser un catálogo aparte y pasan a ser actividades de
+// tipo "condition". Las del catálogo v15 se convierten en filas-condición (mismo id,
+// para que los tokens `cond` sigan resolviendo) al inicio de las actividades.
+function migrateV15toV16(old) {
+  const base = (row) => ({ kind: "operation", conditionName: "", ...row });
+  const conditionRows = (old.conditions ?? []).map((condition) =>
+    base({
+      id: condition.id,
+      kind: "condition",
+      conditionName: "",
+      operation: Array.isArray(condition.tokens) ? condition.tokens : [],
+    }),
+  );
+  const rows = [...conditionRows, ...(old.rows ?? []).map(base)];
+  const { conditions, ...rest } = old;
+  return { ...rest, version: 16, rows };
+}
+
+// v15: el análisis tenía un catálogo de condiciones reutilizables (vacío si no existía).
 function migrateV14toV15(old) {
   return { ...old, version: 15, conditions: Array.isArray(old.conditions) ? old.conditions : [] };
 }

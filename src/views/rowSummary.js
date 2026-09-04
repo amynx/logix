@@ -83,9 +83,10 @@ function inputChip(datum, produced) {
   ]);
 }
 
-// Resuelve la etiqueta posicional (C1, C2…) de una condición referenciada.
+// Resuelve la etiqueta de una condición referenciada: su nombre o, si no tiene,
+// la etiqueta posicional (C1, C2…) según su orden entre las condiciones.
 function conditionResolver(conditions) {
-  const labelById = new Map(conditions.map((condition, index) => [condition.id, `C${index + 1}`]));
+  const labelById = new Map(conditions.map((row, index) => [row.id, (row.conditionName ?? "").trim() || `C${index + 1}`]));
   return (condId) => (labelById.has(condId) ? { label: labelById.get(condId) } : null);
 }
 
