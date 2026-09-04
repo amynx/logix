@@ -24,8 +24,10 @@ import { activityZones, stepNumber, inlineRow, stackedRow } from "./cardLayout.j
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 
-const VIEW_WIDTH = "w-80"; // ~20rem: lectura compacta
-const EDIT_WIDTH = "w-[46rem]"; // ~46rem: espacio para operaciones largas
+// Ancho acotado a la pantalla (`max-w`) para que una tarjeta nunca sea más ancha
+// que el viewport: en móvil la tarjeta encoge y la expresión se ajusta dentro.
+const VIEW_WIDTH = "w-80 max-w-[calc(100vw-2rem)]"; // ~20rem: lectura compacta
+const EDIT_WIDTH = "w-[46rem] max-w-[calc(100vw-2rem)]"; // ~46rem: espacio para operaciones largas
 
 export class CardsView {
   constructor({ container }) {

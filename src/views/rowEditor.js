@@ -403,7 +403,7 @@ function operationTokenChip(token, resolve, producedIds, { onRemove, draggable, 
   return el(
     "span",
     {
-      class: `inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${extra} ${cursor} ${className}`,
+      class: `inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs ${extra} ${cursor} ${className}`,
       draggable: draggable ? "true" : null,
       title: draggable ? "Arrastra para reordenar" : null,
       ondragstart: onDragStart,
@@ -416,7 +416,8 @@ function operationTokenChip(token, resolve, producedIds, { onRemove, draggable, 
     },
     [
       leading,
-      el("span", { class: "whitespace-nowrap" }, text),
+      // break-words: un valor largo se ajusta dentro de la tarjeta en vez de desbordar.
+      el("span", { class: "min-w-0 break-words" }, text),
       el("button", { type: "button", class: "text-slate-400 hover:text-red-600", title: "Quitar", onclick: onRemove }, "×"),
     ],
   );
