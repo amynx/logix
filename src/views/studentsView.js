@@ -91,7 +91,7 @@ function studentRow(student, handlers) {
   const change = (changes) => handlers.onStudentChange(student.id, changes);
   return el("div", { class: "flex flex-wrap items-center gap-2" }, [
     field("N.º de identificación", student.idNumber, "w-44", (value) => change({ idNumber: value })),
-    field("Nombre completo", student.fullName, "w-64", (value) => change({ fullName: value })),
+    field("Nombre completo", student.fullName, "w-64", (value) => change({ fullName: value }), { uppercase: true }),
     el(
       "button",
       {
@@ -106,12 +106,15 @@ function studentRow(student, handlers) {
   ]);
 }
 
-function field(placeholder, value, widthClass, onInput) {
+// `uppercase` normaliza la entrada a mayúsculas: se muestra en mayúsculas y se
+// guarda en mayúsculas (el estado es la fuente de verdad, así también salen en
+// las fichas y el PDF). El placeholder conserva su capitalización original.
+function field(placeholder, value, widthClass, onInput, { uppercase = false } = {}) {
   return el("input", {
     type: "text",
     value: value ?? "",
     placeholder,
-    class: `${CONTROL_CLASS} ${widthClass}`,
-    oninput: (event) => onInput(event.target.value),
+    class: `${CONTROL_CLASS} ${widthClass}${uppercase ? " uppercase placeholder:normal-case" : ""}`,
+    oninput: (event) => onInput(uppercase ? event.target.value.toUpperCase() : event.target.value),
   });
 }

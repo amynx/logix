@@ -377,7 +377,7 @@ test("the students section collapses to read-only chips when done", async () => 
   const btn = (re) => [...doc.querySelectorAll("#students-container button")].find((b) => re.test(b.textContent));
   btn(/Listo/).click();
   assert.equal(inputs().length, 0, "en visualización se ocultan los controles del estudiante");
-  assert.match(doc.getElementById("students-container").textContent, /Ana Pérez/, "muestra el estudiante registrado");
+  assert.match(doc.getElementById("students-container").textContent, /ANA PÉREZ/, "muestra el estudiante registrado en mayúsculas");
   assert.equal(doc.getElementById("analysis-group"), null, "el grupo también se colapsa en visualización");
 
   btn(/Editar estudiantes/).click();
@@ -637,7 +637,7 @@ test("the students section records a shared group and the participants", async (
 
   const student = controller.analysis.students[0];
   assert.equal(student.idNumber, "123");
-  assert.equal(student.fullName, "Ana Pérez");
+  assert.equal(student.fullName, "ANA PÉREZ", "el nombre se guarda en mayúsculas");
   assert.equal(student.group, undefined, "el estudiante no tiene grupo propio");
 });
 
