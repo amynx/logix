@@ -32,7 +32,7 @@ export const FIELD_ORDER = [
 // Construye los nodos editables de una fila. Los campos que no aplican en la fila
 // (condición y ramas fuera de una decisión) devuelven null, para que cada vista
 // decida cómo mostrarlos (la tabla pone "—"; las tarjetas los omiten).
-export function buildRowFields(row, dataById, handlers, activities = []) {
+export function buildRowFields(row, dataById, handlers, activities = [], producedIds = new Set()) {
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
   const isDecision = row.purpose === "decision";
@@ -49,14 +49,14 @@ export function buildRowFields(row, dataById, handlers, activities = []) {
     condition: conditionApplies
       ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
       : null,
-    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`),
+    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value }))),
-    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id }) : null,
-    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id }) : null,
+    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
+    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
   };
 }
 
@@ -240,7 +240,9 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 // se agregan, borran y reordenan. Los datos y valores se agregan con un campo de
 // autocompletado; los operadores, con botones rápidos. `focusKey` identifica el
 // campo de este editor para conservar el foco al re-renderizar (encadenar rápido).
-function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
+// `producedIds` marca qué referencias son resultados producidos por otra actividad
+// (reutilizables), para distinguirlos de los datos de entrada.
+function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", producedIds = new Set()) {
   const append = (token) => onChange((current) => [...current, token]);
   const removeAt = (index) => onChange((current) => current.filter((_, i) => i !== index));
   const removeLast = () => onChange((current) => current.slice(0, -1));
@@ -257,7 +259,7 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
   };
 
   const chips = tokens.map((token, index) =>
-    operationTokenChip(token, resolve, {
+    operationTokenChip(token, resolve, producedIds, {
       onRemove: () => removeAt(index),
       draggable: tokens.length > 1,
       onDragStart: () => {
@@ -276,7 +278,15 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
   // como valor constante. El estudiante decide qué usar; la búsqueda solo localiza.
   const named = refs.filter((entry) => (entry.name ?? "").trim());
   const listId = `expr-data-${focusKey}`.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const datalist = el("datalist", { id: listId }, named.map((entry) => el("option", { value: entry.name })));
+  const datalist = el(
+    "datalist",
+    { id: listId },
+    named.map((entry) =>
+      producedIds.has(entry.id)
+        ? el("option", { value: entry.name, label: "resultado producido" })
+        : el("option", { value: entry.name }),
+    ),
+  );
   const input = el("input", {
     type: "text",
     placeholder: "dato o valor…",
@@ -340,8 +350,8 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr") {
   ]);
 }
 
-function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, onDrop }) {
-  const { leading, text, className, extra = "" } = describeToken(token, resolve);
+function operationTokenChip(token, resolve, producedIds, { onRemove, draggable, onDragStart, onDrop }) {
+  const { leading, text, className, extra = "" } = describeToken(token, resolve, producedIds);
   const cursor = draggable ? "cursor-move" : "";
   return el(
     "span",
@@ -366,13 +376,23 @@ function operationTokenChip(token, resolve, { onRemove, draggable, onDragStart, 
 }
 
 // Describe una ficha por tipo. Cada tipo se distingue por FORMA además del color:
-// dato = icono de datos; operador = símbolo monoespaciado en negrita; valor = «#».
-function describeToken(token, resolve) {
+// dato de entrada = icono de datos (azul); resultado producido por otra actividad
+// = icono de reutilización (violeta); operador = símbolo monoespaciado en negrita;
+// valor = «#» (ámbar).
+function describeToken(token, resolve, producedIds = new Set()) {
   if (token.kind === "ref") {
     const datum = resolve(token.dataId);
+    const text = datum ? datum.name || "(sin nombre)" : "(dato eliminado)";
+    if (producedIds.has(token.dataId)) {
+      return {
+        leading: icon("reuse", "h-3 w-3 shrink-0 text-violet-500"),
+        text,
+        className: "border border-violet-200 bg-violet-50 text-violet-700",
+      };
+    }
     return {
       leading: icon("data", "h-3 w-3 shrink-0 text-sky-500"),
-      text: datum ? datum.name || "(sin nombre)" : "(dato eliminado)",
+      text,
       className: "border border-sky-200 bg-sky-50 text-sky-700",
     };
   }
@@ -422,7 +442,7 @@ function usedInSelect(row, activities, onChange) {
 }
 
 // Camino de una decisión: el constructor de la respuesta solo aparece para "Respuesta".
-function branchEditor(branch, key, { structural, refs, resolve, rowId }) {
+function branchEditor(branch, key, { structural, refs, resolve, rowId, producedIds = new Set() }) {
   const children = [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => structural((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
@@ -436,6 +456,7 @@ function branchEditor(branch, key, { structural, refs, resolve, rowId }) {
         resolve,
         (updater) => structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
         `br:${rowId}:${key}`,
+        producedIds,
       ),
     );
   }

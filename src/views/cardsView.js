@@ -61,7 +61,7 @@ export class CardsView {
 
   #card(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
-    const body = editing ? this.#editBody(row, dataById, handlers, activities) : this.#viewBody(row, dataById, activities, producedIds);
+    const body = editing ? this.#editBody(row, dataById, handlers, activities, producedIds) : this.#viewBody(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -102,8 +102,8 @@ export class CardsView {
   }
 
   // Modo edición: todos los campos con sus controles, agrupados por zona.
-  #editBody(row, dataById, handlers, activities) {
-    const fields = buildRowFields(row, dataById, handlers, activities);
+  #editBody(row, dataById, handlers, activities, producedIds) {
+    const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
     return el("div", { class: "space-y-3.5" }, activityZones(fields, stackedRow));
   }
 

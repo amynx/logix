@@ -75,7 +75,7 @@ export class TableView {
   #buildRow(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
     const contentCells = editing
-      ? this.#editCells(row, dataById, handlers, activities)
+      ? this.#editCells(row, dataById, handlers, activities, producedIds)
       : this.#viewCells(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
@@ -120,8 +120,8 @@ export class TableView {
   }
 
   // Modo edición: una celda por campo con su control editable.
-  #editCells(row, dataById, handlers, activities) {
-    const fields = buildRowFields(row, dataById, handlers, activities);
+  #editCells(row, dataById, handlers, activities, producedIds) {
+    const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
     return FIELD_ORDER.map((column) => el("td", { class: TD_CLASS }, [fields[column.key] ?? notApplicable()]));
   }
 
