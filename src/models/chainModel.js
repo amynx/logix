@@ -16,15 +16,17 @@ function branchFlow(type) {
 export function buildChain(analysis) {
   const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
   const resolve = (id) => dataById.get(id) ?? null;
+  const conditionLabels = new Map(analysis.conditions.map((condition, index) => [condition.id, `C${index + 1}`]));
+  const resolveCondition = (condId) => (conditionLabels.has(condId) ? { label: conditionLabels.get(condId) } : null);
   const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
 
   return {
     entradas: collectInputs(analysis, producedIds),
     proceso: analysis.rows
-      .map((row, index) => buildStep(row, index, resolve, producedIds))
+      .map((row, index) => buildStep(row, index, resolve, producedIds, resolveCondition))
       .filter(Boolean),
     producidos: collectProduced(analysis, resolve),
-    salidas: collectOutputs(analysis, resolve),
+    salidas: collectOutputs(analysis, resolve, resolveCondition),
   };
 }
 
@@ -53,13 +55,13 @@ function collectInputs(analysis, producedIds) {
 
 // Una actividad por fila con contenido, en el orden del análisis. Se expone cada
 // parte por separado para que la tarjeta la presente de forma organizada.
-function buildStep(row, index, resolve, producedIds) {
+function buildStep(row, index, resolve, producedIds, resolveCondition) {
   const inputs = row.inputIds
     .map(resolve)
     .filter(Boolean)
     .map((datum) => ({ ...datum, produced: producedIds.has(datum.id) }));
   const result = resolve(row.resultId);
-  const operation = expressionParts(row.operation, resolve);
+  const operation = expressionParts(row.operation, resolve, resolveCondition);
   const condition = row.condition.trim();
   const description = row.problem.trim();
 
@@ -70,7 +72,7 @@ function buildStep(row, index, resolve, producedIds) {
   const path = (branch) => ({
     type: branch.type,
     flow: branchFlow(branch.type),
-    parts: expressionParts(branch.value, resolve),
+    parts: expressionParts(branch.value, resolve, resolveCondition),
   });
 
   return {
@@ -93,7 +95,7 @@ function buildStep(row, index, resolve, producedIds) {
 // Salidas: la información final del programa (propósito "respuesta") y las ramas
 // de decisión que terminan en una respuesta. Cada salida de una rama indica a qué
 // caso corresponde (Sí = la condición se cumple; No = no se cumple) y la pregunta.
-function collectOutputs(analysis, resolve) {
+function collectOutputs(analysis, resolve, resolveCondition) {
   const outputs = [];
   for (const row of analysis.rows) {
     if (row.purpose === "response") {
@@ -109,7 +111,7 @@ function collectOutputs(analysis, resolve) {
     const condition = row.condition.trim();
     for (const [branchCase, branch] of [["Sí", row.ifTrue], ["No", row.ifFalse]]) {
       if (branch.type === "response" && branch.value.length > 0) {
-        outputs.push({ parts: expressionParts(branch.value, resolve), branch: branchCase, condition });
+        outputs.push({ parts: expressionParts(branch.value, resolve, resolveCondition), branch: branchCase, condition });
       }
     }
   }
