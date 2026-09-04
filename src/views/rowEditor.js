@@ -305,6 +305,18 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
     autocomplete: "off",
     class: `${CONTROL_CLASS} w-40 text-xs`,
     dataset: { focusKey: `expr:${focusKey}` },
+    // Seleccionar un dato = agregarlo: al elegirlo del desplegable (o completar su
+    // nombre) el texto coincide exacto con un dato y se incorpora sin pulsar nada.
+    // Los valores (que no coinciden con ningún dato) se agregan con Enter o el botón.
+    oninput: () => {
+      const text = input.value.trim();
+      if (!text) return;
+      const match = named.find((entry) => entry.name.toLowerCase() === text.toLowerCase());
+      if (match) {
+        input.value = "";
+        append({ kind: "ref", dataId: match.id });
+      }
+    },
     onkeydown: (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
