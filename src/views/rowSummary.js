@@ -58,7 +58,7 @@ function referenceResolver(dataById, producedIds) {
 
 function textNode(value, resolveName) {
   const text = (value ?? "").trim();
-  return text ? el("span", { class: "whitespace-pre-wrap text-slate-700" }, referencedText(text, resolveName)) : null;
+  return text ? el("span", { class: "whitespace-pre-wrap leading-relaxed text-slate-700" }, referencedText(text, resolveName)) : null;
 }
 
 function commentText(value, resolveName) {

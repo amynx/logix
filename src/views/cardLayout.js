@@ -38,7 +38,7 @@ export function commentBox(content) {
   const inner = Array.isArray(content) ? content : [content];
   return el(
     "blockquote",
-    { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm italic text-slate-600" },
+    { class: "rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm italic leading-relaxed text-slate-600" },
     ["“", ...inner, "”"],
   );
 }
@@ -46,8 +46,8 @@ export function commentBox(content) {
 // Caja para la condición: se lee como una pregunta (icono de interrogación + cursiva).
 // `content` puede ser texto o nodos con referencias resaltadas.
 export function questionBox(content) {
-  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 py-1.5 text-sm italic text-slate-700" }, [
-    icon("help", "h-3.5 w-3.5 mt-0.5 text-indigo-400"),
+  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 py-2 text-sm italic leading-relaxed text-slate-700" }, [
+    icon("help", "h-3.5 w-3.5 mt-1 text-indigo-400"),
     el("span", { class: "min-w-0 whitespace-pre-wrap" }, content),
   ]);
 }
