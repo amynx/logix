@@ -38,16 +38,34 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
   const isDecision = row.purpose === "decision";
+  const isCondition = row.kind === "condition";
   const mentions = handlers.getDataMentions; // menú "/" para insertar referencias
   const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
   const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
   const allData = [...dataById.values()].filter((entry) => entry.id !== row.resultId);
   const availableInputs = allData.filter((entry) => !row.inputIds.includes(entry.id));
   const resolveData = (id) => dataById.get(id) ?? null;
+  const kindToggle = activityKindToggle(row.kind, (kind) => structural(() => ({ kind })));
+
+  // Una condición descubre una comprobación reutilizable: pregunta + expresión +
+  // nombre + reutilización + comentario. No produce dato ni tiene caminos, y su
+  // expresión no compone otras condiciones (eso se hace en una operación).
+  if (isCondition) {
+    return {
+      kind: kindToggle,
+      conditionName: conditionNameField(row, field, handlers),
+      condition: textField(row.condition, "¿Qué se comprueba?", (value) => field(() => ({ condition: value })), { normalize: formatAsQuestion, mentions }),
+      operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
+      usedIn: usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)),
+      comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
+    };
+  }
+
   // Contexto de condiciones para COMPONER comprobaciones (C1 Y C2…) en la operación.
   const conditions = handlers.conditionEntries ? { entries: handlers.conditionEntries(), resolve: handlers.resolveCondition } : null;
 
   return {
+    kind: kindToggle,
     problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst, mentions }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
     condition: conditionField(row, isDecision, field, structural, mentions),
@@ -60,6 +78,42 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
     ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
     ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
   };
+}
+
+// Interruptor del tipo de actividad: operación (produce un dato) o condición
+// (comprobación reutilizable). Cambia qué campos muestra la tarjeta.
+function activityKindToggle(kind, onChange) {
+  const button = (value, label, iconName) =>
+    el(
+      "button",
+      {
+        type: "button",
+        class: `inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium transition ${
+          kind === value ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+        }`,
+        onclick: () => kind !== value && onChange(value),
+      },
+      [icon(iconName, "h-3.5 w-3.5"), label],
+    );
+  return el("div", { class: "inline-flex rounded-md bg-slate-100 p-0.5" }, [
+    button("operation", "Operación", "workflow"),
+    button("condition", "Condición", "fork"),
+  ]);
+}
+
+// Campo de nombre de una condición. Aplica la convención de nombres al desenfocar;
+// el placeholder muestra la etiqueta genérica que recibiría si se deja vacío.
+function conditionNameField(row, field, handlers) {
+  const input = el("input", {
+    type: "text",
+    value: row.conditionName ?? "",
+    placeholder: handlers.conditionPlaceholder ? handlers.conditionPlaceholder(row.id) : "C1",
+    class: CONTROL_CLASS,
+    dataset: { focusKey: `cond-name:${row.id}` },
+    oninput: (event) => field(() => ({ conditionName: event.target.value })),
+    onblur: (event) => normalizeFieldOnBlur(event, handlers.formatName, (name) => field(() => ({ conditionName: name }))),
+  });
+  return input;
 }
 
 // Lista de actividades con una etiqueta reconocible (posición + dato/necesidad),
@@ -226,16 +280,19 @@ export function deleteButton(onClick) {
 }
 
 export function addActivityButton(onAddRow) {
-  return el("div", { class: "mt-3" }, [
+  const button = (kind, label, iconName) =>
     el(
       "button",
       {
         type: "button",
-        class: "rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50",
-        onclick: () => onAddRow(),
+        class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50",
+        onclick: () => onAddRow(kind),
       },
-      "+ Agregar actividad",
-    ),
+      [icon(iconName, "h-4 w-4"), label],
+    );
+  return el("div", { class: "mt-3 flex flex-wrap gap-2" }, [
+    button("operation", "Agregar operación", "workflow"),
+    button("condition", "Agregar condición", "fork"),
   ]);
 }
 

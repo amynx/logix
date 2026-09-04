@@ -23,6 +23,7 @@ import { buildRowSummary, isSummaryEmpty } from "./rowSummary.js";
 import { activityZones, stepNumber, inlineRow, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
+import { icon } from "./icons.js";
 
 // Ancho acotado a la pantalla (`max-w`) para que una tarjeta nunca sea más ancha
 // que el viewport: en móvil la tarjeta encoge y la expresión se ajusta dentro.
@@ -64,6 +65,7 @@ export class CardsView {
 
   #card(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
+    const isCondition = row.kind === "condition";
     const body = editing ? this.#editBody(row, dataById, handlers, activities, producedIds) : this.#viewBody(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
@@ -71,11 +73,13 @@ export class CardsView {
     const setDragged = (id) => {
       this.draggedRowId = id;
     };
+    // Una condición se distingue de una operación por su borde índigo y su rótulo.
+    const tint = isCondition ? "border-indigo-200 bg-indigo-50/30" : "border-slate-200 bg-white";
 
     return el(
       "div",
       {
-        class: `${editing ? EDIT_WIDTH : VIEW_WIDTH} shrink-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition`,
+        class: `${editing ? EDIT_WIDTH : VIEW_WIDTH} shrink-0 rounded-lg border ${tint} p-4 shadow-sm transition`,
         dataset: { rowId: row.id, editing: String(editing) },
         ondragover: (event) => {
           event.preventDefault();
@@ -96,7 +100,10 @@ export class CardsView {
         el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2.5" }, [
           dragHandle(row.id, setDragged),
           stepNumber(index + 1),
-          el("span", { class: "text-sm font-semibold text-slate-700" }, "Actividad"),
+          el("span", { class: `inline-flex items-center gap-1 text-sm font-semibold ${isCondition ? "text-indigo-700" : "text-slate-700"}` }, [
+            icon(isCondition ? "fork" : "activities", "h-4 w-4"),
+            isCondition ? "Condición" : "Actividad",
+          ]),
           el("div", { class: "ml-auto flex items-center gap-1" }, [action, deleteButton(() => handlers.onDeleteRow(row.id))]),
         ]),
         el("div", { class: "mt-3" }, [body]),
@@ -104,19 +111,23 @@ export class CardsView {
     );
   }
 
-  // Modo edición: todos los campos con sus controles, agrupados por zona.
+  // Modo edición: los campos que corresponden al tipo, con el interruptor de tipo
+  // arriba para poder alternar entre operación y condición.
   #editBody(row, dataById, handlers, activities, producedIds) {
     const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
-    return el("div", { class: "space-y-3.5" }, activityZones(fields, stackedRow));
+    return el("div", { class: "space-y-3.5" }, [
+      fields.kind ? el("div", {}, [fields.kind]) : null,
+      ...activityZones(fields, stackedRow, row.kind),
+    ]);
   }
 
-  // Modo visualización: solo la información registrada, agrupada por zona.
+  // Modo visualización: solo la información registrada del tipo, agrupada por zona.
   #viewBody(row, dataById, activities, producedIds) {
     const summary = buildRowSummary(row, dataById, activities, producedIds, this.conditions);
     if (isSummaryEmpty(summary)) {
       return el("p", { class: "text-sm text-slate-400" }, "Sin información. Pulsa «Editar» para completarla.");
     }
-    return el("div", { class: "space-y-3" }, activityZones(summary, inlineRow));
+    return el("div", { class: "space-y-3" }, activityZones(summary, inlineRow, row.kind));
   }
 }
 

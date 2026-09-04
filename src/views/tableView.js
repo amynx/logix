@@ -19,6 +19,7 @@ import {
   clearDropTarget,
 } from "./rowEditor.js";
 import { buildRowSummary } from "./rowSummary.js";
+import { activityZones, stackedRow, inlineRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 
@@ -75,9 +76,12 @@ export class TableView {
 
   #buildRow(row, index, dataById, handlers, activities, producedIds) {
     const editing = handlers.isRowEditing(row.id);
-    const contentCells = editing
-      ? this.#editCells(row, dataById, handlers, activities, producedIds)
-      : this.#viewCells(row, dataById, activities, producedIds);
+    const contentCells =
+      row.kind === "condition"
+        ? this.#conditionCell(row, dataById, handlers, activities, producedIds, editing)
+        : editing
+          ? this.#editCells(row, dataById, handlers, activities, producedIds)
+          : this.#viewCells(row, dataById, activities, producedIds);
     const action = editing
       ? doneButton(() => handlers.onDoneRow(row.id))
       : editButton(() => handlers.onEditRow(row.id));
@@ -118,6 +122,21 @@ export class TableView {
       },
       cells,
     );
+  }
+
+  // Una condición no encaja en la rejilla de columnas de una operación: se muestra
+  // como una celda a todo el ancho (colspan) con su propio layout, índigo, para que
+  // se distinga de un vistazo de las operaciones.
+  #conditionCell(row, dataById, handlers, activities, producedIds, editing) {
+    let content;
+    if (editing) {
+      const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
+      content = el("div", { class: "space-y-3" }, [fields.kind, ...activityZones(fields, stackedRow, "condition")]);
+    } else {
+      const summary = buildRowSummary(row, dataById, activities, producedIds, this.conditions);
+      content = el("div", { class: "space-y-2" }, activityZones(summary, inlineRow, "condition"));
+    }
+    return [el("td", { class: `${TD_CLASS} bg-indigo-50/30`, colSpan: FIELD_ORDER.length }, [content])];
   }
 
   // Modo edición: una celda por campo con su control editable.

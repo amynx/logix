@@ -234,7 +234,7 @@ test("cards can be reordered by drag and drop", async () => {
 
 test("adding a row appends a new editable row", async () => {
   const { doc, controller } = await mountApp();
-  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad");
+  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación"));
 
   addButton.click();
 
@@ -348,7 +348,7 @@ test("a produced result is selectable in another row's input column", async () =
   const buenasId = controller.analysis.rows[0].resultId;
 
   // La fila 1 puede referenciarlo desde su columna "Datos de entrada".
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const inputsCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[2];
   const picker = [...inputsCell.querySelectorAll("select")].find((s) =>
     [...s.options].some((o) => o.value === buenasId),
@@ -465,7 +465,7 @@ test("removing a declared input from its section deletes it and prunes reference
 
 test("naming a result refreshes other data pickers and keeps focus", async () => {
   const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
 
   const resultName = () => doc.querySelectorAll("#table-container tbody tr")[0].querySelectorAll("td")[5].querySelector("input");
   resultName().focus();
@@ -503,7 +503,7 @@ test("deleting a row warns when its datum is used in another operation", async (
   const promedioId = controller.analysis.rows[0].resultId;
 
   // La fila 1 lo referencia en su operación.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
   addExprElement(opCell, "promedio");
   const secondRowId = controller.analysis.rows[1].id;
@@ -685,7 +685,7 @@ test("a decision branch response can reference existing data", async () => {
   const promedioId = controller.analysis.rows[0].resultId;
 
   // Fila 1: decisión con rama "Si se cumple" de tipo Respuesta que referencia el dato.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const row1 = () => doc.querySelectorAll("#table-container tbody tr")[1];
   row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
   fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");
@@ -719,7 +719,7 @@ test("a produced datum can stay pending and later link to a new activity", async
   assert.equal(controller.analysis.rows[0].usedInRowId, "pending");
 
   // Se crea la actividad destino y se vincula el dato con ella.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const targetId = controller.analysis.rows[1].id;
   assert.ok([...usedInSelect().options].some((o) => o.value === targetId), "la nueva actividad es opción");
   usedInSelect().value = targetId;
@@ -733,7 +733,7 @@ test("deleting the target activity reverts the link to pending", async () => {
   const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "buenas";
   fire(resultName, "input");
-  [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad").click();
+  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const [sourceId, targetId] = controller.analysis.rows.map((r) => r.id);
   controller.setUsedIn(sourceId, targetId);
 
@@ -869,7 +869,7 @@ test("undo and redo revert and reapply a change", async () => {
 
 test("adding then undoing an activity restores the previous count", async () => {
   const { doc, controller } = await mountApp();
-  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent === "+ Agregar actividad");
+  const addButton = [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación"));
 
   addButton.click();
   assert.equal(controller.analysis.rows.length, 2);

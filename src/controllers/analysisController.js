@@ -4,6 +4,7 @@
 
 import {
   createAnalysis,
+  createRow,
   addRow,
   removeRow,
   moveRow,
@@ -351,7 +352,8 @@ export class AnalysisController {
       onDoneRow: (rowId) => this.setRowEditing(rowId, false),
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
-      onAddRow: () => this.addRow(),
+      onAddRow: (kind) => this.addRow(kind),
+      conditionPlaceholder: (rowId) => conditionLabel(this.analysis, rowId),
       onDeleteRow: (rowId) => this.deleteRow(rowId),
       onMoveRow: (fromRowId, toRowId) => this.moveRow(fromRowId, toRowId),
       onDataChange: (dataId, changes) => this.updateData(dataId, changes),
@@ -465,13 +467,14 @@ export class AnalysisController {
   }
 
   // Una actividad nueva se abre en modo edición: aún no tiene información que ver.
-  addRow() {
-    addRow(this.analysis);
+  // `kind` distingue una operación (por defecto) de una condición reutilizable.
+  addRow(kind = "operation") {
+    addRow(this.analysis, createRow({ kind }));
     const newRow = this.analysis.rows[this.analysis.rows.length - 1];
     this.editingRows.add(newRow.id);
     this.renderTable();
     this.#afterChange();
-    trackEvent("add_activity");
+    trackEvent(kind === "condition" ? "add_condition" : "add_activity");
   }
 
   async deleteRow(rowId) {

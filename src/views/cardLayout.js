@@ -16,6 +16,8 @@ const ZONE_TONES = {
   result: { bar: "border-emerald-300", title: "text-emerald-600", icon: "flag" },
   branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
   comment: { bar: "border-slate-200", title: "text-slate-400", icon: "message" },
+  condition: { bar: "border-indigo-300", title: "text-indigo-600", icon: "fork" },
+  reuse: { bar: "border-emerald-300", title: "text-emerald-600", icon: "reuse" },
 };
 
 // Etiquetas de los campos que comparten zona con otros (para distinguirlos). Los
@@ -120,12 +122,25 @@ export function stackedRow(label, value) {
   ]);
 }
 
-// Ensambla las filas de una actividad en zonas con jerarquía consistente.
+// Ensambla las filas de una actividad en zonas con jerarquía consistente. El
+// tipo (`kind`) decide qué zonas se muestran: una condición descubre una
+// comprobación (menos campos) y una operación produce un dato.
 // `nodesByKey` mapea cada clave de campo a un nodo ya construido (o null); las
 // zonas sin contenido se omiten. `renderRow(label, value)` decide el estilo de
 // fila (en línea o apilada) según la vista.
-export function activityZones(nodesByKey, renderRow) {
+export function activityZones(nodesByKey, renderRow, kind = "operation") {
   const row = (key, label = null) => (nodesByKey[key] ? renderRow(label, nodesByKey[key]) : null);
+  if (kind === "condition") {
+    return [
+      zoneBlock("Condición", ZONE_TONES.condition, [
+        row("conditionName", "Nombre"),
+        row("condition", "Pregunta"),
+        row("operation", "Comprobación"),
+      ]),
+      zoneBlock("Se usará en", ZONE_TONES.reuse, [row("usedIn")]),
+      zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
+    ].filter(Boolean);
+  }
   return [
     zoneBlock("Necesidad", ZONE_TONES.need, [row("problem")]),
     zoneBlock("Datos de entrada", ZONE_TONES.input, [row("inputs")]),

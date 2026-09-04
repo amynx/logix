@@ -9,6 +9,7 @@ import { expressionParts } from "../models/operators.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { commentBox, questionBox, formulaBox, withEquals, withArrow, referencedText } from "./cardLayout.js";
+import { icon } from "./icons.js";
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
@@ -21,6 +22,18 @@ export function buildRowSummary(row, dataById, activities = [], producedIds = ne
   const inputs = row.inputIds.map(resolve).filter(Boolean);
   const conditionText = (row.condition ?? "").trim();
   const result = row.resultId ? resolve(row.resultId) : null;
+
+  // Una condición se resume con menos campos: su nombre, la pregunta, la
+  // comprobación, dónde se reutilizará y el comentario.
+  if (row.kind === "condition") {
+    return {
+      conditionName: conditionNameChip(row, conditions),
+      condition: conditionText ? questionBox(referencedText(conditionText, resolveName)) : null,
+      operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve, resolveCondition)) : null,
+      usedIn: usedInNode(row.usedInRowId, activities),
+      comment: commentText(row.subsequentUse, resolveName),
+    };
+  }
 
   return {
     problem: textNode(row.problem, resolveName),
@@ -85,9 +98,22 @@ function inputChip(datum, produced) {
 
 // Resuelve la etiqueta de una condición referenciada: su nombre o, si no tiene,
 // la etiqueta posicional (C1, C2…) según su orden entre las condiciones.
+function conditionLabelOf(row, conditions) {
+  const index = conditions.findIndex((candidate) => candidate.id === row.id);
+  return (row.conditionName ?? "").trim() || `C${index >= 0 ? index + 1 : "?"}`;
+}
+
 function conditionResolver(conditions) {
   const labelById = new Map(conditions.map((row, index) => [row.id, (row.conditionName ?? "").trim() || `C${index + 1}`]));
   return (condId) => (labelById.has(condId) ? { label: labelById.get(condId) } : null);
+}
+
+// Ficha del nombre de una condición (etiqueta índigo con icono de bifurcación).
+function conditionNameChip(row, conditions) {
+  return el("span", { class: "inline-flex items-center gap-1 rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700" }, [
+    icon("fork", "h-3 w-3"),
+    conditionLabelOf(row, conditions),
+  ]);
 }
 
 // Expresión legible: los datos resaltados, los operadores y literales discretos.
