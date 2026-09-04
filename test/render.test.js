@@ -390,8 +390,12 @@ test("the inputs section collapses to read-only chips when done", async () => {
 
 test("selecting a fragment of the statement adds it as an input datum", async () => {
   const { doc, controller } = await mountApp();
+  // El enunciado es opcional: se activa con la casilla antes de usarlo.
+  assert.equal(doc.getElementById("analysis-statement"), null, "el enunciado está oculto por defecto");
+  doc.querySelector("#analysis-info input[type='checkbox']").click();
+
   const statement = doc.getElementById("analysis-statement");
-  assert.ok(statement, "existe el campo de enunciado");
+  assert.ok(statement, "al activarlo aparece el campo de enunciado");
 
   statement.value = "Una empresa produce 500 unidades utilizando 10 trabajadores.";
   fire(statement, "input");
@@ -820,7 +824,7 @@ test("exporting to PDF includes only the selected sections plus the timestamp", 
   [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Exportar PDF").click();
 
   // Desmarca todo excepto "Información de los estudiantes".
-  const checks = [...doc.querySelectorAll('input[type="checkbox"]')];
+  const checks = [...doc.querySelectorAll('[role="dialog"] input[type="checkbox"]')];
   assert.ok(checks.every((c) => c.checked), "todas marcadas por defecto");
   checks.forEach((c) => {
     if (c.dataset.key !== "students") c.checked = false;

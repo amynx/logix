@@ -29,7 +29,7 @@ const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
 // Columnas de la tabla: nombre + una nota de qué va en cada una.
 const COLUMNS = [
   { label: "Dato identificado", help: "Fragmento del enunciado", width: "min-w-[14rem]" },
-  { label: "Valor", help: "Valor del dato", width: "min-w-[6rem]" },
+  { label: "Valor", help: "Opcional (si el ejercicio lo indica)", width: "min-w-[6rem]" },
   { label: "Tipo", help: "Numérico, Lógico o Texto", width: "min-w-[9rem]" },
   { label: "Nombre", help: "Nombre en el algoritmo", width: "min-w-[12rem]" },
 ];
@@ -102,7 +102,7 @@ function editRow(entry, handlers) {
   const change = (changes) => handlers.onInputChange(entry.id, changes);
   return el("tr", { class: "align-top" }, [
     el("td", { class: TD_CLASS }, [sourceCell(entry.source)]),
-    el("td", { class: TD_CLASS }, [textField("valor", entry.value, (value) => change({ value }))]),
+    el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }))]),
     el("td", { class: TD_CLASS }, [typeSelect(entry, handlers)]),
     el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }))]),
     el("td", { class: `${TD_CLASS} text-center` }, [

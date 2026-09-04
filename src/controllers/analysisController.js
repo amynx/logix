@@ -64,6 +64,7 @@ export class AnalysisController {
     this.editingRows = new Set(); // ids de actividades en modo edición (estado de vista)
     this.editingInputs = false; // sección de datos de entrada en modo edición
     this.editingStudents = false; // sección de estudiantes en modo edición
+    this.showStatement = false; // mostrar el enunciado (opcional) en la sección 2
   }
 
   async start() {
@@ -80,6 +81,7 @@ export class AnalysisController {
     const { analysis, editingRowIds } = await this.#recoverOrCreate();
     this.analysis = analysis;
     this.editingRows = new Set(editingRowIds);
+    this.showStatement = Boolean(this.analysis.statement?.trim());
     this.render();
     this.#resetHistory();
   }
@@ -281,7 +283,15 @@ export class AnalysisController {
       onStatementChange: (statement) => this.updateInfo({ statement }),
       onAddDataFromSelection: (fragment) => this.addDataFromSelection(fragment),
       isFragmentAdded: (fragment) => this.analysis.data.some((entry) => (entry.source ?? "").trim() === fragment),
+      showStatement: this.showStatement,
+      onToggleStatement: () => this.toggleStatement(),
     });
+  }
+
+  // El enunciado es opcional: se muestra u oculta según lo necesite el estudiante.
+  toggleStatement() {
+    this.showStatement = !this.showStatement;
+    this.renderInfo();
   }
 
   // Convierte un fragmento seleccionado del enunciado en un dato de entrada: guarda
@@ -487,6 +497,7 @@ export class AnalysisController {
     this.editingRows = new Set(editingRowIds);
     this.editingInputs = false; // la sección de datos empieza en modo visualización
     this.editingStudents = false; // la sección de estudiantes también
+    this.showStatement = Boolean(analysis.statement?.trim()); // muestra el enunciado si lo trae
     this.render();
     this.#afterChange();
     this.#resetHistory(); // un análisis cargado empieza un historial nuevo

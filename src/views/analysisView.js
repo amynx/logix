@@ -230,7 +230,7 @@ export class AnalysisView {
       `inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5 ${status.pill}`;
   }
 
-  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded }) {
+  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded, showStatement, onToggleStatement }) {
     clear(this.infoContainer);
 
     const title = el("input", {
@@ -306,7 +306,7 @@ export class AnalysisView {
 
     this.infoContainer.append(
       el("div", { class: "space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({ step: 2, title: "Análisis", subtitle: "Título, descripción y enunciado del problema.", iconName: "new" }),
+        sectionHeader({ step: 2, title: "Análisis", subtitle: "Título y descripción del problema.", iconName: "new" }),
         el("div", {}, [
           el("label", { for: "analysis-title", class: LABEL_CLASS }, "Título del análisis"),
           el("div", { class: "mt-1" }, [title]),
@@ -317,15 +317,21 @@ export class AnalysisView {
           el("p", { class: HELP_CLASS }, "Contexto general: qué necesidad debe resolver el programa."),
         ]),
         el("div", {}, [
-          el("label", { for: "analysis-statement", class: LABEL_CLASS }, "Enunciado del problema"),
-          el("div", { class: "mt-1" }, [statement]),
-          el("p", { class: HELP_CLASS }, "El texto que analizarás para identificar los datos. Selecciona un fragmento para agregarlo como dato de entrada."),
-          selectionBar,
+          el("label", { class: "flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700" }, [
+            el("input", { type: "checkbox", checked: showStatement || null, class: "h-4 w-4 rounded border-slate-300", onchange: () => onToggleStatement() }),
+            "Usar el enunciado del problema para identificar los datos (opcional)",
+          ]),
+          el("p", { class: HELP_CLASS }, "Pega el enunciado completo y selecciona fragmentos para agregarlos como datos de entrada. Si no lo necesitas, déjalo desactivado."),
+          showStatement
+            ? el("div", { class: "mt-2" }, [statement, selectionBar])
+            : null,
         ]),
       ]),
     );
 
-    updateSelectionBar();
-    autoGrow();
+    if (showStatement) {
+      updateSelectionBar();
+      autoGrow();
+    }
   }
 }
