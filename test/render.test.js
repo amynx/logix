@@ -8,6 +8,7 @@ import { JSDOM } from "jsdom";
 import { AnalysisView } from "../src/views/analysisView.js";
 import { StudentsView } from "../src/views/studentsView.js";
 import { InputsView } from "../src/views/inputsView.js";
+import { ConditionsView } from "../src/views/conditionsView.js";
 import { TableView } from "../src/views/tableView.js";
 import { CardsView } from "../src/views/cardsView.js";
 import { ChainView } from "../src/views/chainView.js";
@@ -42,7 +43,7 @@ function fakeStorage(initial = []) {
 
 async function mountApp({ storage = fakeStorage() } = {}) {
   const dom = new JSDOM(
-    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="history-controls"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
+    `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="history-controls"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="conditions-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
   globalThis.document = dom.window.document;
   globalThis.window = dom.window;
@@ -61,6 +62,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     }),
     studentsView: new StudentsView({ container: doc.getElementById("students-container") }),
     inputsView: new InputsView({ container: doc.getElementById("inputs-container") }),
+    conditionsView: new ConditionsView({ container: doc.getElementById("conditions-container") }),
     tableView: new TableView({ container: doc.getElementById("table-container") }),
     cardsView: new CardsView({ container: doc.getElementById("table-container") }),
     chainView: new ChainView({ container: doc.getElementById("chain-container") }),

@@ -35,6 +35,7 @@ export class TableView {
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const activities = buildActivityList(analysis.rows, dataById);
     const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
+    this.conditions = analysis.conditions ?? []; // para etiquetar tokens `cond` en solo lectura
     const table = el("table", { class: "w-full border-collapse text-sm" }, [
       this.#buildHeader(),
       el("tbody", {}, analysis.rows.map((row, index) => this.#buildRow(row, index, dataById, handlers, activities, producedIds))),
@@ -42,7 +43,7 @@ export class TableView {
 
     this.container.append(
       sectionHeader({
-        step: 4,
+        step: 5,
         title: "Actividades",
         subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
         iconName: "activities",
@@ -127,7 +128,7 @@ export class TableView {
 
   // Modo visualización: una celda por campo con solo la información registrada.
   #viewCells(row, dataById, activities, producedIds) {
-    const summary = buildRowSummary(row, dataById, activities, producedIds);
+    const summary = buildRowSummary(row, dataById, activities, producedIds, this.conditions);
     return FIELD_ORDER.map((column) =>
       el("td", { class: TD_CLASS }, [summary[column.key] ?? el("span", { class: "text-slate-300" }, "—")]),
     );

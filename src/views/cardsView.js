@@ -39,11 +39,12 @@ export class CardsView {
     const dataById = new Map(analysis.data.map((entry) => [entry.id, entry]));
     const activities = buildActivityList(analysis.rows, dataById);
     const producedIds = new Set(analysis.rows.map((row) => row.resultId).filter(Boolean));
+    this.conditions = analysis.conditions ?? []; // para etiquetar tokens `cond` en solo lectura
     const cards = analysis.rows.map((row, index) => this.#card(row, index, dataById, handlers, activities, producedIds));
 
     this.container.append(
       sectionHeader({
-        step: 4,
+        step: 5,
         title: "Actividades",
         subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
         iconName: "activities",
@@ -111,7 +112,7 @@ export class CardsView {
 
   // Modo visualización: solo la información registrada, agrupada por zona.
   #viewBody(row, dataById, activities, producedIds) {
-    const summary = buildRowSummary(row, dataById, activities, producedIds);
+    const summary = buildRowSummary(row, dataById, activities, producedIds, this.conditions);
     if (isSummaryEmpty(summary)) {
       return el("p", { class: "text-sm text-slate-400" }, "Sin información. Pulsa «Editar» para completarla.");
     }

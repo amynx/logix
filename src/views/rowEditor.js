@@ -44,19 +44,21 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const allData = [...dataById.values()].filter((entry) => entry.id !== row.resultId);
   const availableInputs = allData.filter((entry) => !row.inputIds.includes(entry.id));
   const resolveData = (id) => dataById.get(id) ?? null;
+  // Contexto de condiciones para COMPONER comprobaciones (C1 Y C2…) en la operación.
+  const conditions = handlers.conditionEntries ? { entries: handlers.conditionEntries(), resolve: handlers.resolveCondition } : null;
 
   return {
     problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst, mentions }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
     condition: conditionField(row, isDecision, field, structural, mentions),
-    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
+    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds, conditions),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
-    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
-    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds }) : null,
+    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
+    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
   };
 }
 
@@ -301,8 +303,12 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 // autocompletado; los operadores, con botones rápidos. `focusKey` identifica el
 // campo de este editor para conservar el foco al re-renderizar (encadenar rápido).
 // `producedIds` marca qué referencias son resultados producidos por otra actividad
-// (reutilizables), para distinguirlos de los datos de entrada.
-function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", producedIds = new Set()) {
+// (reutilizables), para distinguirlos de los datos de entrada. `conditions`
+// (opcional) = { entries:[{id,label}], resolve:(condId)=>({label})|null } permite
+// COMPONER condiciones (tokens `cond`) en la expresión.
+export function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", producedIds = new Set(), conditions = null) {
+  const conditionEntries = conditions?.entries ?? [];
+  const resolveCondition = conditions?.resolve ?? null;
   const append = (token) => onChange((current) => [...current, token]);
   const removeAt = (index) => onChange((current) => current.filter((_, i) => i !== index));
   const removeLast = () => onChange((current) => current.slice(0, -1));
@@ -319,7 +325,7 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
   };
 
   const chips = tokens.map((token, index) =>
-    operationTokenChip(token, resolve, producedIds, {
+    operationTokenChip(token, resolve, producedIds, resolveCondition, {
       onRemove: () => removeAt(index),
       draggable: tokens.length > 1,
       onDragStart: () => {
@@ -337,15 +343,27 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
   // si el texto coincide con el nombre de un dato se agrega como referencia; si no,
   // como valor constante. El estudiante decide qué usar; la búsqueda solo localiza.
   const named = refs.filter((entry) => (entry.name ?? "").trim());
+  // Un texto puede referirse a una condición (por su etiqueta C1…) o a un dato (por
+  // su nombre). Devuelve el token correspondiente, o null si no coincide con ninguno.
+  const matchExact = (text) => {
+    const value = text.toLowerCase();
+    const cond = conditionEntries.find((entry) => entry.label.toLowerCase() === value);
+    if (cond) return { kind: "cond", condId: cond.id };
+    const datum = named.find((entry) => entry.name.toLowerCase() === value);
+    return datum ? { kind: "ref", dataId: datum.id } : null;
+  };
   const listId = `expr-data-${focusKey}`.replace(/[^a-zA-Z0-9_-]/g, "-");
   const datalist = el(
     "datalist",
     { id: listId },
-    named.map((entry) =>
-      producedIds.has(entry.id)
-        ? el("option", { value: entry.name, label: "resultado producido" })
-        : el("option", { value: entry.name }),
-    ),
+    [
+      ...conditionEntries.map((entry) => el("option", { value: entry.label, label: "condición" })),
+      ...named.map((entry) =>
+        producedIds.has(entry.id)
+          ? el("option", { value: entry.name, label: "resultado producido" })
+          : el("option", { value: entry.name }),
+      ),
+    ],
   );
   const input = el("input", {
     type: "text",
@@ -359,10 +377,10 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
     oninput: () => {
       const text = input.value.trim();
       if (!text) return;
-      const match = named.find((entry) => entry.name.toLowerCase() === text.toLowerCase());
-      if (match) {
+      const token = matchExact(text);
+      if (token) {
         input.value = "";
-        append({ kind: "ref", dataId: match.id });
+        append(token);
       }
     },
     onkeydown: (event) => {
@@ -386,8 +404,7 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
   const commit = () => {
     const text = input.value.trim();
     if (!text) return;
-    const match = named.find((entry) => entry.name.toLowerCase() === text.toLowerCase());
-    append(match ? { kind: "ref", dataId: match.id } : { kind: "literal", value: text });
+    append(matchExact(text) ?? { kind: "literal", value: text });
   };
   const addButton = el(
     "button",
@@ -420,17 +437,43 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
     ]),
   );
 
+  // Botones rápidos para componer condiciones (C1, C2…), como en «[C1] Y [C2]».
+  const conditionButtons =
+    conditionEntries.length > 0
+      ? el("div", { class: "flex flex-col gap-0.5" }, [
+          el("span", { class: "text-[0.65rem] font-medium uppercase tracking-wide text-slate-400" }, "Condiciones"),
+          el(
+            "div",
+            { class: "flex flex-wrap gap-0.5" },
+            conditionEntries.map((entry) =>
+              el(
+                "button",
+                {
+                  type: "button",
+                  title: `Insertar ${entry.label}`,
+                  class: "rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100",
+                  onmousedown: (event) => event.preventDefault(),
+                  onclick: () => append({ kind: "cond", condId: entry.id }),
+                },
+                entry.label,
+              ),
+            ),
+          ),
+        ])
+      : null;
+
   return el("div", { class: "space-y-1.5" }, [
     tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
     el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, [
       el("div", { class: "flex items-center gap-1" }, [input, datalist, addButton]),
+      conditionButtons,
       el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, operatorButtons),
     ]),
   ]);
 }
 
-function operationTokenChip(token, resolve, producedIds, { onRemove, draggable, onDragStart, onDrop }) {
-  const { leading, text, className, extra = "" } = describeToken(token, resolve, producedIds);
+function operationTokenChip(token, resolve, producedIds, resolveCondition, { onRemove, draggable, onDragStart, onDrop }) {
+  const { leading, text, className, extra = "" } = describeToken(token, resolve, producedIds, resolveCondition);
   const cursor = draggable ? "cursor-move" : "";
   return el(
     "span",
@@ -457,9 +500,18 @@ function operationTokenChip(token, resolve, producedIds, { onRemove, draggable, 
 
 // Describe una ficha por tipo. Cada tipo se distingue por FORMA además del color:
 // dato de entrada = icono de datos (azul); resultado producido por otra actividad
-// = icono de reutilización (violeta); operador = símbolo monoespaciado en negrita;
-// valor = «#» (ámbar).
-function describeToken(token, resolve, producedIds = new Set()) {
+// = icono de reutilización (violeta); condición = icono de bifurcación (índigo);
+// operador = símbolo monoespaciado en negrita; valor = «#» (ámbar).
+function describeToken(token, resolve, producedIds = new Set(), resolveCondition = null) {
+  if (token.kind === "cond") {
+    const condition = resolveCondition ? resolveCondition(token.condId) : null;
+    return {
+      leading: icon("fork", "h-3 w-3 shrink-0 text-indigo-500"),
+      text: condition ? condition.label : "(condición eliminada)",
+      className: "border border-indigo-200 bg-indigo-50 text-indigo-700",
+      extra: "font-semibold",
+    };
+  }
   if (token.kind === "ref") {
     const datum = resolve(token.dataId);
     const text = datum ? datum.name || "(sin nombre)" : "(dato eliminado)";
@@ -524,7 +576,7 @@ function usedInSelect(row, activities, onChange) {
 }
 
 // Camino de una decisión: el constructor de la respuesta solo aparece para "Respuesta".
-function branchEditor(branch, key, { structural, refs, resolve, rowId, producedIds = new Set() }) {
+function branchEditor(branch, key, { structural, refs, resolve, rowId, producedIds = new Set(), conditions = null }) {
   const children = [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => structural((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
@@ -539,6 +591,7 @@ function branchEditor(branch, key, { structural, refs, resolve, rowId, producedI
         (updater) => structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
         `br:${rowId}:${key}`,
         producedIds,
+        conditions,
       ),
     );
   }

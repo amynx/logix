@@ -12,8 +12,9 @@ import { commentBox, questionBox, formulaBox, withEquals, withArrow, referencedT
 
 // Nodo de solo lectura por cada campo de la fila (o null si no aplica / vacío),
 // con las mismas claves que buildRowFields para que ambas vistas lo consuman.
-export function buildRowSummary(row, dataById, activities = [], producedIds = new Set()) {
+export function buildRowSummary(row, dataById, activities = [], producedIds = new Set(), conditions = []) {
   const resolve = (id) => dataById.get(id) ?? null;
+  const resolveCondition = conditionResolver(conditions);
   const resolveName = referenceResolver(dataById, producedIds);
   const isDecision = row.purpose === "decision";
   const conditionApplies = isDecision || row.usesCondition;
@@ -27,13 +28,13 @@ export function buildRowSummary(row, dataById, activities = [], producedIds = ne
       ? el("div", { class: "flex flex-wrap gap-1" }, inputs.map((datum) => inputChip(datum, producedIds.has(datum.id))))
       : null,
     condition: conditionApplies && conditionText ? questionBox(referencedText(conditionText, resolveName)) : null,
-    operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve)) : null,
+    operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve, resolveCondition)) : null,
     result: result ? withEquals(dataChip(result)) : null,
     purpose: purposeBadge(row.purpose),
     usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
     comment: commentText(row.subsequentUse, resolveName),
-    ifTrue: isDecision ? branchNode(row.ifTrue, resolve) : null,
-    ifFalse: isDecision ? branchNode(row.ifFalse, resolve) : null,
+    ifTrue: isDecision ? branchNode(row.ifTrue, resolve, resolveCondition) : null,
+    ifFalse: isDecision ? branchNode(row.ifFalse, resolve, resolveCondition) : null,
   };
 }
 
@@ -82,10 +83,16 @@ function inputChip(datum, produced) {
   ]);
 }
 
+// Resuelve la etiqueta posicional (C1, C2…) de una condición referenciada.
+function conditionResolver(conditions) {
+  const labelById = new Map(conditions.map((condition, index) => [condition.id, `C${index + 1}`]));
+  return (condId) => (labelById.has(condId) ? { label: labelById.get(condId) } : null);
+}
+
 // Expresión legible: los datos resaltados, los operadores y literales discretos.
-function expressionNode(tokens, resolve) {
+function expressionNode(tokens, resolve, resolveCondition) {
   const nodes = [];
-  expressionParts(tokens, resolve).forEach((part, index) => {
+  expressionParts(tokens, resolve, resolveCondition).forEach((part, index) => {
     if (index > 0) nodes.push(" ");
     nodes.push(partNode(part));
   });
@@ -95,6 +102,9 @@ function expressionNode(tokens, resolve) {
 function partNode(part) {
   if (part.kind === "ref") {
     return el("span", { class: "whitespace-nowrap rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-700" }, part.text);
+  }
+  if (part.kind === "cond") {
+    return el("span", { class: "whitespace-nowrap rounded bg-indigo-100 px-1 py-0.5 font-semibold text-indigo-700" }, part.text);
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
   return el("span", { class: "whitespace-nowrap rounded bg-amber-50 px-1 py-0.5 text-amber-700" }, part.text || "∅");
@@ -116,13 +126,13 @@ export function usedInNode(usedInRowId, activities) {
 
 // Camino de una decisión: "→ [opción]", donde la opción es el tipo de continuación
 // y, si la hay, su respuesta. Precedido por "→" para leerse tras "entonces:".
-function branchNode(branch, resolve) {
+function branchNode(branch, resolve, resolveCondition) {
   const hasValue = Array.isArray(branch.value) && branch.value.length > 0;
   const parts = [];
   if (branch.type) parts.push(el("span", { class: "text-slate-600" }, labelOf(BRANCH_TYPES, branch.type)));
   if (hasValue) {
     if (branch.type) parts.push(el("span", { class: "text-slate-300" }, "·"));
-    parts.push(expressionNode(branch.value, resolve));
+    parts.push(expressionNode(branch.value, resolve, resolveCondition));
   }
   if (parts.length === 0) parts.push(el("span", { class: "text-slate-400" }, "sin definir"));
   return withArrow(el("span", { class: "inline-flex flex-wrap items-center gap-1.5 text-slate-700" }, parts));

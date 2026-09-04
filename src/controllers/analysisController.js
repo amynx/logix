@@ -23,6 +23,11 @@ import {
   addStudent,
   updateStudent,
   removeStudent,
+  addCondition,
+  updateCondition,
+  removeCondition,
+  findCondition,
+  conditionLabel,
 } from "../models/analysisModel.js";
 import { createStudentGradeExample } from "../models/exampleAnalysis.js";
 import { confirmDialog, messageDialog, selectSectionsDialog } from "../views/dialogs.js";
@@ -49,10 +54,11 @@ export class AnalysisController {
   #lastRecordAt = 0;
   #restoring = false;
 
-  constructor({ analysisView, studentsView, inputsView, tableView, cardsView, chainView, completenessView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
+  constructor({ analysisView, studentsView, inputsView, conditionsView, tableView, cardsView, chainView, completenessView, pdfView, storage, saveDelay = DEFAULT_SAVE_DELAY }) {
     this.analysisView = analysisView;
     this.studentsView = studentsView;
     this.inputsView = inputsView;
+    this.conditionsView = conditionsView;
     this.completenessView = completenessView;
     this.tableView = tableView;
     this.cardsView = cardsView;
@@ -109,6 +115,7 @@ export class AnalysisController {
     this.renderStudents();
     this.renderInfo();
     this.renderInputs();
+    this.renderConditions();
     this.renderTable();
     this.renderCompleteness();
     this.renderChain();
@@ -164,6 +171,50 @@ export class AnalysisController {
       onSetNameConvention: (convention) => this.setNameConvention(convention),
       formatName: (name) => conventionalName(this.analysis, name),
     }, this.showStatement, this.analysis.nameConvention);
+  }
+
+  // --- Condiciones (comprobaciones reutilizables) ---
+
+  #conditionHandlers() {
+    return {
+      onAddCondition: () => this.addCondition(),
+      onUpdateCondition: (condId, updater) => this.updateConditionTokens(condId, updater),
+      onRemoveCondition: (condId) => this.removeCondition(condId),
+    };
+  }
+
+  // Contexto de datos para el editor de expresiones de una condición.
+  #dataContext() {
+    const produced = new Set(this.analysis.rows.map((row) => row.resultId).filter(Boolean));
+    return { refs: this.analysis.data, resolve: (id) => findData(this.analysis, id), producedIds: produced };
+  }
+
+  renderConditions() {
+    this.conditionsView.render(this.analysis.conditions, this.#dataContext(), this.#conditionHandlers());
+  }
+
+  addCondition() {
+    addCondition(this.analysis);
+    this.renderConditions();
+    this.renderTable(); // la nueva condición queda disponible para componer en las actividades
+    this.#afterChange();
+    trackEvent("add_condition");
+  }
+
+  // Cambia la expresión de una condición conservando el foco (para encadenar tokens).
+  updateConditionTokens(condId, updater) {
+    const condition = findCondition(this.analysis, condId);
+    if (!condition) return;
+    updateCondition(this.analysis, condId, { tokens: updater(condition.tokens) });
+    this.conditionsView.renderKeepingFocus(this.analysis.conditions, this.#dataContext(), this.#conditionHandlers());
+    this.#afterChange();
+  }
+
+  removeCondition(condId) {
+    removeCondition(this.analysis, condId);
+    this.renderConditions();
+    this.renderTable(); // deja de estar disponible y se podan sus referencias
+    this.#afterChange();
   }
 
   // Fija la convención de nombres como regla del análisis y la aplica a todos los
@@ -360,6 +411,8 @@ export class AnalysisController {
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
       formatName: (name) => conventionalName(this.analysis, name),
       getDataMentions: () => this.#dataMentions(),
+      conditionEntries: () => this.analysis.conditions.map((condition) => ({ id: condition.id, label: conditionLabel(this.analysis, condition.id) })),
+      resolveCondition: (condId) => (findCondition(this.analysis, condId) ? { label: conditionLabel(this.analysis, condId) } : null),
     };
   }
 
