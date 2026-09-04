@@ -11,7 +11,8 @@ import {
   updateAnalysisInfo,
   updateData,
   addInput,
-  formatInputNames,
+  setNameConvention,
+  conventionalName,
   removeData,
   listInputs,
   addExistingRowInput,
@@ -160,18 +161,19 @@ export class AnalysisController {
       onRemoveInput: (dataId) => this.removeInput(dataId),
       onEditInputs: () => this.setEditingInputs(true),
       onDoneInputs: () => this.setEditingInputs(false),
-      onFormatNames: (convention) => this.formatInputNames(convention),
-    }, this.showStatement);
+      onSetNameConvention: (convention) => this.setNameConvention(convention),
+      formatName: (name) => conventionalName(this.analysis, name),
+    }, this.showStatement, this.analysis.nameConvention);
   }
 
-  // Aplica la convención elegida a los nombres de los datos de entrada (a petición
-  // del estudiante). Se re-renderiza la tabla para reflejar los nombres en las fichas.
-  formatInputNames(convention) {
-    formatInputNames(this.analysis, convention);
+  // Fija la convención de nombres como regla del análisis y la aplica a todos los
+  // datos (entradas y resultados). Se re-renderiza para reflejar los nombres.
+  setNameConvention(convention) {
+    setNameConvention(this.analysis, convention);
     this.renderInputs();
     this.renderTable();
     this.#afterChange();
-    trackEvent("format_input_names", { convention });
+    trackEvent("set_name_convention", { convention });
   }
 
   setEditingInputs(editing) {
@@ -355,6 +357,7 @@ export class AnalysisController {
       onRemoveRowInput: (rowId, dataId) => this.removeRowInput(rowId, dataId),
       onUsedInChange: (rowId, usedInRowId) => this.setUsedIn(rowId, usedInRowId),
       onOperationChange: (rowId, tokensUpdater) => this.updateOperation(rowId, tokensUpdater),
+      formatName: (name) => conventionalName(this.analysis, name),
     };
   }
 

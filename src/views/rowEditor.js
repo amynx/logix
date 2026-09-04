@@ -237,6 +237,18 @@ export function addActivityButton(onAddRow) {
 
 // --- Constructores de controles ---
 
+// Reformatea un campo al desenfocar aplicando `transform`, y persiste el resultado
+// si cambió. Se usa para normalizar la presentación (capitalización, pregunta) y
+// para aplicar la convención de nombres, sin interrumpir mientras se escribe.
+export function normalizeFieldOnBlur(event, transform, persist) {
+  if (typeof transform !== "function") return;
+  const formatted = transform(event.target.value);
+  if (formatted !== event.target.value) {
+    event.target.value = formatted;
+    persist(formatted);
+  }
+}
+
 // `normalize` corrige la forma del texto al desenfocar (no mientras se escribe,
 // para no interrumpir). Actualiza el valor visible y persiste el resultado.
 function textField(value, placeholder, onInput, { normalize } = {}) {
@@ -246,15 +258,7 @@ function textField(value, placeholder, onInput, { normalize } = {}) {
     placeholder,
     class: `${CONTROL_CLASS} resize-y`,
     oninput: (event) => onInput(event.target.value),
-    onblur: normalize
-      ? (event) => {
-          const normalized = normalize(event.target.value);
-          if (normalized !== event.target.value) {
-            event.target.value = normalized;
-            onInput(normalized);
-          }
-        }
-      : null,
+    onblur: normalize ? (event) => normalizeFieldOnBlur(event, normalize, onInput) : null,
   });
 }
 
@@ -485,6 +489,8 @@ function resultEditor(rowId, result, handlers) {
       class: CONTROL_CLASS,
       dataset: { focusKey: `res-name:${rowId}` },
       oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
+      // Al desenfocar, el nombre del dato resultante adopta la convención vigente.
+      onblur: (event) => normalizeFieldOnBlur(event, handlers.formatName, (name) => handlers.onResultChange(rowId, { name })),
     }),
     typeSelect,
   ]);

@@ -18,7 +18,8 @@ import {
   addStudent,
   updateStudent,
   removeStudent,
-  formatInputNames,
+  setNameConvention,
+  conventionalName,
 } from "../src/models/analysisModel.js";
 import { applyNameConvention } from "../src/models/nameConventions.js";
 
@@ -127,15 +128,25 @@ test("applyNameConvention formats a readable name per convention", () => {
   assert.equal(applyNameConvention("yaEnCamel", "snake"), "ya_en_camel", "re-convierte camelCase");
 });
 
-test("formatInputNames applies a convention only to declared inputs", () => {
-  const analysis = createAnalysis({ title: "Demo" });
+test("setNameConvention persists the rule and applies it to inputs and results", () => {
+  const { analysis, row } = analysisWithRow();
   addInput(analysis, { name: "unidades producidas" });
   addInput(analysis, { name: "" }); // vacío: no cambia
-  addInput(analysis, { name: "cantidad trabajadores" });
+  updateRowResult(analysis, row.id, { name: "promedio de notas" });
 
-  formatInputNames(analysis, "camel");
-  const names = listInputs(analysis).map((entry) => entry.name);
-  assert.deepEqual(names, ["unidadesProducidas", "", "cantidadTrabajadores"]);
+  setNameConvention(analysis, "camel");
+
+  assert.equal(analysis.nameConvention, "camel", "la convención queda como regla del análisis");
+  assert.deepEqual(listInputs(analysis).map((entry) => entry.name), ["unidadesProducidas", ""]);
+  assert.equal(findData(analysis, row.resultId).name, "promedioDeNotas", "también aplica al dato resultante");
+});
+
+test("conventionalName applies the active convention (and nothing without one)", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  assert.equal(conventionalName(analysis, "promedio de notas"), "promedio de notas", "sin convención no cambia");
+
+  setNameConvention(analysis, "snake");
+  assert.equal(conventionalName(analysis, "promedio de notas"), "promedio_de_notas");
 });
 
 test("the analysis records a single group shared by all students", () => {

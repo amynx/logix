@@ -7,6 +7,7 @@
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
 import { NAME_CONVENTIONS } from "../models/nameConventions.js";
+import { normalizeFieldOnBlur } from "./rowEditor.js";
 import { sectionHeader, emptyState } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { typeBadge } from "./badges.js";
@@ -45,7 +46,7 @@ export class InputsView {
     this.container = container;
   }
 
-  render(inputs, editing, handlers, usingStatement = false) {
+  render(inputs, editing, handlers, usingStatement = false, nameConvention = "") {
     clear(this.container);
 
     const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddInput() }, "+ Agregar dato");
@@ -61,7 +62,7 @@ export class InputsView {
           ? inputsTable(inputs, true, handlers, usingStatement)
           : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer dato de entrada.");
       const done = el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]);
-      actions = inputs.length > 0 ? [addButton, formatSelect(handlers.onFormatNames), done] : [addButton, done];
+      actions = inputs.length > 0 ? [addButton, conventionSelect(nameConvention, handlers.onSetNameConvention), done] : [addButton, done];
     } else {
       body = inputsTable(inputs, false, handlers, usingStatement);
       actions = [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditInputs() }, [icon("edit", "h-4 w-4"), "Editar datos"])];
@@ -107,7 +108,7 @@ function inputsTable(inputs, editing, handlers, usingStatement) {
 
 function editRow(entry, handlers, usingStatement) {
   const change = (changes) => handlers.onInputChange(entry.id, changes);
-  const nameCell = el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }))]);
+  const nameCell = el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }), { normalize: handlers.formatName })]);
   const typeCell = el("td", { class: TD_CLASS }, [typeSelect(entry, handlers)]);
   const valueCell = el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }))]);
   const cells = usingStatement
@@ -155,13 +156,16 @@ function dash() {
   return el("span", { class: "text-slate-300" }, "—");
 }
 
-function textField(placeholder, value, onInput) {
+// `normalize` reformatea el campo al desenfocar (p. ej. la convención de nombres),
+// sin interrumpir mientras se escribe.
+function textField(placeholder, value, onInput, { normalize } = {}) {
   return el("input", {
     type: "text",
     value: value ?? "",
     placeholder,
     class: `${CONTROL_CLASS} w-full`,
     oninput: (event) => onInput(event.target.value),
+    onblur: normalize ? (event) => normalizeFieldOnBlur(event, normalize, onInput) : null,
   });
 }
 
@@ -182,22 +186,18 @@ function typeSelect(entry, handlers) {
   return select;
 }
 
-// Selector para aplicar una convención de nombres a los datos (solo si se elige).
-function formatSelect(onFormat) {
+// Selector de la convención de nombres del análisis. Es una regla persistente: al
+// elegirla se aplica a todos los datos y se mantiene para los nuevos nombres.
+function conventionSelect(nameConvention, onSetNameConvention) {
   const select = el(
     "select",
     {
       class: `${CONTROL_CLASS} text-sm`,
-      title: "Aplicar una convención a los nombres de los datos",
-      onchange: (event) => {
-        if (event.target.value) {
-          onFormat(event.target.value);
-          event.target.value = "";
-        }
-      },
+      title: "Convención de nombres del análisis (se aplica a entradas y resultados)",
+      onchange: (event) => onSetNameConvention(event.target.value),
     },
-    [el("option", { value: "" }, "Formatear nombres…"), ...Object.entries(NAME_CONVENTIONS).map(([key, label]) => el("option", { value: key }, label))],
+    [el("option", { value: "" }, "Convención: ninguna"), ...Object.entries(NAME_CONVENTIONS).map(([key, label]) => el("option", { value: key }, label))],
   );
-  select.value = "";
+  select.value = nameConvention ?? "";
   return select;
 }

@@ -39,7 +39,13 @@ export function migrateAnalysis(data) {
   if (current.version < 11) current = migrateV10toV11(current);
   if (current.version < 12) current = migrateV11toV12(current);
   if (current.version < 13) current = migrateV12toV13(current);
+  if (current.version < 14) current = migrateV13toV14(current);
   return current;
+}
+
+// v14: el análisis recuerda la convención de nombres elegida como regla persistente.
+function migrateV13toV14(old) {
+  return { ...old, version: 14, nameConvention: old.nameConvention ?? "" };
 }
 
 // v13: la condición pasa a ser opcional y explícita por actividad. Una fila que ya

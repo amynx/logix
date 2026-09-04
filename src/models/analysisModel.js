@@ -15,7 +15,7 @@ import { applyNameConvention } from "./nameConventions.js";
 // siendo un único campo compartido por todos (ya no es propio de cada estudiante).
 // v12: se registra el enunciado del problema y cada dato conserva el fragmento del
 // enunciado del que salió (`source`) y su valor (`value`).
-export const ANALYSIS_VERSION = 13;
+export const ANALYSIS_VERSION = 14;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -64,6 +64,7 @@ export function createAnalysis(overrides = {}) {
     statement: "", // enunciado completo del problema (para identificar los datos)
     group: "",
     students: [],
+    nameConvention: "", // convención de nombres vigente ("" = ninguna); regla del análisis
     data: [],
     rows: [],
     createdAt: now,
@@ -201,13 +202,23 @@ export function addInput(analysis, values = {}) {
   return addData(analysis, values);
 }
 
-// Aplica una convención de nombres a los datos de entrada declarados. Solo cuando
-// el estudiante lo solicita; los nombres vacíos se dejan como están.
-export function formatInputNames(analysis, convention) {
-  for (const entry of listInputs(analysis)) {
-    entry.name = applyNameConvention(entry.name, convention);
+// Fija la convención de nombres del análisis y la aplica a TODOS los datos —
+// entradas y resultados de operaciones— para que la nomenclatura sea consistente.
+// Una convención vacía ("ninguna") solo se guarda; no reformatea lo existente.
+export function setNameConvention(analysis, convention) {
+  analysis.nameConvention = convention;
+  if (convention) {
+    for (const entry of analysis.data) {
+      entry.name = applyNameConvention(entry.name, convention);
+    }
   }
   return touch(analysis);
+}
+
+// Aplica la convención vigente del análisis a un nombre (para reformatear al
+// desenfocar un campo de nombre). Sin convención activa, lo devuelve igual.
+export function conventionalName(analysis, name) {
+  return applyNameConvention(name, analysis.nameConvention ?? "");
 }
 
 function tokensReference(tokens, dataId) {
