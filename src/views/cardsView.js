@@ -49,7 +49,7 @@ export class CardsView {
         trailing: viewToggle(viewMode, handlers.onSetViewMode),
       }),
       cards.length > 0
-        ? el("div", { class: "overflow-x-auto pb-2" }, [el("div", { class: "flex items-start" }, chained(cards))])
+        ? el("div", { class: "overflow-x-auto pb-2", dataset: { scrollKey: "cards" } }, [el("div", { class: "flex items-start" }, chained(cards))])
         : el("p", { class: "text-sm text-slate-400" }, "Aún no hay actividades."),
       addActivityButton(handlers.onAddRow),
     );

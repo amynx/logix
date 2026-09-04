@@ -49,7 +49,7 @@ export class TableView {
         help: helpButton(2), // pestaña "Condiciones y expresiones"
         trailing: viewToggle(viewMode, handlers.onSetViewMode),
       }),
-      el("div", { class: "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" }, [table]),
+      el("div", { class: "overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm", dataset: { scrollKey: "table" } }, [table]),
       addActivityButton(handlers.onAddRow),
     );
   }

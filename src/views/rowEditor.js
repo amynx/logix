@@ -76,28 +76,51 @@ export function notApplicable() {
   return el("span", { class: "block px-2 py-1 text-xs text-slate-300", title: "No aplica en esta actividad" }, "—");
 }
 
-// Re-renderiza preservando el control enfocado y la posición del cursor, para que
-// al crear o renombrar un dato se refresquen las demás celdas sin interrumpir la
-// escritura. `render` re-dibuja dentro de `container`.
+// Re-renderiza preservando el control enfocado, la posición del cursor y el scroll,
+// para que al crear un dato o agregarlo a una expresión se refresque la vista sin
+// interrumpir la escritura ni saltar a otra actividad. Conserva el scroll de la
+// ventana y el de los contenedores marcados con `data-scroll-key` (p. ej. la tira
+// horizontal de tarjetas), que al recrearse volverían a su inicio. `render`
+// re-dibuja dentro de `container`.
 export function renderPreservingFocus(container, render) {
   const active = document.activeElement;
   const focusKey = active?.dataset?.focusKey;
   const start = active?.selectionStart ?? null;
   const end = active?.selectionEnd ?? null;
 
+  const pageX = window.scrollX;
+  const pageY = window.scrollY;
+  const scrolls = new Map();
+  container.querySelectorAll("[data-scroll-key]").forEach((node) => {
+    scrolls.set(node.dataset.scrollKey, { left: node.scrollLeft, top: node.scrollTop });
+  });
+
   render();
 
-  if (!focusKey) return;
-  const restored = container.querySelector(`[data-focus-key="${focusKey}"]`);
-  if (!restored) return;
-  restored.focus();
-  if (start != null && typeof restored.setSelectionRange === "function") {
-    try {
-      restored.setSelectionRange(start, end);
-    } catch {
-      // Algunos tipos de input no admiten setSelectionRange; el foco basta.
+  container.querySelectorAll("[data-scroll-key]").forEach((node) => {
+    const saved = scrolls.get(node.dataset.scrollKey);
+    if (saved) {
+      node.scrollLeft = saved.left;
+      node.scrollTop = saved.top;
+    }
+  });
+
+  if (focusKey) {
+    const restored = container.querySelector(`[data-focus-key="${focusKey}"]`);
+    if (restored) {
+      // preventScroll: el scroll ya se restauró; que el foco no lo vuelva a mover.
+      restored.focus({ preventScroll: true });
+      if (start != null && typeof restored.setSelectionRange === "function") {
+        try {
+          restored.setSelectionRange(start, end);
+        } catch {
+          // Algunos tipos de input no admiten setSelectionRange; el foco basta.
+        }
+      }
     }
   }
+
+  window.scrollTo(pageX, pageY);
 }
 
 // Selector para alternar entre la vista de tabla y la de tarjetas.

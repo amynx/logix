@@ -400,19 +400,21 @@ export class AnalysisController {
   // usará. El valor puede ser "" (sin asignar), "pending" o el id de una actividad.
   setUsedIn(rowId, usedInRowId) {
     updateRow(this.analysis, rowId, { usedInRowId });
-    this.renderTable();
+    this.#renderTableKeepingFocus();
     this.#afterChange();
   }
 
+  // Al reutilizar un dato en la fila se conserva la posición de scroll (no debe
+  // saltar a otra tarjeta) para no interrumpir la construcción de la expresión.
   reuseInput(rowId, dataId) {
     addExistingRowInput(this.analysis, rowId, dataId);
-    this.renderTable();
+    this.#renderTableKeepingFocus();
     this.#afterChange();
   }
 
   removeRowInput(rowId, dataId) {
     removeRowInput(this.analysis, rowId, dataId);
-    this.renderTable();
+    this.#renderTableKeepingFocus();
     this.#afterChange();
   }
 
