@@ -59,7 +59,7 @@ export class AnalysisController {
     this.completenessView = completenessView;
     this.tableView = tableView;
     this.cardsView = cardsView;
-    this.viewMode = "table"; // "table" | "cards"
+    this.viewMode = "cards"; // única vista activa: tarjetas (la de filas está desactivada)
     this.chainView = chainView;
     this.pdfView = pdfView;
     this.storage = storage;
@@ -315,15 +315,11 @@ export class AnalysisController {
     trackEvent("add_data_from_selection");
   }
 
-  // Vista activa de las actividades (tabla o tarjetas): ambas comparten handlers.
+  // Vista activa de las actividades. En el producto solo se usa tarjetas (la vista
+  // de filas está desactivada: no hay selector). `tableView` se conserva como
+  // renderizador alternativo (se ejercita en pruebas) por si se reactiva.
   #activityView() {
-    return this.viewMode === "cards" ? this.cardsView : this.tableView;
-  }
-
-  setViewMode(mode) {
-    if (mode === this.viewMode) return;
-    this.viewMode = mode;
-    this.renderTable();
+    return this.viewMode === "table" && this.tableView ? this.tableView : this.cardsView;
   }
 
   // Alterna una actividad entre modo edición y modo visualización. Es estado de
@@ -346,7 +342,6 @@ export class AnalysisController {
 
   #tableHandlers() {
     return {
-      onSetViewMode: (mode) => this.setViewMode(mode),
       isRowEditing: (rowId) => this.editingRows.has(rowId),
       onEditRow: (rowId) => this.setRowEditing(rowId, true),
       onDoneRow: (rowId) => this.setRowEditing(rowId, false),

@@ -9,7 +9,6 @@ import { el, clear } from "../utils/dom.js";
 import {
   buildRowFields,
   renderPreservingFocus,
-  viewToggle,
   dragHandle,
   deleteButton,
   editButton,
@@ -47,10 +46,9 @@ export class CardsView {
       sectionHeader({
         step: 4,
         title: "Actividades",
-        subtitle: "Cada paso del análisis. Puedes cambiar de vista o de orden.",
+        subtitle: "Cada paso del análisis, en orden. Arrástralas para reordenar.",
         iconName: "activities",
         help: helpButton(2), // pestaña "Condiciones y expresiones"
-        trailing: viewToggle(viewMode, handlers.onSetViewMode),
       }),
       cards.length > 0
         ? el("div", { class: "overflow-x-auto pb-2", dataset: { scrollKey: "cards" } }, [el("div", { class: "flex items-start" }, chained(cards))])

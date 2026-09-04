@@ -40,7 +40,10 @@ function fakeStorage(initial = []) {
   };
 }
 
-async function mountApp({ storage = fakeStorage() } = {}) {
+// La vista de filas está desactivada en el producto, pero se conserva como
+// renderizador alternativo; las pruebas la ejercitan por defecto (misma lógica
+// compartida que las tarjetas). `viewMode: "cards"` prueba la vista de tarjetas.
+async function mountApp({ storage = fakeStorage(), viewMode = "table" } = {}) {
   const dom = new JSDOM(
     `<!DOCTYPE html><body><div id="toolbar"></div><div id="save-status"></div><div id="history-controls"></div><div id="analysis-info"></div><div id="students-container"></div><div id="inputs-container"></div><div id="table-container"></div><div id="completeness-container"></div><div id="chain-container"></div><div id="print-area"></div></body>`,
   );
@@ -69,6 +72,7 @@ async function mountApp({ storage = fakeStorage() } = {}) {
     storage,
     saveDelay: 0,
   });
+  controller.viewMode = viewMode;
   setExampleTutorialLoader(() => controller.loadStudentGradeExample());
   await controller.start();
   return { dom, controller, doc, storage };
@@ -146,26 +150,19 @@ test("dragging a row onto another reorders the analysis", async () => {
   );
 });
 
-test("switching to the cards view shows the same activities and preserves order", async () => {
-  const { doc, controller } = await mountApp();
+test("the cards view shows one card per activity in order (no table)", async () => {
+  const { doc, controller } = await mountApp({ viewMode: "cards" });
   controller.addRow();
   const ids = controller.analysis.rows.map((r) => r.id);
 
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
-  assert.equal(controller.viewMode, "cards");
-  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 0, "ya no hay tabla");
+  assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 0, "no hay tabla de filas");
   const cards = doc.querySelectorAll("#table-container [data-row-id]");
   assert.equal(cards.length, 2, "una card por actividad");
-  assert.deepEqual([...cards].map((c) => c.dataset.rowId), ids, "mismo orden");
-
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tabla").click();
-  assert.equal(controller.viewMode, "table");
-  assert.deepEqual(controller.analysis.rows.map((r) => r.id), ids, "los datos y el orden no cambian");
+  assert.deepEqual([...cards].map((c) => c.dataset.rowId), ids, "mismo orden que el análisis");
 });
 
 test("editing in the cards view updates the same analysis", async () => {
-  const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+  const { doc, controller } = await mountApp({ viewMode: "cards" });
 
   const resultName = doc.querySelector('[data-focus-key^="res-name:"]');
   resultName.value = "promedio";
@@ -173,14 +170,10 @@ test("editing in the cards view updates the same analysis", async () => {
 
   const result = findData(controller.analysis, controller.analysis.rows[0].resultId);
   assert.equal(result.name, "promedio");
-
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tabla").click();
-  assert.equal(doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input").value, "promedio", "se ve igual en la tabla");
 });
 
 test("a card toggles between edit and view mode", async () => {
-  const { doc, controller } = await mountApp();
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
+  const { doc, controller } = await mountApp({ viewMode: "cards" });
 
   const card = () => doc.querySelector("#table-container [data-row-id]");
   const rowId = card().dataset.rowId;
@@ -220,11 +213,10 @@ test("finishing edit in the table shows the read-only summary with an Editar act
 });
 
 test("cards can be reordered by drag and drop", async () => {
-  const { doc, controller } = await mountApp();
+  const { doc, controller } = await mountApp({ viewMode: "cards" });
   controller.addRow();
   const [firstId, secondId] = controller.analysis.rows.map((r) => r.id);
 
-  [...doc.querySelectorAll("#table-container button")].find((b) => b.textContent === "Tarjetas").click();
   const cards = doc.querySelectorAll("#table-container [data-row-id]");
   cards[0].querySelector("span[draggable]").dispatchEvent(new globalThis.window.Event("dragstart"));
   cards[1].dispatchEvent(new globalThis.window.Event("drop"));

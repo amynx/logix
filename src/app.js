@@ -4,7 +4,6 @@
 import { AnalysisView } from "./views/analysisView.js";
 import { StudentsView } from "./views/studentsView.js";
 import { InputsView } from "./views/inputsView.js";
-import { TableView } from "./views/tableView.js";
 import { CardsView } from "./views/cardsView.js";
 import { ChainView } from "./views/chainView.js";
 import { CompletenessView } from "./views/completenessView.js";
@@ -33,10 +32,6 @@ function main() {
     container: document.getElementById("inputs-container"),
   });
 
-  const tableView = new TableView({
-    container: document.getElementById("table-container"),
-  });
-
   const cardsView = new CardsView({
     container: document.getElementById("table-container"),
   });
@@ -57,7 +52,6 @@ function main() {
     analysisView,
     studentsView,
     inputsView,
-    tableView,
     cardsView,
     chainView,
     completenessView,
