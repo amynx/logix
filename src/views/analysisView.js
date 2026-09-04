@@ -9,6 +9,7 @@ import { openHelp } from "./helpView.js";
 import { startExampleTutorial } from "./guideView.js";
 import { toggleTheme } from "../utils/theme.js";
 import { trackEvent } from "../utils/analytics.js";
+import { capitalizeFirst } from "../models/textNormalization.js";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
@@ -249,6 +250,14 @@ export class AnalysisView {
       placeholder: "Describe el problema del mundo real que se quiere resolver",
       class: `${INPUT_CLASS} resize-y`,
       oninput: (event) => onDescriptionChange(event.target.value),
+      // Capitaliza la presentación al desenfocar, sin interrumpir la escritura.
+      onblur: (event) => {
+        const normalized = capitalizeFirst(event.target.value);
+        if (normalized !== event.target.value) {
+          event.target.value = normalized;
+          onDescriptionChange(normalized);
+        }
+      },
     });
 
     // Enunciado del problema: el texto sobre el que se identifican los datos. El

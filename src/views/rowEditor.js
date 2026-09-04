@@ -5,6 +5,7 @@
 import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
+import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
@@ -44,10 +45,10 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const resolveData = (id) => dataById.get(id) ?? null;
 
   return {
-    problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value }))),
+    problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
     condition: conditionApplies
-      ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })))
+      ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })), { normalize: formatAsQuestion })
       : null,
     operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
     result: resultEditor(row.id, resultEntry, handlers),
@@ -216,13 +217,24 @@ export function addActivityButton(onAddRow) {
 
 // --- Constructores de controles ---
 
-function textField(value, placeholder, onInput) {
+// `normalize` corrige la forma del texto al desenfocar (no mientras se escribe,
+// para no interrumpir). Actualiza el valor visible y persiste el resultado.
+function textField(value, placeholder, onInput, { normalize } = {}) {
   return el("textarea", {
     rows: 2,
     value: value ?? "",
     placeholder,
     class: `${CONTROL_CLASS} resize-y`,
     oninput: (event) => onInput(event.target.value),
+    onblur: normalize
+      ? (event) => {
+          const normalized = normalize(event.target.value);
+          if (normalized !== event.target.value) {
+            event.target.value = normalized;
+            onInput(normalized);
+          }
+        }
+      : null,
   });
 }
 
