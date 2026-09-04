@@ -47,14 +47,20 @@ function close() {
   state = null;
 }
 
-function open(field, getEntries, mention) {
+function open(field, getEntries, mention, onSelect) {
   const needle = mention.query.toLowerCase();
   const entries = getEntries().filter((entry) => entry.name.toLowerCase().includes(needle));
   if (entries.length === 0) return close();
-  state = { field, entries, index: 0, triggerStart: mention.start };
+  state = { field, entries, index: 0, triggerStart: mention.start, onSelect };
   renderMenu();
   position(field);
   ensureMenu().hidden = false;
+}
+
+// ¿Hay un menú de menciones abierto para este campo? Lo consultan los campos con su
+// propio manejo de teclado (el constructor de expresiones) para cederle las teclas.
+export function isMentionMenuOpen(field) {
+  return Boolean(state && state.field === field && menuEl && !menuEl.hidden);
 }
 
 function renderMenu() {
@@ -88,12 +94,20 @@ function position(field) {
   menu.style.top = `${rect.bottom + 4}px`;
 }
 
-// Reemplaza "/consulta" por "[nombre] " y notifica el cambio para que se persista.
+// Inserta la referencia elegida. Por defecto, como texto "[nombre]" en el campo;
+// si el campo aportó `onSelect` (p. ej. el constructor de expresiones), quita la
+// "/consulta" y delega la inserción (un token de referencia) en el propio campo.
 function insert(entry) {
-  const { field, triggerStart } = state;
+  const { field, triggerStart, onSelect } = state;
   const caret = field.selectionStart ?? field.value.length;
   const before = field.value.slice(0, triggerStart);
   const after = field.value.slice(caret);
+  if (onSelect) {
+    field.value = before + after;
+    close();
+    onSelect(entry);
+    return;
+  }
   const inserted = `[${entry.name}] `;
   field.value = before + inserted + after;
   const nextCaret = before.length + inserted.length;
@@ -103,10 +117,10 @@ function insert(entry) {
   field.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-function handleInput(field, getEntries) {
+function handleInput(field, getEntries, onSelect) {
   const mention = mentionAt(field);
   if (!mention) return close();
-  open(field, getEntries, mention);
+  open(field, getEntries, mention, onSelect);
 }
 
 function handleKeydown(field, event) {
@@ -131,9 +145,11 @@ function handleKeydown(field, event) {
 
 // Activa el menú de menciones en un campo. `getEntries()` devuelve los datos
 // disponibles: [{ id, name, type, produced }] (produced = resultado de otra fila).
-export function attachMentions(field, getEntries) {
+// `onSelect(entry)` (opcional) reemplaza la inserción de texto por defecto: el
+// campo decide qué hacer con el dato elegido (p. ej. agregar un token de referencia).
+export function attachMentions(field, getEntries, { onSelect } = {}) {
   if (!field || typeof getEntries !== "function") return;
-  field.addEventListener("input", () => handleInput(field, getEntries));
+  field.addEventListener("input", () => handleInput(field, getEntries, onSelect));
   field.addEventListener("keydown", (event) => handleKeydown(field, event));
   field.addEventListener("blur", () => {
     if (state && state.field === field) close();

@@ -6,7 +6,7 @@ import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
-import { attachMentions } from "./mentionMenu.js";
+import { attachMentions, isMentionMenuOpen } from "./mentionMenu.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
@@ -366,6 +366,7 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
       }
     },
     onkeydown: (event) => {
+      if (isMentionMenuOpen(input)) return; // el menú "/" maneja las teclas
       if (event.key === "Enter") {
         event.preventDefault();
         commit();
@@ -376,6 +377,12 @@ function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", pr
     },
   });
   input.setAttribute("list", listId); // `list` es de solo lectura como propiedad
+  // Menú "/": buscar e insertar una referencia (entrada o resultado) como token.
+  attachMentions(
+    input,
+    () => named.map((entry) => ({ id: entry.id, name: entry.name, type: entry.type, produced: producedIds.has(entry.id) })),
+    { onSelect: (entry) => append({ kind: "ref", dataId: entry.id }) },
+  );
   const commit = () => {
     const text = input.value.trim();
     if (!text) return;
