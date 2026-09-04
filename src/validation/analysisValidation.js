@@ -40,7 +40,13 @@ export function migrateAnalysis(data) {
   if (current.version < 12) current = migrateV11toV12(current);
   if (current.version < 13) current = migrateV12toV13(current);
   if (current.version < 14) current = migrateV13toV14(current);
+  if (current.version < 15) current = migrateV14toV15(current);
   return current;
+}
+
+// v15: el análisis tiene un catálogo de condiciones reutilizables (vacío si no existía).
+function migrateV14toV15(old) {
+  return { ...old, version: 15, conditions: Array.isArray(old.conditions) ? old.conditions : [] };
 }
 
 // v14: el análisis recuerda la convención de nombres elegida como regla persistente.

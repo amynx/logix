@@ -15,7 +15,10 @@ import { applyNameConvention } from "./nameConventions.js";
 // siendo un único campo compartido por todos (ya no es propio de cada estudiante).
 // v12: se registra el enunciado del problema y cada dato conserva el fragmento del
 // enunciado del que salió (`source`) y su valor (`value`).
-export const ANALYSIS_VERSION = 14;
+// v13: la condición de cada actividad es opcional y explícita. v14: la convención
+// de nombres se recuerda como regla del análisis. v15: catálogo de condiciones
+// reutilizables (comprobaciones lógicas con identidad, componibles con Y/O/NO).
+export const ANALYSIS_VERSION = 15;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -34,6 +37,13 @@ export function createStudent(overrides = {}) {
 
 export function createBranch(overrides = {}) {
   return { type: "", value: [], ...overrides };
+}
+
+// Una condición: comprobación lógica reutilizable con identidad. `tokens` es una
+// expresión relacional/lógica sobre datos (y otras condiciones). No produce un
+// dato por sí misma; se compone con otras para una comprobación mayor.
+export function createCondition(overrides = {}) {
+  return { id: createId(), tokens: [], ...overrides };
 }
 
 export function createRow(overrides = {}) {
@@ -66,6 +76,7 @@ export function createAnalysis(overrides = {}) {
     students: [],
     nameConvention: "", // convención de nombres vigente ("" = ninguna); regla del análisis
     data: [],
+    conditions: [], // comprobaciones lógicas reutilizables (C1, C2…)
     rows: [],
     createdAt: now,
     updatedAt: now,
@@ -175,8 +186,8 @@ function withoutRef(tokens, dataId) {
   return Array.isArray(tokens) ? tokens.filter((token) => !(token.kind === "ref" && token.dataId === dataId)) : tokens;
 }
 
-// Elimina un dato del catálogo y todas sus referencias en las filas: entradas,
-// resultado y las que aparezcan en operación, uso posterior o ramas.
+// Elimina un dato del catálogo y todas sus referencias en las filas y condiciones:
+// entradas, resultado y las que aparezcan en operación, uso posterior o ramas.
 export function removeData(analysis, dataId) {
   analysis.data = analysis.data.filter((entry) => entry.id !== dataId);
   for (const row of analysis.rows) {
@@ -186,6 +197,57 @@ export function removeData(analysis, dataId) {
     row.subsequentUse = withoutRef(row.subsequentUse, dataId);
     row.ifTrue.value = withoutRef(row.ifTrue.value, dataId);
     row.ifFalse.value = withoutRef(row.ifFalse.value, dataId);
+  }
+  for (const condition of analysis.conditions) {
+    condition.tokens = withoutRef(condition.tokens, dataId);
+  }
+  return touch(analysis);
+}
+
+// --- Condiciones (comprobaciones reutilizables) ---
+
+export function findCondition(analysis, condId) {
+  return analysis.conditions.find((condition) => condition.id === condId) ?? null;
+}
+
+// Agrega una condición (vacía) al catálogo y la devuelve.
+export function addCondition(analysis, values = {}) {
+  const condition = createCondition(values);
+  analysis.conditions.push(condition);
+  touch(analysis);
+  return condition;
+}
+
+export function updateCondition(analysis, condId, changes) {
+  const condition = findCondition(analysis, condId);
+  if (!condition) return analysis;
+  Object.assign(condition, changes);
+  return touch(analysis);
+}
+
+// Etiqueta posicional (C1, C2…) según el orden de descubrimiento. La identidad
+// estable es el id; la etiqueta es solo presentación y se renumera al reordenar.
+export function conditionLabel(analysis, condId) {
+  const index = analysis.conditions.findIndex((condition) => condition.id === condId);
+  return index === -1 ? "?" : `C${index + 1}`;
+}
+
+function withoutCondRef(tokens, condId) {
+  return Array.isArray(tokens) ? tokens.filter((token) => !(token.kind === "cond" && token.condId === condId)) : tokens;
+}
+
+// Elimina una condición y todas las referencias (tokens `cond`) que la usan en
+// otras condiciones, operaciones y ramas.
+export function removeCondition(analysis, condId) {
+  analysis.conditions = analysis.conditions.filter((condition) => condition.id !== condId);
+  for (const condition of analysis.conditions) {
+    condition.tokens = withoutCondRef(condition.tokens, condId);
+  }
+  for (const row of analysis.rows) {
+    row.operation = withoutCondRef(row.operation, condId);
+    row.subsequentUse = withoutCondRef(row.subsequentUse, condId);
+    row.ifTrue.value = withoutCondRef(row.ifTrue.value, condId);
+    row.ifFalse.value = withoutCondRef(row.ifFalse.value, condId);
   }
   return touch(analysis);
 }

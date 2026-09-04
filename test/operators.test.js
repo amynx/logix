@@ -22,6 +22,12 @@ test("a reference to a removed datum renders as ?", () => {
   assert.equal(operationToText([{ kind: "ref", dataId: "missing" }], () => null), "?");
 });
 
+test("composes condition references via the condition resolver", () => {
+  const tokens = [{ kind: "cond", condId: "x" }, { kind: "op", op: "and" }, { kind: "cond", condId: "y" }];
+  const resolveCondition = (id) => ({ x: { label: "C1" }, y: { label: "C2" } })[id] ?? null;
+  assert.equal(operationToText(tokens, () => null, resolveCondition), "C1 Y C2");
+});
+
 test("an empty operation is empty text", () => {
   assert.equal(operationToText([], resolve), "");
 });

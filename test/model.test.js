@@ -20,6 +20,12 @@ import {
   removeStudent,
   setNameConvention,
   conventionalName,
+  addData,
+  addCondition,
+  findCondition,
+  updateCondition,
+  removeCondition,
+  conditionLabel,
 } from "../src/models/analysisModel.js";
 import { applyNameConvention } from "../src/models/nameConventions.js";
 
@@ -139,6 +145,43 @@ test("setNameConvention persists the rule and applies it to inputs and results",
   assert.equal(analysis.nameConvention, "camel", "la convención queda como regla del análisis");
   assert.deepEqual(listInputs(analysis).map((entry) => entry.name), ["unidadesProducidas", ""]);
   assert.equal(findData(analysis, row.resultId).name, "promedioDeNotas", "también aplica al dato resultante");
+});
+
+test("conditions are reusable checks with positional labels", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  assert.deepEqual(analysis.conditions, [], "empieza sin condiciones");
+
+  const c1 = addCondition(analysis);
+  const c2 = addCondition(analysis);
+  assert.equal(conditionLabel(analysis, c1.id), "C1");
+  assert.equal(conditionLabel(analysis, c2.id), "C2");
+
+  updateCondition(analysis, c1.id, { tokens: [{ kind: "literal", value: "x" }] });
+  assert.deepEqual(findCondition(analysis, c1.id).tokens, [{ kind: "literal", value: "x" }]);
+});
+
+test("removing a condition prunes its references and renumbers labels", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const c1 = addCondition(analysis);
+  const c2 = addCondition(analysis);
+  addRow(analysis);
+  const row = analysis.rows.at(-1);
+  row.operation = [{ kind: "cond", condId: c1.id }, { kind: "op", op: "and" }, { kind: "cond", condId: c2.id }];
+
+  removeCondition(analysis, c1.id);
+  assert.equal(analysis.conditions.length, 1);
+  assert.equal(conditionLabel(analysis, c2.id), "C1", "las etiquetas se renumeran");
+  assert.ok(!row.operation.some((token) => token.kind === "cond" && token.condId === c1.id), "se poda la referencia a C1");
+  assert.ok(row.operation.some((token) => token.kind === "cond" && token.condId === c2.id), "conserva la referencia a C2");
+});
+
+test("removing a datum prunes its references inside conditions", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  const datum = addData(analysis, { name: "promedio" });
+  const c1 = addCondition(analysis, { tokens: [{ kind: "ref", dataId: datum.id }] });
+
+  removeData(analysis, datum.id);
+  assert.deepEqual(findCondition(analysis, c1.id).tokens, []);
 });
 
 test("conventionalName applies the active convention (and nothing without one)", () => {

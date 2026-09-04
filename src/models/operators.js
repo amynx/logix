@@ -25,7 +25,7 @@ export const OPERATOR_SYMBOLS = Object.values(OPERATOR_GROUPS).reduce(
 // datos. Cada parte: { kind: "ref"|"op"|"literal", text, type? } — para "ref",
 // `type` es el tipo del dato (o "" si el dato ya no existe). `resolve` mapea un id
 // de dato a su entrada del catálogo.
-export function expressionParts(tokens, resolve) {
+export function expressionParts(tokens, resolve, resolveCondition) {
   if (!Array.isArray(tokens)) return [];
   return tokens.map((token) => {
     if (token.kind === "ref") {
@@ -33,13 +33,17 @@ export function expressionParts(tokens, resolve) {
       return { kind: "ref", text: datum ? datum.name || "(sin nombre)" : "?", type: datum?.type ?? "" };
     }
     if (token.kind === "op") return { kind: "op", text: OPERATOR_SYMBOLS[token.op] ?? "?" };
+    if (token.kind === "cond") {
+      const condition = resolveCondition ? resolveCondition(token.condId) : null;
+      return { kind: "cond", text: condition ? condition.label : "?", type: "logical" };
+    }
     return { kind: "literal", text: token.value ?? "" };
   });
 }
 
 // Texto legible de una expresión (une las partes con espacios).
-export function operationToText(tokens, resolve) {
-  return expressionParts(tokens, resolve)
+export function operationToText(tokens, resolve, resolveCondition) {
+  return expressionParts(tokens, resolve, resolveCondition)
     .map((part) => part.text)
     .join(" ");
 }
