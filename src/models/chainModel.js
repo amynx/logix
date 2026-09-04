@@ -24,12 +24,26 @@ export function buildChain(analysis) {
 
   return {
     entradas: collectInputs(analysis, producedIds),
+    // Las condiciones no transforman datos: no son pasos del proceso, se listan aparte.
+    condiciones: collectConditions(analysis, resolve, resolveCondition, conditionLabels),
     proceso: analysis.rows
-      .map((row, index) => buildStep(row, index, resolve, producedIds, resolveCondition))
+      .map((row, index) => (row.kind === "condition" ? null : buildStep(row, index, resolve, producedIds, resolveCondition)))
       .filter(Boolean),
     producidos: collectProduced(analysis, resolve),
     salidas: collectOutputs(analysis, resolve, resolveCondition),
   };
+}
+
+// Condiciones descubiertas (comprobaciones reutilizables): su etiqueta, la pregunta
+// y la comprobación. Se muestran aparte del proceso porque no producen un dato.
+function collectConditions(analysis, resolve, resolveCondition, conditionLabels) {
+  return analysis.rows
+    .filter((row) => row.kind === "condition")
+    .map((row) => ({
+      label: conditionLabels.get(row.id),
+      question: (row.condition ?? "").trim(),
+      parts: expressionParts(row.operation, resolve, resolveCondition),
+    }));
 }
 
 // Datos producidos por las operaciones, en orden y sin repetir. Quedan

@@ -9,6 +9,7 @@ import { typeBadge, purposeBadge, producedBadge } from "./badges.js";
 import { usedInNode } from "./rowSummary.js";
 import { activityZones, stepNumber, inlineRow, commentBox, questionBox, formulaBox, withEquals, withArrow } from "./cardLayout.js";
 import { helpButton } from "./helpView.js";
+import { icon } from "./icons.js";
 
 export class ChainView {
   constructor({ container }) {
@@ -18,14 +19,17 @@ export class ChainView {
   render(chain) {
     clear(this.container);
     const isEmpty =
-      chain.entradas.length === 0 && chain.proceso.length === 0 && chain.salidas.length === 0;
+      chain.entradas.length === 0 &&
+      chain.proceso.length === 0 &&
+      chain.salidas.length === 0 &&
+      (chain.condiciones?.length ?? 0) === 0;
 
     const body = isEmpty
       ? el("p", { class: "text-sm text-slate-400" }, "La cadena aparecerá aquí a medida que completes el análisis.")
       : el("div", { class: "flex flex-col gap-3 md:flex-row md:items-stretch" }, [
           zone("Entradas", "Datos que recibe el programa", chain.entradas.map(dataChip), ZONE_TONE.input),
           connector(),
-          processZone(chain.proceso, chain.producidos),
+          processZone(chain.proceso, chain.producidos, chain.condiciones ?? []),
           connector(),
           zone("Salida", "Información final", chain.salidas.map(outputChip), ZONE_TONE.output),
         ]);
@@ -64,7 +68,7 @@ function zone(title, subtitle, items, tone = ZONE_TONE.neutral) {
 
 // Zona de proceso: las actividades y, debajo, los datos producidos disponibles
 // para reutilizar en operaciones posteriores.
-function processZone(proceso, producidos) {
+function processZone(proceso, producidos, condiciones) {
   // Etiquetas de las actividades para resolver "se usa en → Actividad N".
   const activities = proceso.map((step) => ({ id: step.rowId, label: `Actividad ${step.position}` }));
   const cards =
@@ -75,8 +79,21 @@ function processZone(proceso, producidos) {
   const children = [
     el("div", { class: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, "Proceso"),
     el("div", { class: "mb-2 text-[11px] text-slate-400" }, "Actividades en orden"),
-    cards,
   ];
+
+  // Condiciones descubiertas: comprobaciones reutilizables, aparte de las actividades.
+  if (condiciones.length > 0) {
+    children.push(
+      el("div", { class: "mb-3 rounded-md border border-indigo-200 bg-indigo-50/50 p-2" }, [
+        el("div", { class: "mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-600" }, [
+          icon("fork", "h-3 w-3"),
+          "Condiciones descubiertas",
+        ]),
+        el("div", { class: "space-y-1" }, condiciones.map(conditionChip)),
+      ]),
+    );
+  }
+  children.push(cards);
 
   if (producidos.length > 0) {
     children.push(
@@ -95,6 +112,14 @@ function connector() {
   return el("div", { class: "flex items-center justify-center text-slate-300" }, [
     el("span", { class: "md:hidden" }, "↓"),
     el("span", { class: "hidden md:inline" }, "→"),
+  ]);
+}
+
+// Ficha de una condición descubierta: su etiqueta índigo + la comprobación legible.
+function conditionChip(condition) {
+  return el("div", { class: "flex flex-wrap items-center gap-1.5 rounded border border-indigo-200 bg-white px-2 py-1 text-sm", title: condition.question }, [
+    el("span", { class: "shrink-0 rounded bg-indigo-100 px-1 py-0.5 text-xs font-semibold text-indigo-700" }, condition.label),
+    condition.parts.length > 0 ? expressionEl(condition.parts) : el("span", { class: "text-slate-400" }, "sin definir"),
   ]);
 }
 
