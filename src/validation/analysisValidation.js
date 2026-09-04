@@ -38,7 +38,18 @@ export function migrateAnalysis(data) {
   if (current.version < 10) current = migrateV9toV10(current);
   if (current.version < 11) current = migrateV10toV11(current);
   if (current.version < 12) current = migrateV11toV12(current);
+  if (current.version < 13) current = migrateV12toV13(current);
   return current;
+}
+
+// v13: la condición pasa a ser opcional y explícita por actividad. Una fila que ya
+// tenía condición (o es una decisión) queda con la condición activada.
+function migrateV12toV13(old) {
+  const rows = (old.rows ?? []).map((row) => ({
+    ...row,
+    usesCondition: row.purpose === "decision" || Boolean((row.condition ?? "").trim()),
+  }));
+  return { ...old, version: 13, rows };
 }
 
 // v12: enunciado del problema y, en cada dato, el fragmento de origen y su valor.

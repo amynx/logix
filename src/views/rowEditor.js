@@ -37,7 +37,6 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
   const isDecision = row.purpose === "decision";
-  const conditionApplies = !row.purpose || isDecision;
   const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
   const resultEntry = row.resultId ? dataById.get(row.resultId) ?? null : null;
   const allData = [...dataById.values()].filter((entry) => entry.id !== row.resultId);
@@ -47,9 +46,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   return {
     problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
-    condition: conditionApplies
-      ? textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })), { normalize: formatAsQuestion })
-      : null,
+    condition: conditionField(row, isDecision, field, structural),
     operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
@@ -259,6 +256,25 @@ function textField(value, placeholder, onInput, { normalize } = {}) {
         }
       : null,
   });
+}
+
+// Campo de condición. Una decisión la usa siempre (es su pregunta de bifurcación);
+// en las demás actividades es opcional y explícita: un interruptor la activa, y solo
+// entonces aparece el campo, para que su ausencia no parezca un campo olvidado.
+function conditionField(row, isDecision, field, structural) {
+  const input = textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })), {
+    normalize: formatAsQuestion,
+  });
+  if (isDecision) return input;
+  const toggle = conditionToggle(row.usesCondition, (checked) => structural(() => ({ usesCondition: checked })));
+  return row.usesCondition ? el("div", { class: "space-y-1.5" }, [toggle, input]) : toggle;
+}
+
+function conditionToggle(checked, onChange) {
+  const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200" });
+  box.checked = Boolean(checked);
+  box.onchange = (event) => onChange(event.target.checked);
+  return el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700" }, [box, el("span", {}, "Usa condición")]);
 }
 
 function selectField(options, value, onChange, { placeholder } = {}) {

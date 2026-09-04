@@ -15,7 +15,7 @@ import { commentBox, questionBox, formulaBox, withEquals, withArrow } from "./ca
 export function buildRowSummary(row, dataById, activities = [], producedIds = new Set()) {
   const resolve = (id) => dataById.get(id) ?? null;
   const isDecision = row.purpose === "decision";
-  const conditionApplies = !row.purpose || isDecision;
+  const conditionApplies = isDecision || row.usesCondition;
   const inputs = row.inputIds.map(resolve).filter(Boolean);
   const conditionText = (row.condition ?? "").trim();
   const result = row.resultId ? resolve(row.resultId) : null;

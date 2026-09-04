@@ -15,7 +15,7 @@ import { applyNameConvention } from "./nameConventions.js";
 // siendo un único campo compartido por todos (ya no es propio de cada estudiante).
 // v12: se registra el enunciado del problema y cada dato conserva el fragmento del
 // enunciado del que salió (`source`) y su valor (`value`).
-export const ANALYSIS_VERSION = 12;
+export const ANALYSIS_VERSION = 13;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -41,6 +41,7 @@ export function createRow(overrides = {}) {
     id: createId(),
     problem: "",
     inputIds: [],
+    usesCondition: false, // la condición es opcional; una decisión la usa siempre
     condition: "",
     operation: [],
     resultId: null,

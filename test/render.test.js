@@ -277,27 +277,35 @@ test("changing purpose updates the model and re-renders the table", async () => 
   assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "still one row after re-render");
 });
 
-test("condition and branches show as 'no aplica' outside of decisions", async () => {
+test("the condition is optional per activity and a decision always uses it", async () => {
   const { doc } = await mountApp();
   const conditionCell = () => doc.querySelectorAll("#table-container tbody tr td")[3];
   const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
   const purposeSelect = () => doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
+  const conditionToggle = () => conditionCell().querySelector('input[type="checkbox"]');
 
-  // Sin propósito aún: la condición sigue disponible; las ramas no aplican.
-  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
+  // Sin propósito: la condición es opcional; se ofrece un interruptor, no un campo
+  // ni un "no aplica" que parezca olvidado.
+  assert.ok(conditionToggle(), "hay un interruptor para activar la condición");
+  assert.equal(conditionCell().querySelectorAll("textarea").length, 0);
+  assert.doesNotMatch(conditionCell().textContent, /—/);
   assert.equal(branchCell().querySelectorAll("select, textarea").length, 0);
-  assert.match(branchCell().textContent, /—/);
 
-  // Propósito no-decisión: la condición pasa a "no aplica".
+  // Activar el interruptor revela el campo de condición.
+  conditionToggle().checked = true;
+  fire(conditionToggle(), "change");
+  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
+
+  // Propósito no-decisión: la condición sigue siendo opcional (interruptor).
   purposeSelect().value = "operation";
   fire(purposeSelect(), "change");
-  assert.equal(conditionCell().querySelectorAll("textarea").length, 0);
-  assert.match(conditionCell().textContent, /—/);
+  assert.ok(conditionCell().querySelector('input[type="checkbox"]'), "sigue opcional");
 
-  // Decisión: condición y ramas disponibles.
+  // Decisión: la condición es intrínseca (campo siempre) y las ramas están disponibles.
   purposeSelect().value = "decision";
   fire(purposeSelect(), "change");
   assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
+  assert.equal(conditionCell().querySelector('input[type="checkbox"]'), null, "la decisión no muestra interruptor");
   assert.ok(branchCell().querySelectorAll("select, textarea").length > 0);
 });
 
@@ -606,7 +614,13 @@ test("the result type is suggested when the result is named after the operation"
 test("the condition is a free-text natural-language question", async () => {
   const { doc, controller } = await mountApp();
 
-  const conditionField = doc.querySelectorAll("#table-container tbody tr td")[3].querySelector("textarea");
+  // La condición es opcional: se activa con su interruptor antes de escribirla.
+  const conditionCell = () => doc.querySelectorAll("#table-container tbody tr td")[3];
+  const toggle = conditionCell().querySelector('input[type="checkbox"]');
+  toggle.checked = true;
+  fire(toggle, "change");
+
+  const conditionField = conditionCell().querySelector("textarea");
   assert.ok(conditionField, "la condición es un campo de texto, no un constructor");
 
   conditionField.value = "¿El promedio es mayor o igual a 3?";
