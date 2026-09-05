@@ -88,14 +88,12 @@ function migrateV13toV14(old) {
   return { ...old, version: 14, nameConvention: old.nameConvention ?? "" };
 }
 
-// v13: la condición pasa a ser opcional y explícita por actividad. Una fila que ya
-// tenía condición (o es una decisión) queda con la condición activada.
+// v13: en su momento la condición pasó a ser opcional por actividad (`usesCondition`).
+// Ese campo quedó obsoleto al modelar las condiciones como actividades (v16), así que
+// esta migración solo eleva la versión. Los campos obsoletos que traiga un análisis
+// antiguo se ignoran.
 function migrateV12toV13(old) {
-  const rows = (old.rows ?? []).map((row) => ({
-    ...row,
-    usesCondition: row.purpose === "decision" || Boolean((row.condition ?? "").trim()),
-  }));
-  return { ...old, version: 13, rows };
+  return { ...old, version: 13 };
 }
 
 // v12: enunciado del problema y, en cada dato, el fragmento de origen y su valor.

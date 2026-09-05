@@ -53,7 +53,6 @@ export function createRow(overrides = {}) {
     evaluateNow: false, // condición: ¿se evalúa ahora (produce dato lógico) o se reutiliza?
     problem: "",
     inputIds: [],
-    usesCondition: false, // la condición es opcional; una decisión la usa siempre
     condition: "",
     operation: [],
     resultId: null,
