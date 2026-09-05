@@ -90,43 +90,57 @@ function studentsBlock(group, students) {
 }
 
 function tableBlock(analysis, resolve) {
+  const resolveCondition = conditionResolver(analysis);
+  const conditionLabelOf = (row) => resolveCondition(row.id)?.label ?? "";
   const inputsText = (row) =>
     row.inputIds.map((id) => resolve(id)).filter(Boolean).map(dataLabel).join(", ");
   const resultText = (row) => (row.resultId ? dataLabel(resolve(row.resultId)) : "");
   const branchText = (branch) =>
-    [branch.type ? labelOf(BRANCH_TYPES, branch.type) : "", operationToText(branch.value, resolve)]
+    [branch.type ? labelOf(BRANCH_TYPES, branch.type) : "", operationToText(branch.value, resolve, resolveCondition)]
       .filter(Boolean)
       .join(": ");
   const activityLabelById = new Map(analysis.rows.map((row, index) => [row.id, `Actividad ${index + 1}`]));
   const usedInText = (row) => {
-    if (!row.resultId || !row.usedInRowId) return "";
+    if (!row.usedInRowId) return "";
     if (row.usedInRowId === PENDING_ACTIVITY) return "Pendiente de asignación";
     return activityLabelById.get(row.usedInRowId) ?? "";
   };
 
-  const rows = analysis.rows.map((row, index) =>
-    el("tr", {}, [
+  // Una condición muestra su nombre y pregunta; una operación, su necesidad. El
+  // propósito y los caminos solo aplican donde corresponde a cada tipo.
+  const rows = analysis.rows.map((row, index) => {
+    const isCondition = row.kind === "condition";
+    const producesDatum = !isCondition || row.evaluateNow;
+    return el("tr", {}, [
       td(String(index + 1)),
-      td(row.problem),
-      td(inputsText(row)),
-      td(row.condition),
-      td(operationToText(row.operation, resolve)),
-      td(resultText(row)),
-      td(labelOf(PURPOSES, row.purpose)),
+      td(isCondition ? "Condición" : "Operación"),
+      td(isCondition ? conditionLabelOf(row) : row.problem),
+      td(isCondition ? row.condition : ""),
+      td(operationToText(row.operation, resolve, resolveCondition)),
+      td(producesDatum ? resultText(row) : ""),
+      td(producesDatum ? labelOf(PURPOSES, row.purpose) : ""),
       td(usedInText(row)),
       td(row.subsequentUse),
       td(branchText(row.ifTrue)),
       td(branchText(row.ifFalse)),
-    ]),
-  );
+    ]);
+  });
 
   return el("div", {}, [
     sectionTitle("Tabla de datos"),
     printableTable(
-      ["#", "Problema", "Datos de entrada", "Condición", "Operación", "Dato resultante", "Propósito", "Actividad asociada", "Comentario", "Si se cumple", "Si no se cumple"],
+      ["#", "Tipo", "Necesidad / Nombre", "Pregunta", "Expresión", "Dato resultante", "Propósito", "Se usa en", "Comentario", "Si se cumple", "Si no se cumple"],
       rows,
     ),
   ]);
+}
+
+// Resuelve el id de una fila-condición a su etiqueta (nombre o Cn), para el PDF.
+function conditionResolver(analysis) {
+  const labels = new Map(
+    analysis.rows.filter((row) => row.kind === "condition").map((row, index) => [row.id, (row.conditionName ?? "").trim() || `C${index + 1}`]),
+  );
+  return (id) => (labels.has(id) ? { label: labels.get(id) } : null);
 }
 
 function chainInputsBlock(chain) {
@@ -146,20 +160,33 @@ function processBlock(chain) {
 }
 
 function processCard(step) {
+  const isCondition = step.kind === "condition";
   const lines = [];
   const add = (label, value) => value && lines.push(el("div", {}, [strong(`${label}: `), value]));
-  add("Entradas", step.inputs.map(dataLabel).join(", "));
-  add("Condición", step.condition);
-  add("Operación", partsText(step.operation));
-  add("Resultado", step.result ? dataLabel(step.result) : "");
-  add("Propósito", labelOf(PURPOSES, step.purpose));
-  add("Comentario", step.comment);
-  if (step.purpose === "decision" || step.condition) {
-    add("Si se cumple", branchLine(step.ifTrue));
-    add("Si no se cumple", branchLine(step.ifFalse));
+
+  if (isCondition) {
+    add("Pregunta", step.condition);
+    add("Comprobación", partsText(step.operation));
+    if (step.evaluateNow) {
+      add("Dato lógico", step.result ? dataLabel(step.result) : "");
+      add("Propósito", labelOf(PURPOSES, step.purpose));
+      if (step.purpose === "decision") {
+        add("Si se cumple", branchLine(step.ifTrue));
+        add("Si no se cumple", branchLine(step.ifFalse));
+      }
+    }
+    add("Comentario", step.comment);
+  } else {
+    add("Entradas", step.inputs.map(dataLabel).join(", "));
+    add("Operación", partsText(step.operation));
+    add("Resultado", step.result ? dataLabel(step.result) : "");
+    add("Propósito", labelOf(PURPOSES, step.purpose));
+    add("Comentario", step.comment);
   }
-  return el("div", { class: "rounded border border-slate-300 p-2" }, [
-    el("div", { class: "font-medium" }, `#${step.position} ${step.description}`.trim()),
+
+  const title = isCondition ? `#${step.position} · Condición: ${step.conditionLabel}` : `#${step.position} ${step.description}`.trim();
+  return el("div", { class: `rounded border p-2 ${isCondition ? "border-indigo-300 bg-indigo-50/40" : "border-slate-300"}` }, [
+    el("div", { class: "font-medium" }, title),
     el("div", { class: "mt-1 space-y-0.5 text-slate-700" }, lines),
   ]);
 }
