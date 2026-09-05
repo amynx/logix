@@ -324,10 +324,11 @@ export class AnalysisController {
 
   // Alterna una actividad entre modo edición y modo visualización. Es estado de
   // vista (no se persiste): al terminar, la actividad muestra solo su información.
+  // Conserva el scroll (no debe saltar a la primera tarjeta al editar la última).
   setRowEditing(rowId, editing) {
     if (editing) this.editingRows.add(rowId);
     else this.editingRows.delete(rowId);
-    this.renderTable();
+    this.#renderTableKeepingFocus();
   }
 
   renderTable() {
