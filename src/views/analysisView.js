@@ -185,6 +185,7 @@ export class AnalysisView {
       archivo,
       barButton("Exportar PDF", onExportPdf, "pdf", { primary: true }),
       barButton("Ejemplo guiado", () => startExampleTutorial(), "example"),
+      barButton("Guía", () => window.open("guia.html", "_blank", "noopener"), "book"),
       barButton("Ayuda", () => openHelp(), "help"),
       iconBarButton("contrast", "Tema", toggleThemeTracked),
     ]);
@@ -201,6 +202,7 @@ export class AnalysisView {
       menuItem("Guardar archivo", onSaveFile, "save"),
       menuItem("Exportar PDF", onExportPdf, "pdf"),
       menuItem("Ejemplo guiado", () => startExampleTutorial(), "example"),
+      menuItem("Guía", () => window.open("guia.html", "_blank", "noopener"), "book"),
       menuItem("Ayuda", () => openHelp(), "help"),
       menuItem("Tema", toggleThemeTracked, "contrast"),
     ]);
