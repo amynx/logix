@@ -175,26 +175,26 @@ test("builds a slugged file name from the title", () => {
 test("warns about an empty title", () => {
   const analysis = createAnalysis();
   addRow(analysis);
-  assert.ok(collectAnalysisWarnings(analysis).some((w) => /título/.test(w)));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /título/.test(w.text)));
 });
 
 test("warns when an operation produces an unnamed result", () => {
   const analysis = createAnalysis({ title: "Demo" });
   addRow(analysis, createRow({ operation: "Sumar las notas" }));
-  assert.ok(collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w)));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w.text)));
 });
 
 test("warns when an evaluated decision condition defines no paths", () => {
   const analysis = createAnalysis({ title: "Demo" });
   addRow(analysis, createRow({ kind: "condition", evaluateNow: true, purpose: "decision" }));
-  assert.ok(collectAnalysisWarnings(analysis).some((w) => /camino/.test(w)));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /camino/.test(w.text)));
 });
 
 test("an unevaluated condition is not warned for producing an unnamed datum", () => {
   const analysis = createAnalysis({ title: "Demo" });
   addRow(analysis, createRow({ kind: "condition", operation: [{ kind: "ref", dataId: "x" }] }));
   assert.equal(
-    collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w)),
+    collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w.text)),
     false,
     "una condición sin evaluar no produce dato, así que no se avisa",
   );

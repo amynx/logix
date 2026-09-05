@@ -118,7 +118,20 @@ export class AnalysisController {
   }
 
   renderCompleteness() {
-    this.completenessView.render(collectAnalysisWarnings(this.analysis));
+    this.completenessView.render(collectAnalysisWarnings(this.analysis), {
+      onFocusActivity: (rowId) => this.focusActivity(rowId),
+    });
+  }
+
+  // Salta a una actividad desde un aviso de completitud: la abre en edición y la
+  // desplaza a la vista.
+  focusActivity(rowId) {
+    if (!this.analysis.rows.some((row) => row.id === rowId)) return;
+    this.setRowEditing(rowId, true);
+    const card = document.querySelector(`#table-container [data-row-id="${rowId}"]`);
+    if (card && typeof card.scrollIntoView === "function") {
+      card.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
   }
 
   renderStudents() {

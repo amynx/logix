@@ -10,7 +10,9 @@ export class CompletenessView {
     this.container = container;
   }
 
-  render(warnings) {
+  // `warnings`: [{ text, rowId }]. `handlers.onFocusActivity(rowId)` (opcional) hace
+  // que un aviso con actividad sea accionable: al pulsarlo, se salta a esa tarjeta.
+  render(warnings, handlers = {}) {
     clear(this.container);
 
     if (warnings.length === 0) {
@@ -23,13 +25,31 @@ export class CompletenessView {
       return;
     }
 
+    const item = (warning) => {
+      if (warning.rowId && handlers.onFocusActivity) {
+        return el("li", {}, [
+          el(
+            "button",
+            {
+              type: "button",
+              class: "text-left underline decoration-amber-300 underline-offset-2 hover:decoration-amber-600",
+              title: "Ir a esta actividad",
+              onclick: () => handlers.onFocusActivity(warning.rowId),
+            },
+            warning.text,
+          ),
+        ]);
+      }
+      return el("li", {}, warning.text);
+    };
+
     this.container.append(
       el("div", { class: "rounded-xl border border-amber-200 bg-amber-50 p-4" }, [
         el("div", { class: "mb-2 flex items-center gap-2 text-sm font-semibold text-amber-800" }, [
           icon("alert", "h-4 w-4"),
           `Por completar (${warnings.length})`,
         ]),
-        el("ul", { class: "list-disc space-y-1 pl-5 text-sm text-amber-800" }, warnings.map((warning) => el("li", {}, warning))),
+        el("ul", { class: "list-disc space-y-1 pl-5 text-sm text-amber-800" }, warnings.map(item)),
       ]),
     );
   }

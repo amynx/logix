@@ -241,10 +241,13 @@ function migrateV1toV2(old) {
 // Advertencias de completitud (puntos por completar). Se adaptan al TIPO de
 // tarjeta: una operación produce un dato; una condición descubre una comprobación
 // y solo produce un dato si se evalúa. No se avisa de campos que no aplican al tipo.
+// Devuelve advertencias como objetos `{ text, rowId }`: `rowId` (o null) permite
+// que la vista enlace cada aviso con su actividad para saltar a ella.
 export function collectAnalysisWarnings(analysis) {
   const warnings = [];
+  const add = (text, rowId = null) => warnings.push({ text, rowId });
   if (!analysis.title.trim()) {
-    warnings.push("El análisis no tiene título.");
+    add("El análisis no tiene título.");
   }
 
   analysis.rows.forEach((row, index) => {
@@ -257,25 +260,25 @@ export function collectAnalysisWarnings(analysis) {
 
     if (producesDatum && row.operation.length > 0 && !(result && result.name.trim())) {
       const what = isCondition ? "la condición evaluada" : "la operación";
-      warnings.push(`${label} ${position}: ${what} produce un dato sin nombre.`);
+      add(`${label} ${position}: ${what} produce un dato sin nombre.`, row.id);
     }
     if (result && result.name.trim() && !result.type) {
-      warnings.push(`${label} ${position}: el dato "${result.name}" no tiene tipo.`);
+      add(`${label} ${position}: el dato "${result.name}" no tiene tipo.`, row.id);
     }
 
     if (isCondition) {
       // Una condición que ya se está definiendo necesita su comprobación.
       if (((row.conditionName ?? "").trim() || row.condition.trim()) && row.operation.length === 0) {
-        warnings.push(`Condición ${position}: no tiene una comprobación definida.`);
+        add(`Condición ${position}: no tiene una comprobación definida.`, row.id);
       }
       // Una condición evaluada como decisión debe definir al menos un camino.
       if (row.evaluateNow && row.purpose === "decision" && !row.ifTrue.type && !row.ifFalse.type) {
-        warnings.push(`Condición ${position}: la decisión no define ningún camino.`);
+        add(`Condición ${position}: la decisión no define ningún camino.`, row.id);
       }
     }
 
     if (row.purpose === "response" && !row.resultId && !row.subsequentUse.trim()) {
-      warnings.push(`${label} ${position}: falta indicar qué información final se proporcionará.`);
+      add(`${label} ${position}: falta indicar qué información final se proporcionará.`, row.id);
     }
   });
 
