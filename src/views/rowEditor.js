@@ -6,7 +6,7 @@ import { el } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
-import { attachMentions, isMentionMenuOpen } from "./mentionMenu.js";
+import { attachMentions } from "./mentionMenu.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
 import { PENDING_ACTIVITY } from "../models/analysisModel.js";
@@ -50,9 +50,18 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const conditions = handlers.conditionEntries
     ? { entries: handlers.conditionEntries().filter((entry) => entry.id !== row.id), resolve: handlers.resolveCondition }
     : null;
+  // Datos disponibles en el editor, en selects separados: resultados producidos por
+  // otras actividades, y datos de entrada. Para una operación, las entradas son las
+  // definidas para esa actividad (`inputIds`); una condición (sin esa zona) ofrece
+  // todos los datos de entrada declarados.
+  const resultRefs = allData.filter((entry) => producedIds.has(entry.id));
+  const inputRefs = isCondition
+    ? allData.filter((entry) => !producedIds.has(entry.id))
+    : row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
+  const exprCtx = { inputRefs, resultRefs, resolve: resolveData, producedIds, conditions };
   const expression = (tokens, focusKey) =>
-    expressionEditor(tokens, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), focusKey, producedIds, conditions);
-  const branch = (key) => branchEditor(row[key], key, { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions });
+    expressionEditor(tokens, (updater) => handlers.onOperationChange(row.id, updater), focusKey, exprCtx);
+  const branch = (key) => branchEditor(row[key], key, { structural, rowId: row.id, exprCtx });
 
   // Una condición: pregunta + expresión + nombre, y decide si evaluarse ahora. Si
   // NO se evalúa, queda reutilizable (dónde se usará + comentario). Si SÍ se evalúa,
@@ -348,14 +357,13 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 }
 
 // Constructor visual de una expresión: fichas de tokens (dato/operador/valor) que
-// se agregan, borran y reordenan. Los datos y valores se agregan con un campo de
-// autocompletado; los operadores, con botones rápidos. `focusKey` identifica el
-// campo de este editor para conservar el foco al re-renderizar (encadenar rápido).
-// `producedIds` marca qué referencias son resultados producidos por otra actividad
-// (reutilizables), para distinguirlos de los datos de entrada. `conditions`
-// (opcional) = { entries:[{id,label}], resolve:(condId)=>({label})|null } permite
-// COMPONER condiciones (tokens `cond`) en la expresión.
-export function expressionEditor(tokens, refs, resolve, onChange, focusKey = "expr", producedIds = new Set(), conditions = null) {
+// se agregan, borran y reordenan. Los datos vienen de selects propios (entrada /
+// resultado / condición) y seleccionar uno lo incorpora directamente; los valores
+// constantes, de un campo aparte; los operadores, de botones agrupados por tipo.
+// `focusKey` conserva el foco del campo de valor al re-renderizar (encadenar).
+// `ctx` = { inputRefs, resultRefs, resolve, producedIds, conditions }.
+export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) {
+  const { inputRefs = [], resultRefs = [], resolve = () => null, producedIds = new Set(), conditions = null } = ctx;
   const conditionEntries = conditions?.entries ?? [];
   const resolveCondition = conditions?.resolve ?? null;
   const append = (token) => onChange((current) => [...current, token]);
@@ -388,136 +396,96 @@ export function expressionEditor(tokens, refs, resolve, onChange, focusKey = "ex
     }),
   );
 
-  // Campo de dato o valor con autocompletado de los datos disponibles. Al confirmar,
-  // si el texto coincide con el nombre de un dato se agrega como referencia; si no,
-  // como valor constante. El estudiante decide qué usar; la búsqueda solo localiza.
-  const named = refs.filter((entry) => (entry.name ?? "").trim());
-  // Un texto puede referirse a una condición (por su etiqueta C1…) o a un dato (por
-  // su nombre). Devuelve el token correspondiente, o null si no coincide con ninguno.
-  const matchExact = (text) => {
-    const value = text.toLowerCase();
-    const cond = conditionEntries.find((entry) => entry.label.toLowerCase() === value);
-    if (cond) return { kind: "cond", condId: cond.id };
-    const datum = named.find((entry) => entry.name.toLowerCase() === value);
-    return datum ? { kind: "ref", dataId: datum.id } : null;
+  // Selects de datos: seleccionar uno lo incorpora directamente como referencia.
+  // `items` = [{id, label}]; al elegir, se agrega y el select vuelve al placeholder
+  // (el re-render lo restablece). Se omite el select si no hay opciones.
+  const refSelect = (placeholder, items, makeToken) => {
+    const named = items.filter((entry) => (entry.label ?? "").trim());
+    if (named.length === 0) return null;
+    const select = selectField(
+      named.map((entry) => ({ value: entry.id, label: entry.label })),
+      "",
+      (id) => id && append(makeToken(id)),
+      { placeholder },
+    );
+    select.classList.add("text-xs");
+    return select;
   };
-  const listId = `expr-data-${focusKey}`.replace(/[^a-zA-Z0-9_-]/g, "-");
-  const datalist = el(
-    "datalist",
-    { id: listId },
-    [
-      ...conditionEntries.map((entry) => el("option", { value: entry.label, label: "condición" })),
-      ...named.map((entry) =>
-        producedIds.has(entry.id)
-          ? el("option", { value: entry.name, label: "resultado producido" })
-          : el("option", { value: entry.name }),
-      ),
-    ],
-  );
-  const input = el("input", {
+  const inputSelect = refSelect("Dato de entrada…", inputRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
+  const resultSelect = refSelect("Dato resultante…", resultRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
+  const conditionSelect = refSelect("Condición…", conditionEntries, (id) => ({ kind: "cond", condId: id }));
+
+  // Campo independiente para agregar un valor constante (literal).
+  const addValue = () => {
+    const value = valueInput.value.trim();
+    if (!value) return;
+    valueInput.value = "";
+    append({ kind: "literal", value });
+  };
+  const valueInput = el("input", {
     type: "text",
-    placeholder: "dato o valor…",
+    placeholder: "valor",
     autocomplete: "off",
-    class: `${CONTROL_CLASS} w-40 text-xs`,
+    class: `${CONTROL_CLASS} w-24 text-xs`,
     dataset: { focusKey: `expr:${focusKey}` },
-    // Seleccionar un dato = agregarlo: al elegirlo del desplegable (o completar su
-    // nombre) el texto coincide exacto con un dato y se incorpora sin pulsar nada.
-    // Los valores (que no coinciden con ningún dato) se agregan con Enter o el botón.
-    oninput: () => {
-      const text = input.value.trim();
-      if (!text) return;
-      const token = matchExact(text);
-      if (token) {
-        input.value = "";
-        append(token);
-      }
-    },
     onkeydown: (event) => {
-      if (isMentionMenuOpen(input)) return; // el menú "/" maneja las teclas
       if (event.key === "Enter") {
         event.preventDefault();
-        commit();
-      } else if (event.key === "Backspace" && input.value === "" && tokens.length > 0) {
+        addValue();
+      } else if (event.key === "Backspace" && valueInput.value === "" && tokens.length > 0) {
         event.preventDefault();
         removeLast();
       }
     },
   });
-  input.setAttribute("list", listId); // `list` es de solo lectura como propiedad
-  // Menú "/": buscar e insertar una referencia (entrada o resultado) como token.
-  attachMentions(
-    input,
-    () => named.map((entry) => ({ id: entry.id, name: entry.name, type: entry.type, produced: producedIds.has(entry.id) })),
-    { onSelect: (entry) => append({ kind: "ref", dataId: entry.id }) },
-  );
-  const commit = () => {
-    const text = input.value.trim();
-    if (!text) return;
-    append(matchExact(text) ?? { kind: "literal", value: text });
-  };
-  const addButton = el(
+  const valueButton = el(
     "button",
-    { type: "button", class: "shrink-0 rounded px-2 py-1 text-xs font-medium text-slate-500 hover:text-indigo-700", title: "Agregar dato o valor", onmousedown: (event) => event.preventDefault(), onclick: commit },
-    "Agregar",
+    {
+      type: "button",
+      class: "shrink-0 rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-700",
+      title: "Agregar valor",
+      onmousedown: (event) => event.preventDefault(),
+      onclick: addValue,
+    },
+    "+ valor",
   );
 
-  // Botones rápidos de operadores, agrupados por categoría con su rótulo visible.
-  const operatorButtons = Object.values(OPERATOR_GROUPS).map((group) =>
-    el("div", { class: "flex flex-col gap-0.5" }, [
-      el("span", { class: "text-[0.65rem] font-medium uppercase tracking-wide text-slate-400" }, group.label),
-      el(
-        "div",
-        { class: "flex gap-0.5" },
-        Object.entries(group.operators).map(([key, symbol]) =>
-          el(
-            "button",
-            {
-              type: "button",
-              title: `${group.label}: ${symbol}`,
-              dataset: { op: key },
-              class: "min-w-[1.6rem] rounded border border-slate-200 bg-white px-1.5 py-1 text-xs font-mono font-semibold text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
-              onmousedown: (event) => event.preventDefault(),
-              onclick: () => append({ kind: "op", op: key }),
-            },
-            symbol,
-          ),
+  const dataControls = [inputSelect, resultSelect, conditionSelect].filter(Boolean);
+  const operatorGroups = Object.values(OPERATOR_GROUPS).map((group) => operatorGroup(group, (key) => append({ kind: "op", op: key })));
+
+  return el("div", { class: "min-w-0 space-y-2" }, [
+    tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
+    el("div", { class: "flex flex-wrap items-center gap-2" }, [
+      ...dataControls,
+      el("div", { class: "flex items-center gap-1" }, [valueInput, valueButton]),
+    ]),
+    el("div", { class: "flex flex-wrap items-start gap-2" }, operatorGroups),
+  ]);
+}
+
+// Un grupo de operadores (aritméticos, relacionales…) como caja rotulada con
+// botones amplios, para que sean claros y fáciles de pulsar.
+function operatorGroup(group, onPick) {
+  return el("div", { class: "flex flex-col gap-1 rounded-md border border-slate-200 bg-slate-50/70 px-1.5 py-1" }, [
+    el("span", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, group.label),
+    el(
+      "div",
+      { class: "flex flex-wrap gap-1" },
+      Object.entries(group.operators).map(([key, symbol]) =>
+        el(
+          "button",
+          {
+            type: "button",
+            title: `${group.label}: ${symbol}`,
+            dataset: { op: key },
+            class: "min-w-[2rem] rounded border border-slate-200 bg-white px-2 py-1 text-sm font-mono font-semibold text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700",
+            onmousedown: (event) => event.preventDefault(),
+            onclick: () => onPick(key),
+          },
+          symbol,
         ),
       ),
-    ]),
-  );
-
-  // Botones rápidos para componer condiciones (C1, C2…), como en «[C1] Y [C2]».
-  const conditionButtons =
-    conditionEntries.length > 0
-      ? el("div", { class: "flex flex-col gap-0.5" }, [
-          el("span", { class: "text-[0.65rem] font-medium uppercase tracking-wide text-slate-400" }, "Condiciones"),
-          el(
-            "div",
-            { class: "flex flex-wrap gap-0.5" },
-            conditionEntries.map((entry) =>
-              el(
-                "button",
-                {
-                  type: "button",
-                  title: `Insertar ${entry.label}`,
-                  class: "rounded border border-indigo-200 bg-indigo-50 px-1.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100",
-                  onmousedown: (event) => event.preventDefault(),
-                  onclick: () => append({ kind: "cond", condId: entry.id }),
-                },
-                entry.label,
-              ),
-            ),
-          ),
-        ])
-      : null;
-
-  return el("div", { class: "space-y-1.5" }, [
-    tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
-    el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, [
-      el("div", { class: "flex items-center gap-1" }, [input, datalist, addButton]),
-      conditionButtons,
-      el("div", { class: "flex flex-wrap items-start gap-x-4 gap-y-2" }, operatorButtons),
-    ]),
+    ),
   ]);
 }
 
@@ -656,7 +624,7 @@ function usedInSelect(row, activities, onChange) {
 }
 
 // Camino de una decisión: el constructor de la respuesta solo aparece para "Respuesta".
-function branchEditor(branch, key, { structural, refs, resolve, rowId, producedIds = new Set(), conditions = null }) {
+function branchEditor(branch, key, { structural, rowId, exprCtx }) {
   const children = [
     selectField(optionsOf(BRANCH_TYPES), branch.type, (value) => structural((row) => ({ [key]: { ...row[key], type: value } })), {
       placeholder: "Continúa con…",
@@ -666,12 +634,9 @@ function branchEditor(branch, key, { structural, refs, resolve, rowId, producedI
     children.push(
       expressionEditor(
         branch.value,
-        refs,
-        resolve,
         (updater) => structural((row) => ({ [key]: { ...row[key], value: updater(row[key].value) } })),
         `br:${rowId}:${key}`,
-        producedIds,
-        conditions,
+        exprCtx,
       ),
     );
   }

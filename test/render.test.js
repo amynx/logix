@@ -111,12 +111,21 @@ function referenceInput(doc, rowIndex, dataId) {
   fire(picker, "change");
 }
 
-// Constructor visual de expresiones: agrega un dato o valor (escribiendo el texto)
-// o un operador (por su clave, con el botón rápido). `cell` es la celda editable.
+// Constructor visual de expresiones. Un dato se agrega eligiéndolo en su select
+// (entrada/resultado/condición); un valor constante, por el campo de valor. `cell`
+// es la celda editable (o el contenedor del editor).
 function addExprElement(cell, text) {
-  const input = cell.querySelector("input[list]");
-  input.value = text;
-  [...cell.querySelectorAll("button")].find((b) => b.textContent === "Agregar").click();
+  for (const select of cell.querySelectorAll("select")) {
+    const option = [...select.options].find((o) => o.textContent === text);
+    if (option) {
+      select.value = option.value;
+      fire(select, "change");
+      return;
+    }
+  }
+  const valueInput = cell.querySelector('input[placeholder="valor"]');
+  valueInput.value = text;
+  [...cell.querySelectorAll("button")].find((b) => b.textContent.includes("valor")).click();
 }
 function addExprOperator(cell, opKey) {
   cell.querySelector(`button[data-op="${opKey}"]`).click();
@@ -125,14 +134,6 @@ function addExprOperator(cell, opKey) {
 // dentro de una tarjeta de condición (celda a todo el ancho, sin columnas fijas).
 function selectByPlaceholder(root, placeholder) {
   return [...root.querySelectorAll("select")].find((s) => s.options[0]?.textContent === placeholder);
-}
-// Agrega un dato/valor al último constructor de expresión de la fila (p. ej. el de
-// una rama), escribiendo el nombre exacto para que se auto-incorpore.
-function addExprToLast(root, text) {
-  const inputs = [...root.querySelectorAll("input[list]")];
-  const input = inputs[inputs.length - 1];
-  input.value = text;
-  fire(input, "input");
 }
 
 test("renders analysis info and a seeded row with all columns", async () => {
@@ -472,8 +473,8 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
 
   const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
   assert.ok(
-    [...opCell.querySelectorAll("datalist option")].some((o) => o.value === "promedio"),
-    "otra fila ya puede referenciar el resultado recién nombrado",
+    [...opCell.querySelectorAll("select option")].some((o) => o.textContent === "promedio"),
+    "otra fila ya puede referenciar el resultado recién nombrado desde el select de resultados",
   );
   assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
 });
@@ -520,16 +521,18 @@ test("deleting a row warns when its datum is used in another operation", async (
   );
 });
 
-test("the operation builder offers all data, not only the row's inputs", async () => {
+test("an operation's input select offers only the inputs defined for that activity", async () => {
   const { doc, controller } = await mountApp();
   const inputId = declareInput(doc, controller, "nota1", "numeric");
 
-  // Sin referenciarlo en la columna de entrada, ya está disponible en la operación.
-  const opCell = doc.querySelectorAll("#table-container tbody tr td")[4];
-  assert.ok(
-    [...opCell.querySelectorAll("datalist option")].some((o) => o.value === "nota1"),
-    "la operación ofrece el dato aunque la fila no lo consuma como entrada",
-  );
+  const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
+  const offersNota1 = () => [...opCell().querySelectorAll("select option")].some((o) => o.textContent === "nota1");
+
+  // No aparece hasta definirlo como dato de entrada de la actividad.
+  assert.equal(offersNota1(), false, "sin definirlo para la actividad, la operación no lo ofrece");
+
+  referenceInput(doc, 0, inputId);
+  assert.equal(offersNota1(), true, "aparece tras definirlo como entrada de la actividad");
 });
 
 test("building an operation references data and shows it in the chain", async () => {
@@ -665,8 +668,9 @@ function decisionCondition(doc, controller) {
 test("a decision condition shows the branch builder only for a response path", async () => {
   const { doc, controller } = await mountApp();
   const { row, branchType } = decisionCondition(doc, controller);
-  // input[list] presentes: la comprobación de la condición (1) + los de las ramas.
-  const exprCount = () => row().querySelectorAll("input[list]").length;
+  // Cada constructor de expresión tiene un campo «valor»: la comprobación (1) + el
+  // de una rama de tipo respuesta.
+  const exprCount = () => row().querySelectorAll('input[placeholder="valor"]').length;
   const baseline = exprCount();
 
   branchType().value = "operation";
@@ -692,8 +696,8 @@ test("a decision branch response can reference existing data", async () => {
   branchType().value = "response";
   fire(branchType(), "change");
 
-  // El constructor de la respuesta referencia el dato por nombre (último input[list]).
-  addExprToLast(row(), "promedio");
+  // El constructor de la respuesta referencia el dato (produced) desde su select.
+  addExprElement(branchType().parentElement, "promedio");
 
   const tokens = controller.analysis.rows[1].ifTrue.value;
   assert.deepEqual(tokens.map((t) => t.kind), ["ref"]);
