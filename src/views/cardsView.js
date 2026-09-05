@@ -52,7 +52,7 @@ export class CardsView {
       }),
       cards.length > 0
         ? el("div", { class: "overflow-x-auto pb-2", dataset: { scrollKey: "cards" } }, [el("div", { class: "flex items-start" }, chained(cards))])
-        : el("p", { class: "text-sm text-slate-400" }, "Aún no hay actividades."),
+        : activitiesEmptyState(),
       addActivityButton(handlers.onAddRow),
     );
   }
@@ -127,6 +127,27 @@ export class CardsView {
     }
     return el("div", { class: "space-y-3" }, activityZones(summary, inlineRow, row.kind));
   }
+}
+
+// Estado vacío que orienta el primer paso: explica los dos tipos de actividad y
+// para qué sirve cada botón de «Agregar…».
+function activitiesEmptyState() {
+  const option = (iconName, tone, title, text) =>
+    el("div", { class: "flex items-start gap-2 rounded-lg border border-slate-200 bg-white p-3" }, [
+      el("span", { class: `mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${tone}` }, [icon(iconName, "h-4 w-4")]),
+      el("div", {}, [
+        el("div", { class: "text-sm font-semibold text-slate-700" }, title),
+        el("div", { class: "text-xs text-slate-500" }, text),
+      ]),
+    ]);
+  return el("div", { class: "rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-4" }, [
+    el("p", { class: "mb-3 text-sm text-slate-600" }, "Descompón el problema en pasos. Cada paso es de uno de dos tipos:"),
+    el("div", { class: "grid gap-2 sm:grid-cols-2" }, [
+      option("workflow", "bg-slate-100 text-slate-600", "Operación", "Calcula o transforma datos para obtener uno nuevo."),
+      option("fork", "bg-indigo-100 text-indigo-600", "Condición", "Comprueba algo: una pregunta de Sí / No."),
+    ]),
+    el("p", { class: "mt-3 text-xs text-slate-500" }, "Usa los botones de abajo para agregar la primera. ¿Dudas? Abre la «Guía» o pulsa «?»."),
+  ]);
 }
 
 // Encadena las tarjetas con un conector horizontal entre pasos consecutivos.

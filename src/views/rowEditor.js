@@ -58,7 +58,14 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const inputRefs = isCondition
     ? allData.filter((entry) => !producedIds.has(entry.id))
     : row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
-  const exprCtx = { inputRefs, resultRefs, resolve: resolveData, producedIds, conditions };
+  // Si no hay datos de entrada disponibles, una pista dice de dónde salen (para que
+  // el selector no desaparezca sin explicación).
+  const inputHint = inputRefs.length > 0
+    ? null
+    : isCondition
+      ? "Declara datos en «Datos de entrada» para usarlos aquí"
+      : "Agrega datos de entrada a esta actividad (arriba) para usarlos aquí";
+  const exprCtx = { inputRefs, resultRefs, resolve: resolveData, producedIds, conditions, inputHint };
   const expression = (tokens, focusKey) =>
     expressionEditor(tokens, (updater) => handlers.onOperationChange(row.id, updater), focusKey, exprCtx);
   const branch = (key) => branchEditor(row[key], key, { structural, rowId: row.id, exprCtx });
@@ -363,7 +370,7 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 // `focusKey` conserva el foco del campo de valor al re-renderizar (encadenar).
 // `ctx` = { inputRefs, resultRefs, resolve, producedIds, conditions }.
 export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) {
-  const { inputRefs = [], resultRefs = [], resolve = () => null, producedIds = new Set(), conditions = null } = ctx;
+  const { inputRefs = [], resultRefs = [], resolve = () => null, producedIds = new Set(), conditions = null, inputHint = null } = ctx;
   const conditionEntries = conditions?.entries ?? [];
   const resolveCondition = conditions?.resolve ?? null;
   const append = (token) => onChange((current) => [...current, token]);
@@ -414,6 +421,8 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   const inputSelect = refSelect("Dato de entrada…", inputRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
   const resultSelect = refSelect("Dato resultante…", resultRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
   const conditionSelect = refSelect("Condición…", conditionEntries, (id) => ({ kind: "cond", condId: id }));
+  // Sin datos de entrada disponibles, en lugar del selector se muestra la pista.
+  const inputControl = inputSelect ?? (inputHint ? el("span", { class: "inline-flex items-center rounded-md border border-dashed border-slate-300 px-2 py-1 text-xs italic text-slate-400" }, inputHint) : null);
 
   // Campo independiente para agregar un valor constante (literal).
   const addValue = () => {
@@ -450,7 +459,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     "+ valor",
   );
 
-  const dataControls = [inputSelect, resultSelect, conditionSelect].filter(Boolean);
+  const dataControls = [inputControl, resultSelect, conditionSelect].filter(Boolean);
   const operatorGroups = Object.values(OPERATOR_GROUPS).map((group) => operatorGroup(group, (key) => append({ kind: "op", op: key })));
 
   return el("div", { class: "min-w-0 space-y-2" }, [
