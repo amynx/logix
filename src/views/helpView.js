@@ -72,6 +72,7 @@ export function openHelp(initialTab = 0) {
           close();
           startExampleTutorial();
         }),
+        guideLaunchButton("book", "Abrir la guía completa", () => window.open("guia.html", "_blank", "noopener")),
       ]),
       el("div", { class: "flex-1 space-y-6 overflow-y-auto px-5 py-4 text-sm leading-relaxed text-slate-700" }, panels),
     ],
@@ -142,13 +143,14 @@ function interfaceSections() {
         [producedBadge(), "Dato de entrada que en realidad se produjo en otra actividad (se reutiliza)."],
         [badge("→ Actividad 2", "bg-indigo-100 text-indigo-700"), "El dato producido se usará en esa actividad."],
         [badge("Pendiente de asignación", "bg-amber-100 text-amber-700"), "Aún no se ha indicado en qué actividad se usará el dato."],
-        [purposeBadge("operation"), "Propósito del dato: para una nueva operación."],
-        [purposeBadge("decision"), "Propósito del dato: para tomar una decisión."],
-        [purposeBadge("response"), "Propósito del dato: es una respuesta o información final."],
+        [purposeBadge("operation"), "El dato se usará en una nueva operación."],
+        [purposeBadge("decision"), "El dato se usará para tomar una decisión (una condición lo evaluará)."],
+        [purposeBadge("response"), "El dato es (parte de) la información final."],
       ]),
+      "El propósito describe qué ocurrirá con el dato resultante después.",
     ]),
     section("¿Cómo se reorganizan las actividades?", [
-      row([el("span", { class: "text-slate-400" }, "⠿"), "Arrastra una tarjeta o fila desde su tirador y suéltala sobre otra para cambiar el orden. Funciona en la vista de Tabla y en la de Tarjetas."]),
+      row([el("span", { class: "text-slate-400" }, "⠿"), "Arrastra una tarjeta desde su tirador y suéltala sobre otra para cambiar el orden."]),
     ]),
     section("¿Cómo se exporta el análisis?", [
       row([badge("Guardar archivo", "border border-slate-300 text-slate-600"), "descarga un archivo .analisis que puedes volver a abrir con «Abrir análisis» para seguir trabajando."]),
@@ -167,27 +169,26 @@ function dataSections() {
         el("span", { class: "inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-700" }, ["✓", el("span", { class: "font-medium" }, "Cantidad de unidades producidas")]),
         el("span", { class: "inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-1 text-rose-600" }, ["✗", "Cantidad, Dato1, X"]),
       ]),
-      "Convenciones recomendadas para escribir el nombre (elige una y úsala siempre):",
+      "Convenciones disponibles en Logix (elige una y se aplica a todos los nombres):",
       twoColTable(["Convención", "Ejemplo"], [
         ["camelCase", code("cantidadUnidadesProducidas")],
         ["snake_case", code("cantidad_unidades_producidas")],
         ["PascalCase", code("CantidadUnidadesProducidas")],
-        ["kebab-case", code("cantidad-unidades-producidas")],
       ]),
       "Lo más importante, sea cual sea la convención, es que los nombres sean descriptivos, claros y coherentes con el dato que representan.",
     ]),
     section("¿Cómo se construyen las operaciones?", [
       "Una operación se arma combinando piezas, sin escribirla como texto:",
       bullets([
-        ["+ dato", " referencia un dato ya identificado (una entrada o un resultado)."],
-        ["+ operador", " agrega un operador: + − × ÷, comparaciones (=, ≠, <, >, ≤, ≥), lógicos (Y, O, NO) o paréntesis ( )."],
-        ["+ valor", " agrega un valor fijo que escribes tú (por ejemplo 3)."],
+        ["Datos", " elígelos de sus selectores: «Dato de entrada» y «Dato resultante». Al seleccionar uno, se incorpora directamente a la expresión."],
+        ["Operadores", " botones agrupados por tipo: aritméticos (+ − × ÷), relacionales (=, ≠, <, >, ≤, ≥), lógicos (Y, O, NO) y paréntesis ( )."],
+        ["Valor", " escribe un valor fijo en el campo «valor» (por ejemplo 3) y pulsa «+ valor»."],
       ]),
-      "Referenciar los datos (en vez de reescribir su nombre) evita errores y permite reutilizarlos.",
+      "Un dato de entrada solo aparece en su selector si lo definiste como entrada de esa actividad (en «Datos de entrada» de la tarjeta).",
     ]),
     section("¿Cómo se usan los datos resultantes después?", [
-      "Cuando una actividad produce un «Dato resultante» y le pones nombre, ese dato queda disponible para las demás actividades: aparece en los selectores de «Datos de entrada» y de «Operación».",
-      "Además, en «Actividad asociada» puedes indicar en qué actividad se usará. Si esa actividad aún no existe, déjalo como «Pendiente» y vincúlalo más tarde.",
+      "Cuando una actividad produce un «Dato resultante» y le pones nombre, ese dato queda disponible para las demás: aparece en el selector «Dato resultante» de sus expresiones.",
+      "Además, en «Se usará en» puedes indicar en qué actividad se usará. Si esa actividad aún no existe, déjalo como «Pendiente» y vincúlalo más tarde.",
     ]),
   ];
 }
@@ -196,11 +197,24 @@ function dataSections() {
 
 function expressionSections() {
   return [
+    section("Operación o condición: dos tipos de actividad", [
+      "Cada paso del análisis es una tarjeta de uno de dos tipos, según lo que hagas. Cambias el tipo con el interruptor «Operación / Condición» de la tarjeta.",
+      defList([
+        [badge("Operación", "bg-slate-100 text-slate-700"), "Calculas o transformas datos para obtener uno nuevo (p. ej. calcular el promedio)."],
+        [badge("Condición", "bg-indigo-100 text-indigo-700"), "Compruebas algo: una pregunta de Sí/No (p. ej. ¿el promedio es ≥ 3?)."],
+      ]),
+    ]),
     section("¿Qué es una condición?", [
-      "Una condición es una pregunta que el programa necesita responder para validar una situación y decidir qué hacer a continuación.",
-      "Normalmente su respuesta es Sí/No (verdadero/falso), y esa respuesta determina el camino que seguirá el proceso.",
+      "Una condición es una comprobación que el programa necesita responder para decidir qué hacer a continuación. Su respuesta es Sí/No (verdadero/falso).",
       example("¿La cantidad de unidades producidas es mayor o igual a 100?"),
-      "Según la respuesta, el proceso continúa por un camino («Si se cumple») o por otro («Si no se cumple»).",
+      "Se compone de: la pregunta en lenguaje natural, la expresión que la representa, y un nombre para reutilizarla.",
+    ]),
+    section("¿Evaluar la condición ahora, o dejarla reutilizable?", [
+      "Al descubrir una condición decides si necesitas su resultado ya (casilla «Evaluarla ahora») o no:",
+      bullets([
+        ["No la evalúo:", " queda guardada para combinarla después con otras. Todavía no produce un dato."],
+        ["Sí la evalúo:", " produce un dato lógico (verdadero/falso); le pones nombre y un propósito. Si el propósito es «Tomar una decisión», defines los caminos: «Si se cumple» / «Si no se cumple»."],
+      ]),
     ]),
     section("De lenguaje natural a una expresión algorítmica", [
       "No se trata de traducir palabra por palabra: primero identifica qué pregunta responde el programa, qué datos intervienen y qué relación hay entre ellos.",
@@ -217,15 +231,16 @@ function expressionSections() {
         ["¿La cantidad disponible es diferente de 0?", code("cantidadDisponible != 0")],
       ]),
     ]),
-    section("Operadores lógicos", [
-      "Combinan o modifican condiciones para construir expresiones más complejas:",
+    section("Operadores lógicos: combinar condiciones", [
+      "Combinan o modifican condiciones para construir una comprobación mayor. En Logix son botones:",
       defList([
-        [code("&&"), "AND: exige que todas las condiciones se cumplan."],
-        [code("||"), "OR: basta con que al menos una condición se cumpla."],
-        [code("!"), "NOT: niega o invierte el resultado de una condición."],
+        [code("Y"), "AND: exige que todas las condiciones se cumplan."],
+        [code("O"), "OR: basta con que al menos una se cumpla."],
+        [code("NO"), "NOT: niega o invierte el resultado de una condición."],
       ]),
-      example("¿La cantidad producida es mayor que 100 y el inventario disponible es menor que 50?"),
-      codeBlock("cantidadProducida > 100 && inventarioDisponible < 50"),
+      "Puedes descubrir varias condiciones (C1, C2, C3) y, en otra actividad, componerlas eligiéndolas de su selector «Condición»:",
+      codeBlock("C1 Y C2 Y C3"),
+      "El resultado de esa comprobación mayor es un dato lógico (p. ej. estudianteAprueba), como cualquier condición evaluada.",
     ]),
     section("Jerarquía de operadores", [
       "Cuando una expresión mezcla operaciones, no se resuelven en el orden en que aparecen escritas, sino por su prioridad:",
@@ -234,19 +249,19 @@ function expressionSections() {
         ["Operadores unarios", " como ! (NOT)."],
         ["Operaciones aritméticas", " × ÷ + −."],
         ["Operadores relacionales", " >, <, >=, <=, ==, !=."],
-        ["Operadores lógicos", " && antes que ||."],
+        ["Operadores lógicos", " Y (AND) antes que O (OR)."],
       ]),
       "Los paréntesis permiten establecer explícitamente qué parte se evalúa primero, además de mejorar la legibilidad.",
     ]),
     section("Expresiones combinadas, paso a paso", [
       "Una expresión compleja se resuelve por partes; cada resultado se usa en el siguiente paso:",
-      codeBlock("(cantidadProducida * precioUnidad) >= 100000 && inventarioDisponible > 0"),
+      codeBlock("(cantidadProducida * precioUnidad) >= 100000 Y inventarioDisponible > 0"),
       stepFlow([
         { label: "Operación aritmética", code: "cantidadProducida * precioUnidad" },
         { label: "Resultado de la operación", code: "valorProduccion" },
-        { label: "Expresión relacional", code: "valorProduccion >= 100000" },
-        { label: "Segunda condición", code: "inventarioDisponible > 0" },
-        { label: "Operador lógico", code: "condición1 && condición2" },
+        { label: "Condición C1", code: "valorProduccion >= 100000" },
+        { label: "Condición C2", code: "inventarioDisponible > 0" },
+        { label: "Combinar condiciones", code: "C1 Y C2" },
         { label: "Resultado final", code: "Sí / No" },
       ]),
     ]),

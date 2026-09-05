@@ -24,7 +24,7 @@ const SECTION_STEPS = [
   {
     title: "4 · Actividades",
     target: "table-container",
-    body: "Es el corazón del análisis. Cada FILA es un paso del proceso, y cada COLUMNA una parte: Datos de entrada (qué usa), Condición (la pregunta, en decisiones), Operación (cómo se calcula), Dato resultante (qué produce), Propósito y, en las decisiones, «Si se cumple / Si no se cumple». Para verlo con detalle, prueba el «Ejemplo guiado» desde Ayuda.",
+    body: "Es el corazón del análisis. Cada TARJETA es un paso, de uno de dos tipos: una OPERACIÓN (calcula un dato nuevo) o una CONDICIÓN (comprueba algo, una pregunta de Sí/No). Con «+ Agregar operación» o «+ Agregar condición» creas cada tipo. Para verlo con detalle, prueba el «Ejemplo guiado» desde Ayuda.",
   },
   { title: "5 · Cadena del análisis", target: "chain-container", body: "Visualiza el análisis completo como un flujo: qué entra, cómo se procesa y qué sale. Te permite revisar de un vistazo que todo esté encadenado." },
   { title: "¡Listo para empezar!", target: null, body: "Pulsa «Ejemplo» para ver un caso completo, usa «Ayuda» o los «?» de cada sección cuando tengas dudas, y recuerda que puedes deshacer con Ctrl+Z. ¡A analizar!" },
@@ -33,12 +33,12 @@ const SECTION_STEPS = [
 const EXAMPLE_STEPS = [
   { title: "Ejemplo guiado", target: null, body: "Vamos a recorrer un análisis ya construido: decidir si un estudiante aprueba una asignatura a partir de sus notas. Fíjate en cómo se rellena cada sección." },
   { title: "1 · Estudiantes", target: "students-container", body: "Aquí van el grupo y los estudiantes. En el ejemplo: grupo N1 y una estudiante." },
-  { title: "2 · Análisis", target: "analysis-info", body: "El título plantea la pregunta y la descripción resume el problema. En el «Enunciado» está el texto completo: desde ahí identificas los datos seleccionando un fragmento (p. ej. «4 en el primer parcial») y pulsando «Agregar como dato de entrada»." },
-  { title: "3 · Datos de entrada", target: "inputs-container", body: "Cada dato conserva el FRAGMENTO del que salió, su VALOR y el NOMBRE que le das: nota1, nota2, nota3 y notaAprobatoria. Con «Formatear nombres» puedes aplicar una convención (p. ej. camelCase) a todos a la vez." },
-  { title: "4 · Actividades", target: "table-container", body: "Cada fila es un paso. Vamos a leerlas una por una, fijándonos en las columnas de la tabla." },
-  { title: "Actividad 1: sumar las notas", target: rowTarget(0), block: "center", body: "En «Datos de entrada» se referencian nota1, nota2 y nota3; en «Operación» se construye nota1 + nota2 + nota3; el «Dato resultante» es sumaNotas. El «Propósito» es una nueva operación." },
-  { title: "Actividad 2: calcular el promedio", target: rowTarget(1), block: "center", body: "Se reutiliza sumaNotas (marcado con ↩ porque se produjo en la actividad anterior) y se divide entre 3 con «÷ valor 3», obteniendo promedio." },
-  { title: "Actividad 3: la decisión", target: rowTarget(2), block: "center", body: "Es una decisión: la «Condición» es la pregunta (¿promedio ≥ nota aprobatoria?), la «Operación» la responde (promedio ≥ notaAprobatoria) y produce «aprobado». En «Si se cumple / Si no se cumple» se definen los caminos: Aprueba / Reprueba." },
+  { title: "2 · Análisis", target: "analysis-info", body: "El título plantea la pregunta y la descripción resume el problema. Si activas el «Enunciado», puedes pegar el texto completo e identificar datos seleccionando un fragmento (p. ej. «4 en el primer parcial») y agregándolo como dato de entrada." },
+  { title: "3 · Datos de entrada", target: "inputs-container", body: "Los datos que el programa recibe, con su nombre y tipo: nota1, nota2, nota3 y notaAprobatoria. Con el selector de «Convención» aplicas un estilo de nombres (p. ej. camelCase) a todos a la vez." },
+  { title: "4 · Actividades", target: "table-container", body: "Cada tarjeta es un paso. Vamos a recorrerlas una por una, observando de qué tipo es cada una." },
+  { title: "Actividad 1: sumar las notas", target: rowTarget(0), block: "center", body: "Es una OPERACIÓN. Referencia nota1, nota2 y nota3, construye nota1 + nota2 + nota3 y produce el dato «sumaNotas». Su propósito: usarlo en una nueva operación." },
+  { title: "Actividad 2: calcular el promedio", target: rowTarget(1), block: "center", body: "Otra OPERACIÓN. Reutiliza sumaNotas (producido en el paso anterior) y lo divide entre 3, obteniendo «promedio»." },
+  { title: "Actividad 3: la condición que decide", target: rowTarget(2), block: "center", body: "Es una CONDICIÓN evaluada como decisión (tarjeta índigo). La pregunta es «¿el promedio es ≥ la nota aprobatoria?», la comprobación es promedio ≥ notaAprobatoria, y al evaluarla produce el dato lógico «aprobado». En «Si se cumple / Si no se cumple» se definen los caminos: Aprueba / Reprueba." },
   { title: "5 · Cadena del análisis", target: "chain-container", body: "La cadena resume el flujo completo: entran las notas, se procesan (suma → promedio → decisión) y sale el resultado." },
   { title: "Ahora te toca a ti", target: null, body: "Edita este ejemplo o crea uno nuevo con «Nuevo análisis». Puedes reabrir esta guía desde «Ayuda» cuando quieras." },
 ];
