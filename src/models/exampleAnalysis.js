@@ -49,11 +49,13 @@ export function createStudentGradeExample() {
     subsequentUse: "Se comparará con la nota aprobatoria.",
   });
 
+  // Una condición evaluada como decisión: comprueba y, con sus caminos, decide.
   const row3 = createRow({
-    problem: "Decidir si el estudiante aprueba",
-    inputIds: [promedio.id, notaAprobatoria.id],
+    kind: "condition",
+    conditionName: "cumpleNotaAprobatoria",
     condition: "¿El promedio es mayor o igual a la nota aprobatoria?",
     operation: [ref(promedio), op("ge"), ref(notaAprobatoria)],
+    evaluateNow: true,
     resultId: aprobado.id,
     purpose: "decision",
     subsequentUse: "Determina si el estudiante aprueba o reprueba.",

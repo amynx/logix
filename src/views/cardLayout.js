@@ -136,6 +136,13 @@ export function activityZones(nodesByKey, renderRow, kind = "operation") {
         row("conditionName", "Nombre"),
         row("condition", "Pregunta"),
         row("operation", "Comprobación"),
+        row("evaluate"),
+      ]),
+      // Solo presente si la condición se evalúa (result/purpose no nulos).
+      zoneBlock("Evaluación", ZONE_TONES.result, [row("result", "Dato lógico"), row("purpose", SUBLABELS.purpose)]),
+      zoneBlock("Caminos", ZONE_TONES.branch, [
+        row("ifTrue", "Si se cumple, entonces:"),
+        row("ifFalse", "Si no se cumple, entonces:"),
       ]),
       zoneBlock("Se usará en", ZONE_TONES.reuse, [row("usedIn")]),
       zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),

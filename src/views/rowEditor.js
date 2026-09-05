@@ -3,7 +3,7 @@
 // mismas funciones sobre el mismo modelo. Solo se ocupa del DOM.
 
 import { el } from "../utils/dom.js";
-import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
+import { DATA_TYPES, BRANCH_TYPES, PURPOSES, OPERATION_PURPOSES, CONDITION_PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
 import { attachMentions, isMentionMenuOpen } from "./mentionMenu.js";
@@ -37,7 +37,6 @@ export const FIELD_ORDER = [
 export function buildRowFields(row, dataById, handlers, activities = [], producedIds = new Set()) {
   const field = (updater) => handlers.onFieldChange(row.id, updater);
   const structural = (updater) => handlers.onStructuralChange(row.id, updater);
-  const isDecision = row.purpose === "decision";
   const isCondition = row.kind === "condition";
   const mentions = handlers.getDataMentions; // menú "/" para insertar referencias
   const inputEntries = row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
@@ -46,37 +45,50 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   const availableInputs = allData.filter((entry) => !row.inputIds.includes(entry.id));
   const resolveData = (id) => dataById.get(id) ?? null;
   const kindToggle = activityKindToggle(row.kind, (kind) => structural(() => ({ kind })));
+  // Contexto de condiciones para COMPONER comprobaciones (C1 Y C2…) en una expresión.
+  // Una condición no se compone a sí misma: se excluye la fila actual.
+  const conditions = handlers.conditionEntries
+    ? { entries: handlers.conditionEntries().filter((entry) => entry.id !== row.id), resolve: handlers.resolveCondition }
+    : null;
+  const expression = (tokens, focusKey) =>
+    expressionEditor(tokens, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), focusKey, producedIds, conditions);
+  const branch = (key) => branchEditor(row[key], key, { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions });
 
-  // Una condición descubre una comprobación reutilizable: pregunta + expresión +
-  // nombre + reutilización + comentario. No produce dato ni tiene caminos, y su
-  // expresión no compone otras condiciones (eso se hace en una operación).
+  // Una condición: pregunta + expresión + nombre, y decide si evaluarse ahora. Si
+  // NO se evalúa, queda reutilizable (dónde se usará + comentario). Si SÍ se evalúa,
+  // produce un dato lógico con propósito; como decisión, lleva sus caminos.
   if (isCondition) {
+    const evaluated = row.evaluateNow;
+    const isDecisionCondition = evaluated && row.purpose === "decision";
+    const showUsedIn = !evaluated || row.purpose === "operation" || row.purpose === "decision";
     return {
       kind: kindToggle,
       conditionName: conditionNameField(row, field, handlers),
       condition: textField(row.condition, "¿Qué se comprueba?", (value) => field(() => ({ condition: value })), { normalize: formatAsQuestion, mentions }),
-      operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds),
-      usedIn: usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)),
+      operation: expression(row.operation, `op:${row.id}`),
+      evaluate: evaluateToggle(row.evaluateNow, (value) => structural(() => ({ evaluateNow: value }))),
+      result: evaluated ? logicalResultEditor(row.id, resultEntry, handlers) : null,
+      purpose: evaluated ? purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })), CONDITION_PURPOSES) : null,
+      usedIn: showUsedIn ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
       comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
+      ifTrue: isDecisionCondition ? branch("ifTrue") : null,
+      ifFalse: isDecisionCondition ? branch("ifFalse") : null,
     };
   }
 
-  // Contexto de condiciones para COMPONER comprobaciones (C1 Y C2…) en la operación.
-  const conditions = handlers.conditionEntries ? { entries: handlers.conditionEntries(), resolve: handlers.resolveCondition } : null;
-
+  // Una operación produce un dato: necesidad + expresión + dato resultante +
+  // propósito (nueva operación o información final) + uso posterior + comentario.
+  // No comprueba (las condiciones son su propia tarjeta) ni tiene caminos.
   return {
     kind: kindToggle,
     problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst, mentions }),
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
-    condition: conditionField(row, isDecision, field, structural, mentions),
-    operation: expressionEditor(row.operation, allData, resolveData, (updater) => handlers.onOperationChange(row.id, updater), `op:${row.id}`, producedIds, conditions),
+    operation: expression(row.operation, `op:${row.id}`),
     result: resultEditor(row.id, resultEntry, handlers),
-    purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
+    purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })), OPERATION_PURPOSES),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
-    ifTrue: isDecision ? branchEditor(row.ifTrue, "ifTrue", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
-    ifFalse: isDecision ? branchEditor(row.ifFalse, "ifFalse", { structural, refs: allData, resolve: resolveData, rowId: row.id, producedIds, conditions }) : null,
   };
 }
 
@@ -323,26 +335,6 @@ function textField(value, placeholder, onInput, { normalize, mentions } = {}) {
   });
   if (mentions) attachMentions(field, mentions);
   return field;
-}
-
-// Campo de condición. Una decisión la usa siempre (es su pregunta de bifurcación);
-// en las demás actividades es opcional y explícita: un interruptor la activa, y solo
-// entonces aparece el campo, para que su ausencia no parezca un campo olvidado.
-function conditionField(row, isDecision, field, structural, mentions) {
-  const input = textField(row.condition, "¿Qué pregunta debe responderse?", (value) => field(() => ({ condition: value })), {
-    normalize: formatAsQuestion,
-    mentions,
-  });
-  if (isDecision) return input;
-  const toggle = conditionToggle(row.usesCondition, (checked) => structural(() => ({ usesCondition: checked })));
-  return row.usesCondition ? el("div", { class: "space-y-1.5" }, [toggle, input]) : toggle;
-}
-
-function conditionToggle(checked, onChange) {
-  const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200" });
-  box.checked = Boolean(checked);
-  box.onchange = (event) => onChange(event.target.checked);
-  return el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700" }, [box, el("span", {}, "Usa condición")]);
 }
 
 function selectField(options, value, onChange, { placeholder } = {}) {
@@ -617,8 +609,39 @@ function resultEditor(rowId, result, handlers) {
   ]);
 }
 
-function purposeSelect(purpose, onChange) {
-  return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
+// Selector de propósito. `allowed` (claves) limita las opciones al tipo de tarjeta.
+function purposeSelect(purpose, onChange, allowed = null) {
+  const options = optionsOf(PURPOSES).filter((option) => !allowed || allowed.includes(option.value));
+  return selectField(options, purpose, onChange, { placeholder: "Propósito…" });
+}
+
+// Interruptor de una condición: ¿evaluarla ahora (produce un dato lógico) o
+// dejarla reutilizable para más adelante? Cambia los campos que muestra la tarjeta.
+function evaluateToggle(checked, onChange) {
+  const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200" });
+  box.checked = Boolean(checked);
+  box.onchange = (event) => onChange(event.target.checked);
+  return el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800" }, [
+    box,
+    el("span", {}, "Evaluarla ahora (produce un dato lógico)"),
+  ]);
+}
+
+// Dato resultante de una condición evaluada: solo el nombre; el tipo es lógico
+// automáticamente (se muestra como distintivo, no editable).
+function logicalResultEditor(rowId, result, handlers) {
+  return el("div", { class: "flex items-center gap-2" }, [
+    el("input", {
+      type: "text",
+      value: result?.name ?? "",
+      placeholder: "nombre del dato lógico",
+      class: `${CONTROL_CLASS} flex-1`,
+      dataset: { focusKey: `res-name:${rowId}` },
+      oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value, type: "logical" }),
+      onblur: (event) => normalizeFieldOnBlur(event, handlers.formatName, (name) => handlers.onResultChange(rowId, { name, type: "logical" })),
+    }),
+    typeBadge("logical"),
+  ]);
 }
 
 // Selector de la actividad donde se usará el dato producido. Además de las otras

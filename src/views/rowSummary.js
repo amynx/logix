@@ -17,37 +17,41 @@ export function buildRowSummary(row, dataById, activities = [], producedIds = ne
   const resolve = (id) => dataById.get(id) ?? null;
   const resolveCondition = conditionResolver(conditions);
   const resolveName = referenceResolver(dataById, producedIds);
-  const isDecision = row.purpose === "decision";
-  const conditionApplies = isDecision || row.usesCondition;
   const inputs = row.inputIds.map(resolve).filter(Boolean);
   const conditionText = (row.condition ?? "").trim();
   const result = row.resultId ? resolve(row.resultId) : null;
 
-  // Una condición se resume con menos campos: su nombre, la pregunta, la
-  // comprobación, dónde se reutilizará y el comentario.
+  // Una condición se resume con menos campos. Si se evalúa, además muestra el dato
+  // lógico, su propósito y —como decisión— sus caminos.
   if (row.kind === "condition") {
+    const evaluated = row.evaluateNow;
+    const isDecisionCondition = evaluated && row.purpose === "decision";
+    const showUsedIn = !evaluated || row.purpose === "operation" || row.purpose === "decision";
     return {
       conditionName: conditionNameChip(row, conditions),
       condition: conditionText ? questionBox(referencedText(conditionText, resolveName)) : null,
       operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve, resolveCondition)) : null,
-      usedIn: usedInNode(row.usedInRowId, activities),
+      result: evaluated && result ? withEquals(dataChip(result)) : null,
+      purpose: evaluated ? purposeBadge(row.purpose) : null,
+      usedIn: showUsedIn ? usedInNode(row.usedInRowId, activities) : null,
+      ifTrue: isDecisionCondition ? branchNode(row.ifTrue, resolve, resolveCondition) : null,
+      ifFalse: isDecisionCondition ? branchNode(row.ifFalse, resolve, resolveCondition) : null,
       comment: commentText(row.subsequentUse, resolveName),
     };
   }
 
+  // Una operación produce un dato; ya no comprueba ni tiene caminos (eso es una
+  // condición). Solo necesidad, expresión, resultado, propósito, uso y comentario.
   return {
     problem: textNode(row.problem, resolveName),
     inputs: inputs.length > 0
       ? el("div", { class: "flex flex-wrap gap-1" }, inputs.map((datum) => inputChip(datum, producedIds.has(datum.id))))
       : null,
-    condition: conditionApplies && conditionText ? questionBox(referencedText(conditionText, resolveName)) : null,
     operation: row.operation.length > 0 ? formulaBox(expressionNode(row.operation, resolve, resolveCondition)) : null,
     result: result ? withEquals(dataChip(result)) : null,
     purpose: purposeBadge(row.purpose),
     usedIn: result ? usedInNode(row.usedInRowId, activities) : null,
     comment: commentText(row.subsequentUse, resolveName),
-    ifTrue: isDecision ? branchNode(row.ifTrue, resolve, resolveCondition) : null,
-    ifFalse: isDecision ? branchNode(row.ifFalse, resolve, resolveCondition) : null,
   };
 }
 

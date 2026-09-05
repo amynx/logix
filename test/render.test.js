@@ -121,6 +121,19 @@ function addExprElement(cell, text) {
 function addExprOperator(cell, opKey) {
   cell.querySelector(`button[data-op="${opKey}"]`).click();
 }
+// Un select por el texto de su opción-placeholder (primera opción), para ubicarlo
+// dentro de una tarjeta de condición (celda a todo el ancho, sin columnas fijas).
+function selectByPlaceholder(root, placeholder) {
+  return [...root.querySelectorAll("select")].find((s) => s.options[0]?.textContent === placeholder);
+}
+// Agrega un dato/valor al último constructor de expresión de la fila (p. ej. el de
+// una rama), escribiendo el nombre exacto para que se auto-incorpore.
+function addExprToLast(root, text) {
+  const inputs = [...root.querySelectorAll("input[list]")];
+  const input = inputs[inputs.length - 1];
+  input.value = text;
+  fire(input, "input");
+}
 
 test("renders analysis info and a seeded row with all columns", async () => {
   const { doc } = await mountApp();
@@ -258,47 +271,39 @@ test("editing the title updates the model without re-rendering", async () => {
   assert.equal(controller.analysis.title, "Calcular promedio");
 });
 
-test("changing purpose updates the model and re-renders the table", async () => {
+test("changing an operation's purpose updates the model and re-renders", async () => {
   const { doc, controller } = await mountApp();
   const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
 
-  purposeSelect.value = "decision";
-  fire(purposeSelect, "change");
+  // Una operación solo ofrece «nueva operación» / «información final» (no decisión).
+  assert.ok([...purposeSelect.options].some((o) => o.value === "response"));
+  assert.ok([...purposeSelect.options].every((o) => o.value !== "decision"), "una operación no decide");
 
-  assert.equal(controller.analysis.rows[0].purpose, "decision");
+  purposeSelect.value = "response";
+  fire(purposeSelect, "change");
+  assert.equal(controller.analysis.rows[0].purpose, "response");
   assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "still one row after re-render");
 });
 
-test("the condition is optional per activity and a decision always uses it", async () => {
-  const { doc } = await mountApp();
-  const conditionCell = () => doc.querySelectorAll("#table-container tbody tr td")[3];
-  const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
-  const purposeSelect = () => doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
-  const conditionToggle = () => conditionCell().querySelector('input[type="checkbox"]');
+test("a condition shows the question always, and evaluating reveals its result", async () => {
+  const { doc, controller } = await mountApp();
+  controller.addRow("condition");
+  const row = () => doc.querySelectorAll("#table-container tbody tr")[1];
+  const evalToggle = () => row().querySelector('input[type="checkbox"]');
 
-  // Sin propósito: la condición es opcional; se ofrece un interruptor, no un campo
-  // ni un "no aplica" que parezca olvidado.
-  assert.ok(conditionToggle(), "hay un interruptor para activar la condición");
-  assert.equal(conditionCell().querySelectorAll("textarea").length, 0);
-  assert.doesNotMatch(conditionCell().textContent, /—/);
-  assert.equal(branchCell().querySelectorAll("select, textarea").length, 0);
+  // La pregunta siempre está presente; sin evaluar no hay dato resultante ni propósito.
+  assert.ok(row().querySelector("textarea"), "hay un campo de pregunta");
+  assert.ok(evalToggle(), "hay un interruptor «evaluar ahora»");
+  assert.equal(row().querySelector('input[placeholder="nombre del dato lógico"]'), null, "sin evaluar: sin dato resultante");
+  assert.equal(selectByPlaceholder(row(), "Propósito…"), undefined, "sin evaluar: sin propósito");
 
-  // Activar el interruptor revela el campo de condición.
-  conditionToggle().checked = true;
-  fire(conditionToggle(), "change");
-  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
-
-  // Propósito no-decisión: la condición sigue siendo opcional (interruptor).
-  purposeSelect().value = "operation";
-  fire(purposeSelect(), "change");
-  assert.ok(conditionCell().querySelector('input[type="checkbox"]'), "sigue opcional");
-
-  // Decisión: la condición es intrínseca (campo siempre) y las ramas están disponibles.
-  purposeSelect().value = "decision";
-  fire(purposeSelect(), "change");
-  assert.equal(conditionCell().querySelectorAll("textarea").length, 1);
-  assert.equal(conditionCell().querySelector('input[type="checkbox"]'), null, "la decisión no muestra interruptor");
-  assert.ok(branchCell().querySelectorAll("select, textarea").length > 0);
+  // Evaluar ahora revela el dato lógico y el propósito (que ofrece «tomar una decisión»).
+  evalToggle().checked = true;
+  fire(evalToggle(), "change");
+  assert.equal(controller.analysis.rows[1].evaluateNow, true);
+  assert.ok(row().querySelector('input[placeholder="nombre del dato lógico"]'), "aparece el nombre del dato lógico");
+  const purpose = selectByPlaceholder(row(), "Propósito…");
+  assert.ok(purpose && [...purpose.options].some((o) => o.value === "decision"), "el propósito ofrece «tomar una decisión»");
 });
 
 test("a row references a declared input, shown as a read-only chip", async () => {
@@ -603,22 +608,18 @@ test("the result type is suggested when the result is named after the operation"
   assert.equal(typeSelect.value, "numeric", "el select refleja la sugerencia");
 });
 
-test("the condition is a free-text natural-language question", async () => {
+test("a condition's question is a free-text natural-language field", async () => {
   const { doc, controller } = await mountApp();
+  controller.addRow("condition");
+  const row = doc.querySelectorAll("#table-container tbody tr")[1];
 
-  // La condición es opcional: se activa con su interruptor antes de escribirla.
-  const conditionCell = () => doc.querySelectorAll("#table-container tbody tr td")[3];
-  const toggle = conditionCell().querySelector('input[type="checkbox"]');
-  toggle.checked = true;
-  fire(toggle, "change");
+  const questionField = row.querySelector("textarea");
+  assert.ok(questionField, "la pregunta es un campo de texto, no un constructor");
 
-  const conditionField = conditionCell().querySelector("textarea");
-  assert.ok(conditionField, "la condición es un campo de texto, no un constructor");
+  questionField.value = "¿El promedio es mayor o igual a 3?";
+  fire(questionField, "input");
 
-  conditionField.value = "¿El promedio es mayor o igual a 3?";
-  fire(conditionField, "input");
-
-  assert.equal(controller.analysis.rows[0].condition, "¿El promedio es mayor o igual a 3?");
+  assert.equal(controller.analysis.rows[1].condition, "¿El promedio es mayor o igual a 3?");
 });
 
 test("the students section records a shared group and the participants", async () => {
@@ -647,47 +648,51 @@ test("the students section records a shared group and the participants", async (
   assert.equal(student.group, undefined, "el estudiante no tiene grupo propio");
 });
 
-test("the branch builder appears only when the path is a response", async () => {
-  const { doc } = await mountApp();
-  const purpose = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
-  purpose.value = "decision";
-  fire(purpose, "change");
+// Prepara una condición evaluada como decisión (fila 1) y devuelve accesores.
+function decisionCondition(doc, controller) {
+  controller.addRow("condition");
+  const row = () => doc.querySelectorAll("#table-container tbody tr")[1];
+  const evalToggle = row().querySelector('input[type="checkbox"]');
+  evalToggle.checked = true;
+  fire(evalToggle, "change");
+  const purpose = () => selectByPlaceholder(row(), "Propósito…");
+  purpose().value = "decision";
+  fire(purpose(), "change");
+  return { row, branchType: () => selectByPlaceholder(row(), "Continúa con…") };
+}
 
-  const branchCell = () => doc.querySelectorAll("#table-container tbody tr td")[9];
-  const typeSelect = () => branchCell().querySelector("select");
+test("a decision condition shows the branch builder only for a response path", async () => {
+  const { doc, controller } = await mountApp();
+  const { row, branchType } = decisionCondition(doc, controller);
+  // input[list] presentes: la comprobación de la condición (1) + los de las ramas.
+  const exprCount = () => row().querySelectorAll("input[list]").length;
+  const baseline = exprCount();
 
-  assert.equal(branchCell().querySelector("input[list]"), null, "sin tipo: sin constructor");
+  branchType().value = "operation";
+  fire(branchType(), "change");
+  assert.equal(exprCount(), baseline, "operación: sin constructor de respuesta");
 
-  typeSelect().value = "operation";
-  fire(typeSelect(), "change");
-  assert.equal(branchCell().querySelector("input[list]"), null, "operación: sin constructor");
-
-  typeSelect().value = "response";
-  fire(typeSelect(), "change");
-  assert.ok(branchCell().querySelector("input[list]"), "respuesta: aparece el constructor de expresión");
+  branchType().value = "response";
+  fire(branchType(), "change");
+  assert.equal(exprCount(), baseline + 1, "respuesta: aparece el constructor de la respuesta");
 });
 
 test("a decision branch response can reference existing data", async () => {
   const { doc, controller } = await mountApp();
 
-  // La fila 0 produce "promedio".
+  // La fila 0 (operación) produce "promedio".
   const resultName = doc.querySelectorAll("#table-container tbody tr td")[5].querySelector("input");
   resultName.value = "promedio";
   fire(resultName, "input");
   const promedioId = controller.analysis.rows[0].resultId;
 
-  // Fila 1: decisión con rama "Si se cumple" de tipo Respuesta que referencia el dato.
-  [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
-  const row1 = () => doc.querySelectorAll("#table-container tbody tr")[1];
-  row1().querySelectorAll("td")[6].querySelector("select").value = "decision";
-  fire(row1().querySelectorAll("td")[6].querySelector("select"), "change");
+  // Fila 1: condición evaluada como decisión con rama "Si se cumple" de tipo Respuesta.
+  const { row, branchType } = decisionCondition(doc, controller);
+  branchType().value = "response";
+  fire(branchType(), "change");
 
-  const branchCell = () => row1().querySelectorAll("td")[9];
-  branchCell().querySelector("select").value = "response"; // el tipo de la rama
-  fire(branchCell().querySelector("select"), "change");
-
-  // Ahora aparece el constructor de la respuesta: se referencia el dato por nombre.
-  addExprElement(branchCell(), "promedio");
+  // El constructor de la respuesta referencia el dato por nombre (último input[list]).
+  addExprToLast(row(), "promedio");
 
   const tokens = controller.analysis.rows[1].ifTrue.value;
   assert.deepEqual(tokens.map((t) => t.kind), ["ref"]);

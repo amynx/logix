@@ -42,7 +42,22 @@ export function migrateAnalysis(data) {
   if (current.version < 14) current = migrateV13toV14(current);
   if (current.version < 15) current = migrateV14toV15(current);
   if (current.version < 16) current = migrateV15toV16(current);
+  if (current.version < 17) current = migrateV16toV17(current);
   return current;
+}
+
+// v17: una condición puede evaluarse en el momento (`evaluateNow`). Una decisión
+// que antes era una operación pasa a ser una condición evaluada como decisión, que
+// conserva sus caminos.
+function migrateV16toV17(old) {
+  const rows = (old.rows ?? []).map((row) => {
+    const wasDecisionOperation = row.kind !== "condition" && row.purpose === "decision";
+    if (wasDecisionOperation) {
+      return { ...row, kind: "condition", conditionName: row.conditionName ?? "", evaluateNow: true };
+    }
+    return { ...row, evaluateNow: row.evaluateNow ?? false };
+  });
+  return { ...old, version: 17, rows };
 }
 
 // v16: las condiciones dejan de ser un catálogo aparte y pasan a ser actividades de

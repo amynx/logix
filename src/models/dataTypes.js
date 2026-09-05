@@ -11,9 +11,14 @@ export const DATA_TYPES = {
 
 export const PURPOSES = {
   operation: "Nueva operación",
-  decision: "Decisión",
-  response: "Respuesta / Información",
+  decision: "Tomar una decisión",
+  response: "Información final",
 };
+
+// Propósitos que ofrece cada tipo de tarjeta. Una operación no decide (las
+// decisiones nacen de una condición evaluada); una condición evaluada sí puede.
+export const OPERATION_PURPOSES = ["operation", "response"];
+export const CONDITION_PURPOSES = ["operation", "decision", "response"];
 
 // Una rama de decisión ("si se cumple" / "si no se cumple") puede conducir a una
 // respuesta, a una nueva operación o a otra decisión. En esta versión el detalle

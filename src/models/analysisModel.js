@@ -18,8 +18,10 @@ import { applyNameConvention } from "./nameConventions.js";
 // v13: la condición de cada actividad es opcional y explícita. v14: la convención
 // de nombres se recuerda como regla del análisis. v15: catálogo de condiciones
 // reutilizables. v16: las condiciones son actividades (kind "condition"), no un
-// catálogo aparte; se componen con Y/O/NO en actividades de operación.
-export const ANALYSIS_VERSION = 16;
+// catálogo aparte; se componen con Y/O/NO en actividades de operación. v17: una
+// condición puede evaluarse en el momento (`evaluateNow`) y, como decisión, lleva
+// sus caminos; las operaciones ya no deciden.
+export const ANALYSIS_VERSION = 17;
 
 // Valor de `usedInRowId` cuando el dato producido se usará en una actividad que
 // aún no existe: la relación queda pendiente de asignar a una actividad concreta.
@@ -48,6 +50,7 @@ export function createRow(overrides = {}) {
     // muestra campos distintos.
     kind: "operation",
     conditionName: "", // nombre de la condición (para kind "condition"); vacío → "C1"…
+    evaluateNow: false, // condición: ¿se evalúa ahora (produce dato lógico) o se reutiliza?
     problem: "",
     inputIds: [],
     usesCondition: false, // la condición es opcional; una decisión la usa siempre
