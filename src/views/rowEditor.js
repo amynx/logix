@@ -123,10 +123,17 @@ function activityKindToggle(kind, onChange) {
       },
       [icon(iconName, "h-3.5 w-3.5"), label],
     );
-  return el("div", { class: "inline-flex rounded-md bg-slate-100 p-0.5" }, [
+  const toggle = el("div", { class: "inline-flex rounded-md bg-slate-100 p-0.5" }, [
     button("operation", "Operación", "workflow"),
     button("condition", "Condición", "fork"),
   ]);
+  // Micro-ayuda: recuerda qué es cada tipo, justo donde se elige.
+  const hint = el(
+    "p",
+    { class: "mt-1 text-[11px] text-slate-400" },
+    kind === "condition" ? "Comprueba algo: una pregunta de Sí / No." : "Calcula o transforma datos para obtener uno nuevo.",
+  );
+  return el("div", {}, [toggle, hint]);
 }
 
 // Campo de nombre de una condición. Aplica la convención de nombres al desenfocar;
@@ -598,10 +605,16 @@ function evaluateToggle(checked, onChange) {
   const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200" });
   box.checked = Boolean(checked);
   box.onchange = (event) => onChange(event.target.checked);
-  return el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800" }, [
+  const label = el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800" }, [
     box,
     el("span", {}, "Evaluarla ahora (produce un dato lógico)"),
   ]);
+  const hint = el(
+    "p",
+    { class: "mt-0.5 text-[11px] text-slate-400" },
+    checked ? "Produce un dato lógico; elige su propósito abajo." : "Sin evaluar: queda reutilizable para combinarla con otras condiciones.",
+  );
+  return el("div", {}, [label, hint]);
 }
 
 // Dato resultante de una condición evaluada: solo el nombre; el tipo es lógico
