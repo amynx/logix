@@ -9,16 +9,14 @@ export const DATA_TYPES = {
   text: "Texto",
 };
 
+// El propósito describe QUÉ le ocurrirá al dato resultante después: se usará en
+// una nueva operación, para tomar una decisión (p. ej. una condición lo evalúa) o
+// como parte de la información final. Aplica igual a operaciones y condiciones.
 export const PURPOSES = {
-  operation: "Nueva operación",
-  decision: "Tomar una decisión",
-  response: "Información final",
+  operation: "Usar en una nueva operación",
+  decision: "Usar para tomar una decisión",
+  response: "Generar la información final",
 };
-
-// Propósitos que ofrece cada tipo de tarjeta. Una operación no decide (las
-// decisiones nacen de una condición evaluada); una condición evaluada sí puede.
-export const OPERATION_PURPOSES = ["operation", "response"];
-export const CONDITION_PURPOSES = ["operation", "decision", "response"];
 
 // Una rama de decisión ("si se cumple" / "si no se cumple") puede conducir a una
 // respuesta, a una nueva operación o a otra decisión. En esta versión el detalle

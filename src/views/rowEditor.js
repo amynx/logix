@@ -3,7 +3,7 @@
 // mismas funciones sobre el mismo modelo. Solo se ocupa del DOM.
 
 import { el } from "../utils/dom.js";
-import { DATA_TYPES, BRANCH_TYPES, PURPOSES, OPERATION_PURPOSES, CONDITION_PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
+import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
 import { attachMentions, isMentionMenuOpen } from "./mentionMenu.js";
@@ -68,7 +68,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
       operation: expression(row.operation, `op:${row.id}`),
       evaluate: evaluateToggle(row.evaluateNow, (value) => structural(() => ({ evaluateNow: value }))),
       result: evaluated ? logicalResultEditor(row.id, resultEntry, handlers) : null,
-      purpose: evaluated ? purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })), CONDITION_PURPOSES) : null,
+      purpose: evaluated ? purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))) : null,
       usedIn: showUsedIn ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
       comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
       ifTrue: isDecisionCondition ? branch("ifTrue") : null,
@@ -85,7 +85,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
     operation: expression(row.operation, `op:${row.id}`),
     result: resultEditor(row.id, resultEntry, handlers),
-    purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value })), OPERATION_PURPOSES),
+    purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
@@ -609,10 +609,10 @@ function resultEditor(rowId, result, handlers) {
   ]);
 }
 
-// Selector de propósito. `allowed` (claves) limita las opciones al tipo de tarjeta.
-function purposeSelect(purpose, onChange, allowed = null) {
-  const options = optionsOf(PURPOSES).filter((option) => !allowed || allowed.includes(option.value));
-  return selectField(options, purpose, onChange, { placeholder: "Propósito…" });
+// Selector de propósito del dato resultante (qué le ocurrirá después): nueva
+// operación, tomar una decisión o generar la información final.
+function purposeSelect(purpose, onChange) {
+  return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
 }
 
 // Interruptor de una condición: ¿evaluarla ahora (produce un dato lógico) o

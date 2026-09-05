@@ -275,13 +275,14 @@ test("changing an operation's purpose updates the model and re-renders", async (
   const { doc, controller } = await mountApp();
   const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
 
-  // Una operación solo ofrece «nueva operación» / «información final» (no decisión).
-  assert.ok([...purposeSelect.options].some((o) => o.value === "response"));
-  assert.ok([...purposeSelect.options].every((o) => o.value !== "decision"), "una operación no decide");
+  // El propósito describe el destino del dato; incluye «tomar una decisión» aunque
+  // sea una operación (el dato se usará luego en una decisión).
+  const values = [...purposeSelect.options].map((o) => o.value);
+  assert.ok(["operation", "decision", "response"].every((v) => values.includes(v)), "ofrece los tres propósitos");
 
-  purposeSelect.value = "response";
+  purposeSelect.value = "decision";
   fire(purposeSelect, "change");
-  assert.equal(controller.analysis.rows[0].purpose, "response");
+  assert.equal(controller.analysis.rows[0].purpose, "decision");
   assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "still one row after re-render");
 });
 
