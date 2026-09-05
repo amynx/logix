@@ -19,17 +19,14 @@ export class ChainView {
   render(chain) {
     clear(this.container);
     const isEmpty =
-      chain.entradas.length === 0 &&
-      chain.proceso.length === 0 &&
-      chain.salidas.length === 0 &&
-      (chain.condiciones?.length ?? 0) === 0;
+      chain.entradas.length === 0 && chain.proceso.length === 0 && chain.salidas.length === 0;
 
     const body = isEmpty
       ? el("p", { class: "text-sm text-slate-400" }, "La cadena aparecerá aquí a medida que completes el análisis.")
       : el("div", { class: "flex flex-col gap-3 md:flex-row md:items-stretch" }, [
           zone("Entradas", "Datos que recibe el programa", chain.entradas.map(dataChip), ZONE_TONE.input),
           connector(),
-          processZone(chain.proceso, chain.producidos, chain.condiciones ?? []),
+          processZone(chain.proceso, chain.producidos),
           connector(),
           zone("Salida", "Información final", chain.salidas.map(outputChip), ZONE_TONE.output),
         ]);
@@ -68,7 +65,7 @@ function zone(title, subtitle, items, tone = ZONE_TONE.neutral) {
 
 // Zona de proceso: las actividades y, debajo, los datos producidos disponibles
 // para reutilizar en operaciones posteriores.
-function processZone(proceso, producidos, condiciones) {
+function processZone(proceso, producidos) {
   // Etiquetas de las actividades para resolver "se usa en → Actividad N".
   const activities = proceso.map((step) => ({ id: step.rowId, label: `Actividad ${step.position}` }));
   const cards =
@@ -78,22 +75,9 @@ function processZone(proceso, producidos, condiciones) {
 
   const children = [
     el("div", { class: "text-xs font-semibold uppercase tracking-wide text-slate-500" }, "Proceso"),
-    el("div", { class: "mb-2 text-[11px] text-slate-400" }, "Actividades en orden"),
+    el("div", { class: "mb-2 text-[11px] text-slate-400" }, "Operaciones y condiciones, en orden"),
+    cards,
   ];
-
-  // Condiciones descubiertas: comprobaciones reutilizables, aparte de las actividades.
-  if (condiciones.length > 0) {
-    children.push(
-      el("div", { class: "mb-3 rounded-md border border-indigo-200 bg-indigo-50/50 p-2" }, [
-        el("div", { class: "mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-600" }, [
-          icon("fork", "h-3 w-3"),
-          "Condiciones descubiertas",
-        ]),
-        el("div", { class: "space-y-1" }, condiciones.map(conditionChip)),
-      ]),
-    );
-  }
-  children.push(cards);
 
   if (producidos.length > 0) {
     children.push(
@@ -112,14 +96,6 @@ function connector() {
   return el("div", { class: "flex items-center justify-center text-slate-300" }, [
     el("span", { class: "md:hidden" }, "↓"),
     el("span", { class: "hidden md:inline" }, "→"),
-  ]);
-}
-
-// Ficha de una condición descubierta: su etiqueta índigo + la comprobación legible.
-function conditionChip(condition) {
-  return el("div", { class: "flex flex-wrap items-center gap-1.5 rounded border border-indigo-200 bg-white px-2 py-1 text-sm", title: condition.question }, [
-    el("span", { class: "shrink-0 rounded bg-indigo-100 px-1 py-0.5 text-xs font-semibold text-indigo-700" }, condition.label),
-    condition.parts.length > 0 ? expressionEl(condition.parts) : el("span", { class: "text-slate-400" }, "sin definir"),
   ]);
 }
 
@@ -191,29 +167,50 @@ function partNode(part, tone) {
   return el("span", {}, part.text);
 }
 
-// Tarjeta de actividad: cabecera con el número y la necesidad, y el resto de la
-// información agrupada en zonas (Entrada · Proceso · Resultado · Caminos), con la
-// misma jerarquía visual que la vista de tarjetas.
+// Tarjeta de un paso del proceso: operación o condición, con la misma jerarquía
+// visual que su tarjeta en Actividades (zonas según el tipo).
 function stepCard(step, activities) {
-  const isDecision = step.purpose === "decision" || step.condition;
+  return step.kind === "condition" ? conditionStepCard(step, activities) : operationStepCard(step, activities);
+}
+
+function operationStepCard(step, activities) {
   const nodes = {
     inputs: step.inputs.length > 0 ? el("div", { class: "flex flex-wrap gap-1" }, step.inputs.map(inputChip)) : null,
-    condition: step.condition ? questionBox(step.condition) : null,
     operation: step.operation.length > 0 ? formulaBox(expressionEl(step.operation)) : null,
     result: step.result ? withEquals(smallChip(step.result)) : null,
     purpose: purposeBadge(step.purpose),
     usedIn: step.result ? usedInNode(step.usedInRowId, activities) : null,
     comment: step.comment ? commentBox(step.comment) : null,
+  };
+  return stepShell(step, false, step.description || `Actividad ${step.position}`, activityZones(nodes, inlineRow, "operation"));
+}
+
+function conditionStepCard(step, activities) {
+  const evaluated = step.evaluateNow;
+  const isDecision = evaluated && step.purpose === "decision";
+  const showUsedIn = !evaluated || step.purpose === "operation";
+  const nodes = {
+    condition: step.condition ? questionBox(step.condition) : null,
+    operation: step.operation.length > 0 ? formulaBox(expressionEl(step.operation)) : null,
+    result: evaluated && step.result ? withEquals(smallChip(step.result)) : null,
+    purpose: evaluated ? purposeBadge(step.purpose) : null,
+    usedIn: showUsedIn ? usedInNode(step.usedInRowId, activities) : null,
     ifTrue: isDecision ? branchDetail(step.ifTrue) : null,
     ifFalse: isDecision ? branchDetail(step.ifFalse) : null,
+    comment: step.comment ? commentBox(step.comment) : null,
   };
+  return stepShell(step, true, step.conditionLabel, activityZones(nodes, inlineRow, "condition"));
+}
 
-  return el("div", { class: "rounded-lg border border-slate-200 bg-white p-3.5" }, [
+function stepShell(step, isCondition, title, body) {
+  const tint = isCondition ? "border-indigo-200 bg-indigo-50/40" : "border-slate-200 bg-white";
+  return el("div", { class: `rounded-lg border ${tint} p-3.5` }, [
     el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2" }, [
       stepNumber(step.position),
-      el("span", { class: "text-sm font-medium text-slate-800" }, step.description || `Actividad ${step.position}`),
+      isCondition ? icon("fork", "h-4 w-4 text-indigo-600") : null,
+      el("span", { class: `text-sm font-medium ${isCondition ? "text-indigo-700" : "text-slate-800"}` }, title),
     ]),
-    el("div", { class: "mt-2.5 space-y-3" }, activityZones(nodes, inlineRow)),
+    el("div", { class: "mt-2.5 space-y-3" }, body),
   ]);
 }
 

@@ -22,7 +22,7 @@ import {
 
 test("an empty analysis yields an empty chain", () => {
   const chain = buildChain(createAnalysis());
-  assert.deepEqual(chain, { entradas: [], condiciones: [], proceso: [], producidos: [], salidas: [] });
+  assert.deepEqual(chain, { entradas: [], proceso: [], producidos: [], salidas: [] });
 });
 
 test("a decision step exposes both paths (Sí/No)", () => {

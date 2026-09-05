@@ -24,26 +24,14 @@ export function buildChain(analysis) {
 
   return {
     entradas: collectInputs(analysis, producedIds),
-    // Las condiciones no transforman datos: no son pasos del proceso, se listan aparte.
-    condiciones: collectConditions(analysis, resolve, resolveCondition, conditionLabels),
+    // Proceso = todas las actividades (operaciones y condiciones) en el orden del
+    // análisis; cada una se representa como una tarjeta con su detalle.
     proceso: analysis.rows
-      .map((row, index) => (row.kind === "condition" ? null : buildStep(row, index, resolve, producedIds, resolveCondition)))
+      .map((row, index) => buildStep(row, index, resolve, producedIds, resolveCondition))
       .filter(Boolean),
     producidos: collectProduced(analysis, resolve),
     salidas: collectOutputs(analysis, resolve, resolveCondition),
   };
-}
-
-// Condiciones descubiertas (comprobaciones reutilizables): su etiqueta, la pregunta
-// y la comprobación. Se muestran aparte del proceso porque no producen un dato.
-function collectConditions(analysis, resolve, resolveCondition, conditionLabels) {
-  return analysis.rows
-    .filter((row) => row.kind === "condition")
-    .map((row) => ({
-      label: conditionLabels.get(row.id),
-      question: (row.condition ?? "").trim(),
-      parts: expressionParts(row.operation, resolve, resolveCondition),
-    }));
 }
 
 // Datos producidos por las operaciones, en orden y sin repetir. Quedan
@@ -72,6 +60,7 @@ function collectInputs(analysis, producedIds) {
 // Una actividad por fila con contenido, en el orden del análisis. Se expone cada
 // parte por separado para que la tarjeta la presente de forma organizada.
 function buildStep(row, index, resolve, producedIds, resolveCondition) {
+  const isCondition = row.kind === "condition";
   const inputs = row.inputIds
     .map(resolve)
     .filter(Boolean)
@@ -80,9 +69,11 @@ function buildStep(row, index, resolve, producedIds, resolveCondition) {
   const operation = expressionParts(row.operation, resolve, resolveCondition);
   const condition = row.condition.trim();
   const description = row.problem.trim();
+  const conditionLabel = isCondition ? (resolveCondition(row.id)?.label ?? "?") : null;
 
-  const hasContent =
-    description || operation.length > 0 || condition || result || inputs.length > 0 || row.purpose;
+  const hasContent = isCondition
+    ? Boolean(condition || operation.length > 0 || (row.conditionName ?? "").trim())
+    : Boolean(description || operation.length > 0 || condition || result || inputs.length > 0 || row.purpose);
   if (!hasContent) return null;
 
   const path = (branch) => ({
@@ -94,6 +85,9 @@ function buildStep(row, index, resolve, producedIds, resolveCondition) {
   return {
     rowId: row.id,
     position: index + 1,
+    kind: row.kind,
+    conditionLabel,
+    evaluateNow: row.evaluateNow,
     description,
     inputs,
     condition,
