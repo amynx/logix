@@ -184,10 +184,20 @@ test("warns when an operation produces an unnamed result", () => {
   assert.ok(collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w)));
 });
 
-test("warns when a decision has no condition", () => {
+test("warns when an evaluated decision condition defines no paths", () => {
   const analysis = createAnalysis({ title: "Demo" });
-  addRow(analysis, createRow({ purpose: "decision" }));
-  assert.ok(collectAnalysisWarnings(analysis).some((w) => /condición/.test(w)));
+  addRow(analysis, createRow({ kind: "condition", evaluateNow: true, purpose: "decision" }));
+  assert.ok(collectAnalysisWarnings(analysis).some((w) => /camino/.test(w)));
+});
+
+test("an unevaluated condition is not warned for producing an unnamed datum", () => {
+  const analysis = createAnalysis({ title: "Demo" });
+  addRow(analysis, createRow({ kind: "condition", operation: [{ kind: "ref", dataId: "x" }] }));
+  assert.equal(
+    collectAnalysisWarnings(analysis).some((w) => /sin nombre/.test(w)),
+    false,
+    "una condición sin evaluar no produce dato, así que no se avisa",
+  );
 });
 
 test("no warnings for a titled analysis without problematic rows", () => {

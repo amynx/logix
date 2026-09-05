@@ -240,6 +240,9 @@ function migrateV1toV2(old) {
 // Advertencias no bloqueantes para orientar al estudiante (sección 22).
 // No impiden editar ni guardar: solo señalan puntos por completar. La validación
 // es pura y no depende de la interfaz.
+// Advertencias de completitud (puntos por completar). Se adaptan al TIPO de
+// tarjeta: una operación produce un dato; una condición descubre una comprobación
+// y solo produce un dato si se evalúa. No se avisa de campos que no aplican al tipo.
 export function collectAnalysisWarnings(analysis) {
   const warnings = [];
   if (!analysis.title.trim()) {
@@ -248,19 +251,33 @@ export function collectAnalysisWarnings(analysis) {
 
   analysis.rows.forEach((row, index) => {
     const position = index + 1;
+    const isCondition = row.kind === "condition";
+    const label = isCondition ? "Condición" : "Actividad";
     const result = findData(analysis, row.resultId);
+    // Solo produce un dato una operación o una condición que se evalúa.
+    const producesDatum = !isCondition || row.evaluateNow;
 
-    if (row.operation.length > 0 && !(result && result.name.trim())) {
-      warnings.push(`Actividad ${position}: la operación produce un dato sin nombre.`);
+    if (producesDatum && row.operation.length > 0 && !(result && result.name.trim())) {
+      const what = isCondition ? "la condición evaluada" : "la operación";
+      warnings.push(`${label} ${position}: ${what} produce un dato sin nombre.`);
     }
     if (result && result.name.trim() && !result.type) {
-      warnings.push(`Actividad ${position}: el dato "${result.name}" no tiene tipo.`);
+      warnings.push(`${label} ${position}: el dato "${result.name}" no tiene tipo.`);
     }
-    if (row.purpose === "decision" && !row.condition.trim()) {
-      warnings.push(`Actividad ${position}: la decisión no tiene una condición definida.`);
+
+    if (isCondition) {
+      // Una condición que ya se está definiendo necesita su comprobación.
+      if (((row.conditionName ?? "").trim() || row.condition.trim()) && row.operation.length === 0) {
+        warnings.push(`Condición ${position}: no tiene una comprobación definida.`);
+      }
+      // Una condición evaluada como decisión debe definir al menos un camino.
+      if (row.evaluateNow && row.purpose === "decision" && !row.ifTrue.type && !row.ifFalse.type) {
+        warnings.push(`Condición ${position}: la decisión no define ningún camino.`);
+      }
     }
+
     if (row.purpose === "response" && !row.resultId && !row.subsequentUse.trim()) {
-      warnings.push(`Actividad ${position}: falta indicar qué información se proporcionará.`);
+      warnings.push(`${label} ${position}: falta indicar qué información final se proporcionará.`);
     }
   });
 
