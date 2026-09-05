@@ -50,6 +50,17 @@ function buildNav() {
     const node = document.getElementById(section.id);
     if (node) observer.observe(node);
   }
+
+  // Navegación compacta en móvil (sin barra lateral): un selector «Ir a sección».
+  const select = document.getElementById("mobile-nav");
+  if (select) {
+    for (const section of SECTIONS) {
+      select.append(el("option", { value: section.id }, section.label));
+    }
+    select.addEventListener("change", () => {
+      if (select.value) window.location.hash = select.value;
+    });
+  }
 }
 
 // --- Asistente «¿Qué necesito hacer?» ---
@@ -61,6 +72,7 @@ const WIZARD = {
     need: {
       q: "En este paso del análisis, ¿qué quieres hacer?",
       options: [
+        { label: "Registrar un dato que el programa recibe", hint: "No lo calculas tú. Ej.: las calificaciones, la nota aprobatoria", result: "datoEntrada" },
         { label: "Comprobar algo (responder una pregunta de sí/no)", hint: "Ej.: ¿el promedio es ≥ 3?", next: "evalNow" },
         { label: "Calcular o transformar datos para obtener uno nuevo", hint: "Ej.: sumar las notas, calcular el promedio", next: "opPurpose" },
       ],
@@ -90,6 +102,17 @@ const WIZARD = {
     },
   },
   results: {
+    datoEntrada: {
+      kind: "input",
+      title: "Es un dato de entrada",
+      steps: [
+        "Ve a la sección «Datos de entrada».",
+        "Agrégalo con «+ Agregar dato».",
+        "Ponle un nombre descriptivo y elige su tipo (numérico, lógico o texto).",
+        "Si quieres, aplica una convención de nombres para que todos sean consistentes.",
+      ],
+      tip: "Es de entrada si el programa lo RECIBE desde fuera y no lo calcula. Si lo obtienes con una operación, es un dato resultante (aparece solo, no lo declaras aquí).",
+    },
     condReusable: {
       kind: "condition",
       title: "Condición reutilizable (sin evaluar todavía)",
@@ -171,6 +194,7 @@ const WIZARD = {
 };
 
 const KIND_STYLE = {
+  input: { chip: "bg-sky-100 text-sky-700", card: "border-sky-200 bg-sky-50/40", label: "Dato de entrada" },
   condition: { chip: "bg-indigo-100 text-indigo-700", card: "border-indigo-200 bg-indigo-50/50", label: "Condición" },
   operation: { chip: "bg-emerald-100 text-emerald-700", card: "border-emerald-200 bg-emerald-50/40", label: "Operación" },
 };
