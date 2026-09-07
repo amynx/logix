@@ -84,7 +84,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
       operation: expression(row.operation, `op:${row.id}`),
       evaluate: evaluateToggle(row.evaluateNow, (value) => structural(() => ({ evaluateNow: value }))),
       result: evaluated ? logicalResultEditor(row.id, resultEntry, handlers) : null,
-      purpose: evaluated ? purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))) : null,
+      purpose: evaluated ? purposeOptions(row.purpose, (value) => structural(() => ({ purpose: value }))) : null,
       usedIn: showUsedIn ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
       comment: commentField(row.subsequentUse, (value) => field(() => ({ subsequentUse: value })), mentions),
       ifTrue: isDecisionCondition ? branch("ifTrue") : null,
@@ -101,7 +101,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
     inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
     operation: expression(row.operation, `op:${row.id}`),
     result: resultEditor(row.id, resultEntry, handlers),
-    purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
+    purpose: purposeOptions(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
     comment: commentField(row.subsequentUse, (value) => field(() => ({ subsequentUse: value })), mentions),
@@ -628,10 +628,30 @@ function resultEditor(rowId, result, handlers) {
   ]);
 }
 
-// Selector de propósito del dato resultante (qué le ocurrirá después): nueva
-// operación, tomar una decisión o generar la información final.
-function purposeSelect(purpose, onChange) {
-  return selectField(optionsOf(PURPOSES), purpose, onChange, { placeholder: "Propósito…" });
+// Propósito del dato resultante (qué le ocurrirá después) como opciones visuales
+// diferenciadas, para darle protagonismo: cada destino es una tarjeta seleccionable.
+function purposeOptions(purpose, onChange) {
+  const option = (value, iconName) => {
+    const selected = purpose === value;
+    return el(
+      "button",
+      {
+        type: "button",
+        "aria-pressed": String(selected),
+        dataset: { purpose: value },
+        class: `flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition ${
+          selected ? "border-amber-300 bg-amber-50 font-medium text-amber-800" : "border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50/60"
+        }`,
+        onclick: () => onChange(value),
+      },
+      [icon(iconName, "h-3.5 w-3.5 shrink-0"), el("span", {}, labelOf(PURPOSES, value))],
+    );
+  };
+  return el("div", { class: "space-y-1" }, [
+    option("operation", "workflow"),
+    option("decision", "fork"),
+    option("response", "flag"),
+  ]);
 }
 
 // Interruptor de una condición: ¿evaluarla ahora (produce un dato lógico) o

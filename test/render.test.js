@@ -135,6 +135,13 @@ function addExprOperator(cell, opKey) {
 function selectByPlaceholder(root, placeholder) {
   return [...root.querySelectorAll("select")].find((s) => s.options[0]?.textContent === placeholder);
 }
+// El propósito se elige como opciones visuales (botones), no como un select.
+function purposeButtons(root) {
+  return [...root.querySelectorAll("button[data-purpose]")];
+}
+function selectPurpose(root, value) {
+  root.querySelector(`button[data-purpose="${value}"]`).click();
+}
 
 test("renders analysis info and a seeded row with all columns", async () => {
   const { doc } = await mountApp();
@@ -274,15 +281,14 @@ test("editing the title updates the model without re-rendering", async () => {
 
 test("changing an operation's purpose updates the model and re-renders", async () => {
   const { doc, controller } = await mountApp();
-  const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
+  const cell = doc.querySelectorAll("#table-container tbody tr td")[6];
 
   // El propósito describe el destino del dato; incluye «tomar una decisión» aunque
   // sea una operación (el dato se usará luego en una decisión).
-  const values = [...purposeSelect.options].map((o) => o.value);
+  const values = purposeButtons(cell).map((b) => b.dataset.purpose);
   assert.ok(["operation", "decision", "response"].every((v) => values.includes(v)), "ofrece los tres propósitos");
 
-  purposeSelect.value = "decision";
-  fire(purposeSelect, "change");
+  selectPurpose(cell, "decision");
   assert.equal(controller.analysis.rows[0].purpose, "decision");
   assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "still one row after re-render");
 });
@@ -297,15 +303,15 @@ test("a condition shows the question always, and evaluating reveals its result",
   assert.ok(row().querySelector("textarea"), "hay un campo de pregunta");
   assert.ok(evalToggle(), "hay un interruptor «evaluar ahora»");
   assert.equal(row().querySelector('input[placeholder="nombre del dato lógico"]'), null, "sin evaluar: sin dato resultante");
-  assert.equal(selectByPlaceholder(row(), "Propósito…"), undefined, "sin evaluar: sin propósito");
+  assert.equal(purposeButtons(row()).length, 0, "sin evaluar: sin propósito");
 
   // Evaluar ahora revela el dato lógico y el propósito (que ofrece «tomar una decisión»).
   evalToggle().checked = true;
   fire(evalToggle(), "change");
   assert.equal(controller.analysis.rows[1].evaluateNow, true);
   assert.ok(row().querySelector('input[placeholder="nombre del dato lógico"]'), "aparece el nombre del dato lógico");
-  const purpose = selectByPlaceholder(row(), "Propósito…");
-  assert.ok(purpose && [...purpose.options].some((o) => o.value === "decision"), "el propósito ofrece «tomar una decisión»");
+  const purposes = purposeButtons(row()).map((b) => b.dataset.purpose);
+  assert.ok(purposes.includes("decision"), "el propósito ofrece «tomar una decisión»");
 });
 
 test("a row references a declared input, shown as a read-only chip", async () => {
@@ -659,9 +665,7 @@ function decisionCondition(doc, controller) {
   const evalToggle = row().querySelector('input[type="checkbox"]');
   evalToggle.checked = true;
   fire(evalToggle, "change");
-  const purpose = () => selectByPlaceholder(row(), "Propósito…");
-  purpose().value = "decision";
-  fire(purpose(), "change");
+  selectPurpose(row(), "decision");
   return { row, branchType: () => selectByPlaceholder(row(), "Continúa con…") };
 }
 
@@ -755,9 +759,7 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   // "nota1" declarado como dato de entrada aparece en las ENTRADAS de la cadena.
   declareInput(doc, controller, "nota1", "numeric");
 
-  const purposeSelect = doc.querySelectorAll("#table-container tbody tr td")[6].querySelector("select");
-  purposeSelect.value = "response";
-  fire(purposeSelect, "change");
+  selectPurpose(doc.querySelectorAll("#table-container tbody tr td")[6], "response");
 
   // El comentario es texto libre.
   const comment = doc.querySelectorAll("#table-container tbody tr td")[8].querySelector("textarea");
