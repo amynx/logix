@@ -98,7 +98,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   return {
     kind: kindToggle,
     problem: textField(row.problem, "Necesidad de este paso", (value) => field(() => ({ problem: value })), { normalize: capitalizeFirst, mentions }),
-    inputs: inputsEditor(row.id, inputEntries, availableInputs, handlers),
+    inputs: inputsEditor(row.id, inputEntries, availableInputs, producedIds, handlers),
     operation: expression(row.operation, `op:${row.id}`),
     result: resultEditor(row.id, resultEntry, handlers),
     purpose: purposeOptions(row.purpose, (value) => structural(() => ({ purpose: value }))),
@@ -226,10 +226,6 @@ export function viewToggle(mode, onToggle) {
       label,
     );
   return el("div", { class: "inline-flex rounded-md bg-slate-100 p-0.5" }, [button("table", "Tabla"), button("cards", "Tarjetas")]);
-}
-
-export function dataReferenceLabel(entry) {
-  return `${entry.name || "(sin nombre)"} : ${labelOf(DATA_TYPES, entry.type) || "—"}`;
 }
 
 // Tirador de arrastre. La identidad viaja por el id de la actividad; `setDragged`
@@ -390,6 +386,10 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 // el foco, para que tras agregar un elemento el panel siga en la misma categoría.
 // null = plegado (solo se ve «+ Agregar elemento»).
 const OPEN_CATEGORY = new Map();
+
+// Filas cuyo selector de datos de entrada está desplegado (mismo estado efímero
+// de vista que OPEN_CATEGORY): sobrevive al re-render para encadenar varias altas.
+const OPEN_INPUT_PICKER = new Set();
 
 // Constructor visual de una expresión: fichas de tokens (dato/operador/valor) que
 // se agregan, borran y reordenan. Se muestra sobre todo la expresión y un claro
@@ -826,8 +826,11 @@ function branchEditor(branch, key, { structural, rowId, exprCtx }) {
   return el("div", { class: "space-y-1" }, children);
 }
 
-// Datos de entrada de la fila: solo se reutilizan (fichas de solo lectura + selector).
-function inputsEditor(rowId, entries, availableInputs, handlers) {
+// Datos de entrada de la fila: solo se reutilizan. Fichas de solo lectura de los ya
+// referenciados + un «+ Agregar dato» progresivo que, al abrirse, muestra los datos
+// disponibles (de entrada y resultantes) como fichas, con el mismo mecanismo que el
+// constructor de expresiones.
+function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   const chips = entries.map((entry) =>
     el("div", { class: "flex items-center gap-1" }, [
       el(
@@ -847,19 +850,75 @@ function inputsEditor(rowId, entries, availableInputs, handlers) {
     ]),
   );
 
-  const children = [...chips];
-  if (availableInputs.length > 0) {
-    const picker = selectField(
-      availableInputs.map((entry) => ({ value: entry.id, label: dataReferenceLabel(entry) })),
-      "",
-      (dataId) => dataId && handlers.onReuseInput(rowId, dataId),
-      { placeholder: "Agregar dato…" },
-    );
-    picker.classList.add("text-xs");
-    children.push(picker);
-  } else if (chips.length === 0) {
-    children.push(el("span", { class: "text-xs text-slate-300" }, "Declara datos arriba"));
+  if (availableInputs.length === 0) {
+    if (chips.length === 0) chips.push(el("span", { class: "text-xs text-slate-300" }, "Declara datos arriba"));
+    return el("div", { class: "space-y-1" }, chips);
   }
 
-  return el("div", { class: "space-y-1" }, children);
+  // Ficha para reutilizar un dato: entrada (azul) o resultado producido (verde),
+  // el mismo lenguaje de color que en la expresión.
+  const dataChipButton = (entry) => {
+    const produced = producedIds.has(entry.id);
+    return el(
+      "button",
+      {
+        type: "button",
+        dataset: { addInput: entry.id },
+        class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
+          produced ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+        }`,
+        onmousedown: (event) => event.preventDefault(),
+        onclick: () => handlers.onReuseInput(rowId, entry.id),
+      },
+      [icon(produced ? "reuse" : "data", "h-3 w-3 shrink-0"), el("span", {}, entry.name || "(sin nombre)"), typeBadge(entry.type)],
+    );
+  };
+  const group = (label, items) =>
+    items.length > 0
+      ? el("div", { class: "space-y-1" }, [
+          el("p", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, label),
+          el("div", { class: "flex flex-wrap gap-1" }, items.map(dataChipButton)),
+        ])
+      : null;
+
+  const entradas = availableInputs.filter((entry) => !producedIds.has(entry.id));
+  const resultantes = availableInputs.filter((entry) => producedIds.has(entry.id));
+
+  const picker = el("div", { class: "min-w-0" });
+  const paint = () => {
+    clear(picker);
+    if (!OPEN_INPUT_PICKER.has(rowId)) {
+      picker.append(
+        el(
+          "button",
+          {
+            type: "button",
+            class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700",
+            onclick: () => {
+              OPEN_INPUT_PICKER.add(rowId);
+              paint();
+            },
+          },
+          [icon("data", "h-3.5 w-3.5"), "+ Agregar dato"],
+        ),
+      );
+      return;
+    }
+    picker.append(
+      el("div", { class: "space-y-2 rounded-md border border-slate-200 bg-white p-2" }, [
+        el("div", { class: "flex items-center gap-1" }, [
+          el("p", { class: "text-xs text-slate-500" }, "Elige un dato para reutilizarlo"),
+          collapseButton(() => {
+            OPEN_INPUT_PICKER.delete(rowId);
+            paint();
+          }),
+        ]),
+        group("Datos de entrada", entradas),
+        group("Datos resultantes", resultantes),
+      ].filter(Boolean)),
+    );
+  };
+  paint();
+
+  return el("div", { class: "space-y-1" }, [...chips, picker]);
 }

@@ -103,12 +103,13 @@ function declareInput(doc, controller, name = "", type = "") {
   return entry.id;
 }
 
-// Referencia un dato de entrada (por id) en la columna de la fila indicada.
+// Referencia un dato de entrada (por id) en la columna de la fila indicada: abre
+// el selector «+ Agregar dato» y pulsa la ficha del dato.
 function referenceInput(doc, rowIndex, dataId) {
   const cell = doc.querySelectorAll("#table-container tbody tr")[rowIndex].querySelectorAll("td")[2];
-  const picker = [...cell.querySelectorAll("select")].find((s) => [...s.options].some((o) => o.value === dataId));
-  picker.value = dataId;
-  fire(picker, "change");
+  const trigger = [...cell.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar dato"));
+  if (trigger) trigger.click();
+  cell.querySelector(`button[data-add-input="${dataId}"]`).click();
 }
 
 // Constructor visual de expresiones (progresivo): plegado tras «+ Agregar
@@ -376,13 +377,11 @@ test("a produced result is selectable in another row's input column", async () =
   // La fila 1 puede referenciarlo desde su columna "Datos de entrada".
   [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const inputsCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[2];
-  const picker = [...inputsCell.querySelectorAll("select")].find((s) =>
-    [...s.options].some((o) => o.value === buenasId),
-  );
-  assert.ok(picker, "el resultado aparece en el selector de datos de entrada");
+  [...inputsCell.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar dato")).click();
+  const chip = inputsCell.querySelector(`button[data-add-input="${buenasId}"]`);
+  assert.ok(chip, "el resultado aparece como ficha reutilizable en «Datos de entrada»");
 
-  picker.value = buenasId;
-  fire(picker, "change");
+  chip.click();
   assert.ok(controller.analysis.rows[1].inputIds.includes(buenasId));
 });
 
