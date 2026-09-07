@@ -7,8 +7,8 @@ import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
 
 // Tonos por zona: refuerzan el lenguaje de color entrada(azul) → proceso(índigo)
-// → resultado(verde), con los caminos en ámbar y el contexto en gris. Cada zona
-// lleva un icono para reconocerla más rápido.
+// → resultado(verde), con la condición y la decisión (sus caminos y propósito) en
+// naranja y el contexto en gris. Cada zona lleva un icono para reconocerla rápido.
 const ZONE_TONES = {
   need: { bar: "border-slate-200", title: "text-slate-400", icon: "target" },
   input: { bar: "border-blue-300", title: "text-blue-600", icon: "data" },
@@ -17,7 +17,7 @@ const ZONE_TONES = {
   branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
   purpose: { bar: "border-amber-300", title: "text-amber-600", icon: "reuse" },
   comment: { bar: "border-slate-200", title: "text-slate-400", icon: "message" },
-  condition: { bar: "border-indigo-300", title: "text-indigo-600", icon: "fork" },
+  condition: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
   reuse: { bar: "border-emerald-300", title: "text-emerald-600", icon: "reuse" },
 };
 
@@ -49,15 +49,15 @@ export function commentBox(content) {
 // Caja para la condición: se lee como una pregunta (icono de interrogación + cursiva).
 // `content` puede ser texto o nodos con referencias resaltadas.
 export function questionBox(content) {
-  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-indigo-100 bg-indigo-50/50 px-2.5 py-2 text-sm italic leading-relaxed text-slate-700" }, [
-    icon("help", "h-3.5 w-3.5 mt-1 text-indigo-400"),
+  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-amber-100 bg-amber-50/50 px-2.5 py-2 text-sm italic leading-relaxed text-slate-700" }, [
+    icon("help", "h-3.5 w-3.5 mt-1 text-amber-500"),
     el("span", { class: "min-w-0 whitespace-pre-wrap" }, content),
   ]);
 }
 
 // Convierte un texto con referencias `[nombre]` en una lista de nodos: cada
 // referencia que corresponde a un dato real se resalta como ficha (entrada = azul,
-// resultado = violeta); el resto queda como texto. `resolveName(name)` devuelve
+// resultado = verde); el resto queda como texto. `resolveName(name)` devuelve
 // `{ produced }` si el nombre es un dato, o null. Así una referencia insertada con
 // el menú «/» se lee como referencia y no como texto entre corchetes.
 export function referencedText(text, resolveName) {
@@ -79,9 +79,9 @@ function referenceChip(name, produced) {
   return el(
     "span",
     {
-      class: `inline-flex items-center gap-1 rounded px-1 py-0.5 align-middle not-italic ${produced ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`,
+      class: `inline-flex items-center gap-1 rounded px-1 py-0.5 align-middle not-italic ${produced ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`,
     },
-    [icon(produced ? "reuse" : "data", `h-3 w-3 ${produced ? "text-violet-500" : "text-sky-500"}`), el("span", {}, name)],
+    [icon(produced ? "reuse" : "data", `h-3 w-3 ${produced ? "text-emerald-500" : "text-blue-500"}`), el("span", {}, name)],
   );
 }
 

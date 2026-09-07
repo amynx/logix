@@ -78,7 +78,7 @@ function renderMenu() {
           onclick: () => insert(entry),
         },
         [
-          icon(entry.produced ? "reuse" : "data", `h-3.5 w-3.5 shrink-0 ${entry.produced ? "text-violet-500" : "text-sky-500"}`),
+          icon(entry.produced ? "reuse" : "data", `h-3.5 w-3.5 shrink-0 ${entry.produced ? "text-emerald-500" : "text-blue-500"}`),
           el("span", { class: "min-w-0 flex-1 truncate" }, entry.name),
           entry.type ? typeBadge(entry.type) : null,
         ],

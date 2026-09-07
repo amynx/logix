@@ -504,7 +504,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   // aplican: el dato resultante o la condición se ofrecen si hay alguno reutilizable.
   const categories = [
     { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: inputControl },
-    resultSelect ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-violet-500", control: resultSelect } : null,
+    resultSelect ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: resultSelect } : null,
     conditionSelect ? { key: "condition", label: "Condición", icon: "fork", tone: "text-amber-500", control: conditionSelect } : null,
     { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", control: valuePanel },
     { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", control: operatorPanel },
@@ -649,15 +649,15 @@ function operationTokenChip(token, resolve, producedIds, resolveCondition, { onR
 
 // Describe una ficha por tipo. Cada tipo se distingue por FORMA además del color:
 // dato de entrada = icono de datos (azul); resultado producido por otra actividad
-// = icono de reutilización (violeta); condición = icono de bifurcación (índigo);
-// operador = símbolo monoespaciado en negrita; valor = «#» (ámbar).
+// = icono de reutilización (verde); condición = icono de bifurcación (naranja);
+// operador = símbolo monoespaciado en negrita; valor = «#» (gris).
 function describeToken(token, resolve, producedIds = new Set(), resolveCondition = null) {
   if (token.kind === "cond") {
     const condition = resolveCondition ? resolveCondition(token.condId) : null;
     return {
-      leading: icon("fork", "h-3 w-3 shrink-0 text-indigo-500"),
+      leading: icon("fork", "h-3 w-3 shrink-0 text-amber-500"),
       text: condition ? condition.label : "(condición eliminada)",
-      className: "border border-indigo-200 bg-indigo-50 text-indigo-700",
+      className: "border border-amber-200 bg-amber-50 text-amber-700",
       extra: "font-semibold",
     };
   }
@@ -666,24 +666,24 @@ function describeToken(token, resolve, producedIds = new Set(), resolveCondition
     const text = datum ? datum.name || "(sin nombre)" : "(dato eliminado)";
     if (producedIds.has(token.dataId)) {
       return {
-        leading: icon("reuse", "h-3 w-3 shrink-0 text-violet-500"),
+        leading: icon("reuse", "h-3 w-3 shrink-0 text-emerald-500"),
         text,
-        className: "border border-violet-200 bg-violet-50 text-violet-700",
+        className: "border border-emerald-200 bg-emerald-50 text-emerald-700",
       };
     }
     return {
-      leading: icon("data", "h-3 w-3 shrink-0 text-sky-500"),
+      leading: icon("data", "h-3 w-3 shrink-0 text-blue-500"),
       text,
-      className: "border border-sky-200 bg-sky-50 text-sky-700",
+      className: "border border-blue-200 bg-blue-50 text-blue-700",
     };
   }
   if (token.kind === "op") {
     return { leading: null, text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "bg-slate-200 text-slate-700", extra: "font-mono font-bold" };
   }
   return {
-    leading: icon("hash", "h-3 w-3 shrink-0 text-amber-500"),
+    leading: icon("hash", "h-3 w-3 shrink-0 text-slate-400"),
     text: token.value || "∅",
-    className: "border border-amber-200 bg-amber-50 text-amber-700",
+    className: "border border-slate-200 bg-slate-100 text-slate-600",
     extra: "font-mono",
   };
 }

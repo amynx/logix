@@ -136,7 +136,7 @@ export class TableView {
       const summary = buildRowSummary(row, dataById, activities, producedIds, this.conditions);
       content = el("div", { class: "space-y-2" }, activityZones(summary, inlineRow, "condition"));
     }
-    return [el("td", { class: `${TD_CLASS} bg-indigo-50/30`, colSpan: FIELD_ORDER.length }, [content])];
+    return [el("td", { class: `${TD_CLASS} bg-amber-50/30`, colSpan: FIELD_ORDER.length }, [content])];
   }
 
   // Modo edición: una celda por campo con su control editable.

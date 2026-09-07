@@ -141,7 +141,7 @@ function caseBadge(branchCase) {
 // Indica si el camino continúa el proceso o lo finaliza.
 function flowBadge(flow) {
   const isEnd = flow === "finaliza";
-  const style = isEnd ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700";
+  const style = isEnd ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700";
   return el("span", { class: `shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${style}` }, isEnd ? "Finaliza" : "Continúa");
 }
 
@@ -157,11 +157,11 @@ function expressionEl(parts, tone = "sky") {
 
 function partNode(part, tone) {
   if (part.kind === "ref") {
-    const style = tone === "emerald" ? "bg-emerald-100 text-emerald-800" : "bg-sky-100 text-sky-700";
+    const style = tone === "emerald" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-700";
     return el("span", { class: `whitespace-nowrap rounded px-1 py-0.5 text-xs font-medium ${style}`, title: "Dato utilizado" }, part.text);
   }
   if (part.kind === "cond") {
-    return el("span", { class: "whitespace-nowrap rounded bg-indigo-100 px-1 py-0.5 text-xs font-semibold text-indigo-700", title: "Condición" }, part.text);
+    return el("span", { class: "whitespace-nowrap rounded bg-amber-100 px-1 py-0.5 text-xs font-semibold text-amber-700", title: "Condición" }, part.text);
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
   return el("span", {}, part.text);
@@ -203,12 +203,12 @@ function conditionStepCard(step, activities) {
 }
 
 function stepShell(step, isCondition, title, body) {
-  const tint = isCondition ? "border-indigo-200 bg-indigo-50/40" : "border-slate-200 bg-white";
+  const tint = isCondition ? "border-amber-200 bg-amber-50/40" : "border-slate-200 bg-white";
   return el("div", { class: `rounded-lg border ${tint} p-3.5` }, [
     el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2" }, [
       stepNumber(step.position),
-      isCondition ? icon("fork", "h-4 w-4 text-indigo-600") : null,
-      el("span", { class: `text-sm font-medium ${isCondition ? "text-indigo-700" : "text-slate-800"}` }, title),
+      isCondition ? icon("fork", "h-4 w-4 text-amber-600") : null,
+      el("span", { class: `text-sm font-medium ${isCondition ? "text-amber-700" : "text-slate-800"}` }, title),
     ]),
     el("div", { class: "mt-2.5 space-y-3" }, body),
   ]);

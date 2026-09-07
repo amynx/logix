@@ -185,7 +185,7 @@ function processCard(step) {
   }
 
   const title = isCondition ? `#${step.position} · Condición: ${step.conditionLabel}` : `#${step.position} ${step.description}`.trim();
-  return el("div", { class: `rounded border p-2 ${isCondition ? "border-indigo-300 bg-indigo-50/40" : "border-slate-300"}` }, [
+  return el("div", { class: `rounded border p-2 ${isCondition ? "border-amber-300 bg-amber-50/40" : "border-slate-300"}` }, [
     el("div", { class: "font-medium" }, title),
     el("div", { class: "mt-1 space-y-0.5 text-slate-700" }, lines),
   ]);

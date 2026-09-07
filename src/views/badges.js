@@ -37,7 +37,7 @@ export function dataChip(datum, extraClass = "rounded border border-slate-200 bg
 // Marca un dato de entrada que en realidad se produjo en otra actividad (dato
 // intermedio reutilizado), para distinguirlo de una entrada declarada del programa.
 export function producedBadge() {
-  const badge = icon("reuse", "h-3.5 w-3.5 text-indigo-500");
+  const badge = icon("reuse", "h-3.5 w-3.5 text-emerald-500");
   badge.setAttribute("title", "Producido en otra actividad");
   return badge;
 }

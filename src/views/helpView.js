@@ -201,7 +201,7 @@ function expressionSections() {
       "Cada paso del análisis es una tarjeta de uno de dos tipos, según lo que hagas. Cambias el tipo con el interruptor «Operación / Condición» de la tarjeta.",
       defList([
         [badge("Operación", "bg-slate-100 text-slate-700"), "Calculas o transformas datos para obtener uno nuevo (p. ej. calcular el promedio)."],
-        [badge("Condición", "bg-indigo-100 text-indigo-700"), "Compruebas algo: una pregunta de Sí/No (p. ej. ¿el promedio es ≥ 3?)."],
+        [badge("Condición", "bg-amber-100 text-amber-700"), "Compruebas algo: una pregunta de Sí/No (p. ej. ¿el promedio es ≥ 3?)."],
       ]),
     ]),
     section("¿Qué es una condición?", [
@@ -333,7 +333,7 @@ function codeBlock(text) {
 
 // Pregunta de ejemplo destacada (misma idea que la condición en las tarjetas).
 function example(text) {
-  return el("div", { class: "rounded-md border border-indigo-100 bg-indigo-50/50 px-3 py-2 italic text-slate-700" }, `“${text}”`);
+  return el("div", { class: "rounded-md border border-amber-100 bg-amber-50/50 px-3 py-2 italic text-slate-700" }, `“${text}”`);
 }
 
 // Tabla de dos columnas. Las celdas pueden ser texto o nodos.

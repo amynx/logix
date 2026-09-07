@@ -112,9 +112,9 @@ function conditionResolver(conditions) {
   return (condId) => (labelById.has(condId) ? { label: labelById.get(condId) } : null);
 }
 
-// Ficha del nombre de una condición (etiqueta índigo con icono de bifurcación).
+// Ficha del nombre de una condición (etiqueta naranja con icono de bifurcación).
 function conditionNameChip(row, conditions) {
-  return el("span", { class: "inline-flex items-center gap-1 rounded bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700" }, [
+  return el("span", { class: "inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-700" }, [
     icon("fork", "h-3 w-3"),
     conditionLabelOf(row, conditions),
   ]);
@@ -132,13 +132,13 @@ function expressionNode(tokens, resolve, resolveCondition) {
 
 function partNode(part) {
   if (part.kind === "ref") {
-    return el("span", { class: "whitespace-nowrap rounded bg-sky-100 px-1 py-0.5 font-medium text-sky-700" }, part.text);
+    return el("span", { class: "whitespace-nowrap rounded bg-blue-100 px-1 py-0.5 font-medium text-blue-700" }, part.text);
   }
   if (part.kind === "cond") {
-    return el("span", { class: "whitespace-nowrap rounded bg-indigo-100 px-1 py-0.5 font-semibold text-indigo-700" }, part.text);
+    return el("span", { class: "whitespace-nowrap rounded bg-amber-100 px-1 py-0.5 font-semibold text-amber-700" }, part.text);
   }
   if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
-  return el("span", { class: "whitespace-nowrap rounded bg-amber-50 px-1 py-0.5 text-amber-700" }, part.text || "∅");
+  return el("span", { class: "whitespace-nowrap rounded bg-slate-100 px-1 py-0.5 text-slate-600" }, part.text || "∅");
 }
 
 // Actividad donde se reutilizará el dato producido: pendiente (ámbar) o la

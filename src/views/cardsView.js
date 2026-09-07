@@ -72,7 +72,7 @@ export class CardsView {
       this.draggedRowId = id;
     };
     // Una condición se distingue de una operación por su borde índigo y su rótulo.
-    const tint = isCondition ? "border-indigo-200 bg-indigo-50/30" : "border-slate-200 bg-white";
+    const tint = isCondition ? "border-amber-200 bg-amber-50/30" : "border-slate-200 bg-white";
 
     return el(
       "div",
@@ -98,7 +98,7 @@ export class CardsView {
         el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-2.5" }, [
           dragHandle(row.id, setDragged),
           stepNumber(index + 1),
-          el("span", { class: `inline-flex items-center gap-1 text-sm font-semibold ${isCondition ? "text-indigo-700" : "text-slate-700"}` }, [
+          el("span", { class: `inline-flex items-center gap-1 text-sm font-semibold ${isCondition ? "text-amber-700" : "text-slate-700"}` }, [
             icon(isCondition ? "fork" : "activities", "h-4 w-4"),
             isCondition ? "Condición" : "Actividad",
           ]),
@@ -144,7 +144,7 @@ function activitiesEmptyState() {
     el("p", { class: "mb-3 text-sm text-slate-600" }, "Descompón el problema en pasos. Cada paso es de uno de dos tipos:"),
     el("div", { class: "grid gap-2 sm:grid-cols-2" }, [
       option("workflow", "bg-slate-100 text-slate-600", "Operación", "Calcula o transforma datos para obtener uno nuevo."),
-      option("fork", "bg-indigo-100 text-indigo-600", "Condición", "Comprueba algo: una pregunta de Sí / No."),
+      option("fork", "bg-amber-100 text-amber-600", "Condición", "Comprueba algo: una pregunta de Sí / No."),
     ]),
     el("p", { class: "mt-3 text-xs text-slate-500" }, "Usa los botones de abajo para agregar la primera. ¿Dudas? Abre la «Guía» o pulsa «?»."),
   ]);
