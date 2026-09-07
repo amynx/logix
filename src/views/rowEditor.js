@@ -390,9 +390,9 @@ function selectField(options, value, onChange, { placeholder } = {}) {
 // null = plegado (solo se ve «+ Agregar elemento»).
 const OPEN_CATEGORY = new Map();
 
-// Filas cuyo selector de datos de entrada está desplegado (mismo estado efímero
-// de vista que OPEN_CATEGORY): sobrevive al re-render para encadenar varias altas.
-const OPEN_INPUT_PICKER = new Set();
+// Categoría abierta del selector de datos de entrada de cada fila (por rowId): mismo
+// estado efímero de vista que OPEN_CATEGORY. null/ausente = plegado.
+const OPEN_INPUT_PICKER = new Map();
 
 // Constructor visual de una expresión: fichas de tokens (dato/operador/valor) que
 // se agregan, borran y reordenan. Se muestra sobre todo la expresión y un claro
@@ -580,8 +580,9 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   return el("div", { class: "min-w-0 space-y-2", dataset: { exprBuilder: focusKey } }, [expressionBox, adder]);
 }
 
-// Disparador plegado del constructor: invita a agregar el primer/siguiente elemento.
-function addTrigger(onOpen) {
+// Disparador plegado de un selector progresivo: invita a agregar el primer/siguiente
+// elemento. Se reutiliza en el constructor de expresiones y en los datos de entrada.
+function addTrigger(onOpen, label = "+ Agregar elemento") {
   return el(
     "button",
     {
@@ -589,7 +590,7 @@ function addTrigger(onOpen) {
       class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700",
       onclick: onOpen,
     },
-    [icon("data", "h-3.5 w-3.5"), "+ Agregar elemento"],
+    [icon("data", "h-3.5 w-3.5"), label],
   );
 }
 
@@ -876,49 +877,40 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
       [icon(produced ? "reuse" : "data", "h-3 w-3 shrink-0"), el("span", {}, entry.name || "(sin nombre)"), typeBadge(entry.type)],
     );
   };
-  const group = (label, items) =>
-    items.length > 0
-      ? el("div", { class: "space-y-1" }, [
-          el("p", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, label),
-          el("div", { class: "flex flex-wrap gap-1" }, items.map(dataChipButton)),
-        ])
-      : null;
+  const chipWrap = (items) => el("div", { class: "flex flex-wrap gap-1" }, items.map(dataChipButton));
 
   const entradas = availableInputs.filter((entry) => !producedIds.has(entry.id));
   const resultantes = availableInputs.filter((entry) => producedIds.has(entry.id));
 
+  // Mismo mecanismo progresivo que el constructor de expresiones: categorías
+  // diferenciadas y solo las fichas de la activa (no todas a la vez).
+  const categories = [
+    entradas.length > 0 ? { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: chipWrap(entradas) } : null,
+    resultantes.length > 0 ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: chipWrap(resultantes) } : null,
+  ].filter(Boolean);
+
   const picker = el("div", { class: "min-w-0" });
+  const setCategory = (value) => {
+    if (value == null) OPEN_INPUT_PICKER.delete(rowId);
+    else OPEN_INPUT_PICKER.set(rowId, value);
+    paint();
+  };
   const paint = () => {
     clear(picker);
-    if (!OPEN_INPUT_PICKER.has(rowId)) {
-      picker.append(
-        el(
-          "button",
-          {
-            type: "button",
-            class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700",
-            onclick: () => {
-              OPEN_INPUT_PICKER.add(rowId);
-              paint();
-            },
-          },
-          [icon("data", "h-3.5 w-3.5"), "+ Agregar dato"],
-        ),
-      );
+    const active = OPEN_INPUT_PICKER.get(rowId) ?? null;
+    if (active == null) {
+      picker.append(addTrigger(() => setCategory(categories[0].key), "+ Agregar dato"));
       return;
     }
+    const current = categories.find((category) => category.key === active) ?? categories[0];
     picker.append(
       el("div", { class: "space-y-2 rounded-md border border-slate-200 bg-white p-2" }, [
-        el("div", { class: "flex items-center gap-1" }, [
-          el("p", { class: "text-xs text-slate-500" }, "Elige un dato para reutilizarlo"),
-          collapseButton(() => {
-            OPEN_INPUT_PICKER.delete(rowId);
-            paint();
-          }),
+        el("div", { class: "flex flex-wrap items-center gap-1" }, [
+          ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
+          collapseButton(() => setCategory(null)),
         ]),
-        group("Datos de entrada", entradas),
-        group("Datos resultantes", resultantes),
-      ].filter(Boolean)),
+        el("div", { class: "min-w-0" }, [current.control]),
+      ]),
     );
   };
   paint();

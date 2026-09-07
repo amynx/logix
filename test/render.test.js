@@ -104,12 +104,24 @@ function declareInput(doc, controller, name = "", type = "") {
 }
 
 // Referencia un dato de entrada (por id) en la columna de la fila indicada: abre
-// el selector «+ Agregar dato» y pulsa la ficha del dato.
+// el selector «+ Agregar dato» y, en la categoría que corresponda, pulsa su ficha.
 function referenceInput(doc, rowIndex, dataId) {
   const cell = doc.querySelectorAll("#table-container tbody tr")[rowIndex].querySelectorAll("td")[2];
+  addInputByChip(cell, dataId);
+}
+function addInputByChip(cell, dataId) {
   const trigger = [...cell.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar dato"));
   if (trigger) trigger.click();
-  cell.querySelector(`button[data-add-input="${dataId}"]`).click();
+  let chip = cell.querySelector(`button[data-add-input="${dataId}"]`);
+  if (!chip) {
+    for (const label of ["Dato de entrada", "Dato resultante"]) {
+      const cat = [...cell.querySelectorAll("button")].find((b) => b.textContent.trim() === label);
+      if (cat) cat.click();
+      chip = cell.querySelector(`button[data-add-input="${dataId}"]`);
+      if (chip) break;
+    }
+  }
+  chip.click();
 }
 
 // Constructor visual de expresiones (progresivo): plegado tras «+ Agregar
@@ -378,8 +390,12 @@ test("a produced result is selectable in another row's input column", async () =
   [...doc.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar operación")).click();
   const inputsCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[2];
   [...inputsCell.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar dato")).click();
+  // El resultado producido se ofrece en la categoría «Dato resultante».
+  const resultCat = [...inputsCell.querySelectorAll("button")].find((b) => b.textContent.trim() === "Dato resultante");
+  assert.ok(resultCat, "hay categoría «Dato resultante»");
+  resultCat.click();
   const chip = inputsCell.querySelector(`button[data-add-input="${buenasId}"]`);
-  assert.ok(chip, "el resultado aparece como ficha reutilizable en «Datos de entrada»");
+  assert.ok(chip, "el resultado aparece como ficha reutilizable");
 
   chip.click();
   assert.ok(controller.analysis.rows[1].inputIds.includes(buenasId));
