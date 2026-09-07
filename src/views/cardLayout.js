@@ -151,7 +151,7 @@ export function activityZones(nodesByKey, renderRow, kind = "operation", { asQue
         row("ifTrue", "Si se cumple, entonces:"),
         row("ifFalse", "Si no se cumple, entonces:"),
       ]),
-      zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
+      nodesByKey.comment ? el("div", { class: "pt-0.5" }, [nodesByKey.comment]) : null,
     ].filter(Boolean);
   }
   return [

@@ -86,7 +86,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
       result: evaluated ? logicalResultEditor(row.id, resultEntry, handlers) : null,
       purpose: evaluated ? purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))) : null,
       usedIn: showUsedIn ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
-      comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
+      comment: commentField(row.subsequentUse, (value) => field(() => ({ subsequentUse: value })), mentions),
       ifTrue: isDecisionCondition ? branch("ifTrue") : null,
       ifFalse: isDecisionCondition ? branch("ifFalse") : null,
     };
@@ -104,7 +104,7 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
     purpose: purposeSelect(row.purpose, (value) => structural(() => ({ purpose: value }))),
     // La actividad asociada solo aplica cuando la fila produce un dato que reutilizar.
     usedIn: row.resultId ? usedInSelect(row, activities, (value) => handlers.onUsedInChange(row.id, value)) : null,
-    comment: textField(row.subsequentUse, "Comentario…", (value) => field(() => ({ subsequentUse: value })), { mentions }),
+    comment: commentField(row.subsequentUse, (value) => field(() => ({ subsequentUse: value })), mentions),
   };
 }
 
@@ -358,6 +358,21 @@ function textField(value, placeholder, onInput, { normalize, mentions } = {}) {
   });
   if (mentions) attachMentions(field, mentions);
   return field;
+}
+
+// Comentario como acción secundaria: colapsado tras «+ Agregar comentario» para no
+// competir con lo esencial. Se abre si ya hay texto (o al pulsarlo).
+function commentField(value, onInput, mentions) {
+  const hasText = Boolean((value ?? "").trim());
+  const details = el("details", {}, [
+    el("summary", { class: "inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600" }, [
+      icon("message", "h-3.5 w-3.5"),
+      hasText ? "Comentario" : "+ Agregar comentario",
+    ]),
+    el("div", { class: "mt-1" }, [textField(value, "Comentario…", onInput, { mentions })]),
+  ]);
+  if (hasText) details.open = true;
+  return details;
 }
 
 function selectField(options, value, onChange, { placeholder } = {}) {
