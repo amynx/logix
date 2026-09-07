@@ -433,26 +433,51 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     }),
   );
 
-  // Selects de datos: seleccionar uno lo incorpora directamente como referencia.
-  // `items` = [{id, label}]; al elegir, se agrega y el select vuelve al placeholder
-  // (el re-render lo restablece). Se omite el select si no hay opciones.
-  const refSelect = (placeholder, items, makeToken) => {
+  // Elementos disponibles como fichas dentro de la caja: se ve de una vez qué hay
+  // y al pulsar uno se incorpora como referencia. `items` = [{id, label, type?}].
+  // Cada ficha usa el color de su tipo (entrada azul, resultado verde, condición
+  // naranja), el mismo que tendrá luego en la expresión. Vacío → una pista.
+  const refChips = (items, makeToken, chipClass, iconName, emptyHint) => {
     const named = items.filter((entry) => (entry.label ?? "").trim());
-    if (named.length === 0) return null;
-    const select = selectField(
-      named.map((entry) => ({ value: entry.id, label: entry.label })),
-      "",
-      (id) => id && append(makeToken(id)),
-      { placeholder },
-    );
-    select.classList.add("text-xs");
-    return select;
+    if (named.length === 0) {
+      return el("p", { class: "text-[11px] italic text-slate-400" }, emptyHint ?? "Aún no hay disponibles.");
+    }
+    return el("div", { class: "flex flex-wrap gap-1" }, named.map((entry) =>
+      el(
+        "button",
+        {
+          type: "button",
+          dataset: { exprAdd: entry.label },
+          class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${chipClass}`,
+          onmousedown: (event) => event.preventDefault(),
+          onclick: () => append(makeToken(entry.id)),
+        },
+        [icon(iconName, "h-3 w-3 shrink-0"), el("span", {}, entry.label), entry.type ? typeBadge(entry.type) : null],
+      ),
+    ));
   };
-  const inputSelect = refSelect("Dato de entrada…", inputRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
-  const resultSelect = refSelect("Dato resultante…", resultRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
-  const conditionSelect = refSelect("Condición reutilizable…", conditionEntries, (id) => ({ kind: "cond", condId: id }));
-  // Sin datos de entrada disponibles, en lugar del selector se muestra la pista.
-  const inputControl = inputSelect ?? (inputHint ? el("span", { class: "inline-flex items-center rounded-md border border-dashed border-slate-300 px-2 py-1 text-xs italic text-slate-400" }, inputHint) : null);
+  const hasNamed = (items) => items.some((entry) => (entry.label ?? entry.name ?? "").trim());
+  const inputChips = refChips(
+    inputRefs.map((e) => ({ id: e.id, label: e.name, type: e.type })),
+    (id) => ({ kind: "ref", dataId: id }),
+    "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+    "data",
+    inputHint,
+  );
+  const resultChips = refChips(
+    resultRefs.map((e) => ({ id: e.id, label: e.name, type: e.type })),
+    (id) => ({ kind: "ref", dataId: id }),
+    "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    "reuse",
+    "Aún no hay datos producidos por otras actividades.",
+  );
+  const conditionChips = refChips(
+    conditionEntries,
+    (id) => ({ kind: "cond", condId: id }),
+    "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+    "fork",
+    "Aún no hay otras condiciones reutilizables.",
+  );
 
   // Campo independiente para agregar un valor constante (literal).
   const addValue = () => {
@@ -503,9 +528,9 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   // Categorías de «agregar», claramente diferenciadas. Solo aparecen las que
   // aplican: el dato resultante o la condición se ofrecen si hay alguno reutilizable.
   const categories = [
-    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: inputControl },
-    resultSelect ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: resultSelect } : null,
-    conditionSelect ? { key: "condition", label: "Condición", icon: "fork", tone: "text-amber-500", control: conditionSelect } : null,
+    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: inputChips },
+    hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: resultChips } : null,
+    hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-amber-500", control: conditionChips } : null,
     { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", control: valuePanel },
     { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", control: operatorPanel },
   ].filter(Boolean);

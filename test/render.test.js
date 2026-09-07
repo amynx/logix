@@ -127,20 +127,17 @@ function exprCategory(root, label) {
   if (chip) chip.click();
   return chip;
 }
-// Un dato se agrega eligiéndolo en el select de su categoría; un valor constante,
+// Un dato se agrega pulsando su ficha dentro de la categoría; un valor constante,
 // por el campo de valor. `cell` es la celda editable o el contenedor del editor.
 function addExprElement(cell, text) {
   const root = exprRoot(cell);
   openExpr(root);
   for (const label of ["Dato de entrada", "Dato resultante", "Condición"]) {
     if (!exprCategory(root, label)) continue;
-    for (const select of root.querySelectorAll("select")) {
-      const option = [...select.options].find((o) => o.textContent === text);
-      if (option) {
-        select.value = option.value;
-        fire(select, "change");
-        return;
-      }
+    const chip = [...root.querySelectorAll("button[data-expr-add]")].find((b) => b.dataset.exprAdd === text);
+    if (chip) {
+      chip.click();
+      return;
     }
   }
   exprCategory(root, "Valor");
@@ -507,8 +504,8 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
   openExpr(opRoot);
   exprCategory(opRoot, "Dato resultante");
   assert.ok(
-    [...opRoot.querySelectorAll("select option")].some((o) => o.textContent === "promedio"),
-    "otra fila ya puede referenciar el resultado recién nombrado desde el select de resultados",
+    [...opRoot.querySelectorAll("button[data-expr-add]")].some((b) => b.dataset.exprAdd === "promedio"),
+    "otra fila ya puede referenciar el resultado recién nombrado como ficha",
   );
   assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
 });
@@ -564,7 +561,7 @@ test("an operation's input select offers only the inputs defined for that activi
     const root = exprRoot(opCell());
     openExpr(root);
     exprCategory(root, "Dato de entrada");
-    return [...root.querySelectorAll("select option")].some((o) => o.textContent === "nota1");
+    return [...root.querySelectorAll("button[data-expr-add]")].some((b) => b.dataset.exprAdd === "nota1");
   };
 
   // No aparece hasta definirlo como dato de entrada de la actividad.
