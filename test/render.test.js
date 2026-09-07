@@ -111,24 +111,48 @@ function referenceInput(doc, rowIndex, dataId) {
   fire(picker, "change");
 }
 
-// Constructor visual de expresiones. Un dato se agrega eligiéndolo en su select
-// (entrada/resultado/condición); un valor constante, por el campo de valor. `cell`
-// es la celda editable (o el contenedor del editor).
+// Constructor visual de expresiones (progresivo): plegado tras «+ Agregar
+// elemento», al abrirlo se elige una categoría (dato de entrada/resultante,
+// condición, valor, operador) y aparece solo su control. Estas ayudas abren el
+// panel y activan la categoría necesaria antes de agregar.
+function exprRoot(cell) {
+  return cell.matches?.("[data-expr-builder]") ? cell : cell.querySelector("[data-expr-builder]");
+}
+function openExpr(root) {
+  const trigger = [...root.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar elemento"));
+  if (trigger) trigger.click();
+}
+function exprCategory(root, label) {
+  const chip = [...root.querySelectorAll("button")].find((b) => b.textContent.trim() === label);
+  if (chip) chip.click();
+  return chip;
+}
+// Un dato se agrega eligiéndolo en el select de su categoría; un valor constante,
+// por el campo de valor. `cell` es la celda editable o el contenedor del editor.
 function addExprElement(cell, text) {
-  for (const select of cell.querySelectorAll("select")) {
-    const option = [...select.options].find((o) => o.textContent === text);
-    if (option) {
-      select.value = option.value;
-      fire(select, "change");
-      return;
+  const root = exprRoot(cell);
+  openExpr(root);
+  for (const label of ["Dato de entrada", "Dato resultante", "Condición"]) {
+    if (!exprCategory(root, label)) continue;
+    for (const select of root.querySelectorAll("select")) {
+      const option = [...select.options].find((o) => o.textContent === text);
+      if (option) {
+        select.value = option.value;
+        fire(select, "change");
+        return;
+      }
     }
   }
-  const valueInput = cell.querySelector('input[placeholder="valor"]');
+  exprCategory(root, "Valor");
+  const valueInput = root.querySelector('input[placeholder="valor"]');
   valueInput.value = text;
-  [...cell.querySelectorAll("button")].find((b) => b.textContent.includes("valor")).click();
+  [...root.querySelectorAll("button")].find((b) => b.textContent.includes("+ valor")).click();
 }
 function addExprOperator(cell, opKey) {
-  cell.querySelector(`button[data-op="${opKey}"]`).click();
+  const root = exprRoot(cell);
+  openExpr(root);
+  exprCategory(root, "Operador");
+  root.querySelector(`button[data-op="${opKey}"]`).click();
 }
 // Un select por el texto de su opción-placeholder (primera opción), para ubicarlo
 // dentro de una tarjeta de condición (celda a todo el ancho, sin columnas fijas).
@@ -477,9 +501,13 @@ test("naming a result refreshes other data pickers and keeps focus", async () =>
   resultName().value = "promedio";
   fire(resultName(), "input");
 
-  const opCell = doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4];
+  // Abre el constructor de la otra fila en la categoría de dato resultante (sin
+  // mover el foco: hacer clic no enfoca en jsdom) para inspeccionar su select.
+  const opRoot = exprRoot(doc.querySelectorAll("#table-container tbody tr")[1].querySelectorAll("td")[4]);
+  openExpr(opRoot);
+  exprCategory(opRoot, "Dato resultante");
   assert.ok(
-    [...opCell.querySelectorAll("select option")].some((o) => o.textContent === "promedio"),
+    [...opRoot.querySelectorAll("select option")].some((o) => o.textContent === "promedio"),
     "otra fila ya puede referenciar el resultado recién nombrado desde el select de resultados",
   );
   assert.equal(doc.activeElement, resultName(), "el foco permanece en el campo del resultado");
@@ -532,7 +560,12 @@ test("an operation's input select offers only the inputs defined for that activi
   const inputId = declareInput(doc, controller, "nota1", "numeric");
 
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  const offersNota1 = () => [...opCell().querySelectorAll("select option")].some((o) => o.textContent === "nota1");
+  const offersNota1 = () => {
+    const root = exprRoot(opCell());
+    openExpr(root);
+    exprCategory(root, "Dato de entrada");
+    return [...root.querySelectorAll("select option")].some((o) => o.textContent === "nota1");
+  };
 
   // No aparece hasta definirlo como dato de entrada de la actividad.
   assert.equal(offersNota1(), false, "sin definirlo para la actividad, la operación no lo ofrece");
@@ -576,8 +609,8 @@ test("operation tokens can be reordered by drag and drop", async () => {
 test("parentheses are available as grouping operators", async () => {
   const { doc, controller } = await mountApp();
   const opCell = () => doc.querySelectorAll("#table-container tbody tr td")[4];
-  assert.ok(opCell().querySelector('button[data-op="lparen"]'), "hay botón de paréntesis");
   addExprOperator(opCell(), "lparen");
+  assert.ok(opCell().querySelector('button[data-op="lparen"]'), "hay botón de paréntesis");
 
   assert.deepEqual(controller.analysis.rows[0].operation, [{ kind: "op", op: "lparen" }]);
 });
@@ -672,9 +705,9 @@ function decisionCondition(doc, controller) {
 test("a decision condition shows the branch builder only for a response path", async () => {
   const { doc, controller } = await mountApp();
   const { row, branchType } = decisionCondition(doc, controller);
-  // Cada constructor de expresión tiene un campo «valor»: la comprobación (1) + el
-  // de una rama de tipo respuesta.
-  const exprCount = () => row().querySelectorAll('input[placeholder="valor"]').length;
+  // Hay un constructor de expresión por comprobación; una rama de tipo respuesta
+  // añade el suyo.
+  const exprCount = () => row().querySelectorAll("[data-expr-builder]").length;
   const baseline = exprCount();
 
   branchType().value = "operation";

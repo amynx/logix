@@ -2,7 +2,7 @@
 // la vista de tabla y la de tarjetas para que ambas ofrezcan exactamente las
 // mismas funciones sobre el mismo modelo. Solo se ocupa del DOM.
 
-import { el } from "../utils/dom.js";
+import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, BRANCH_TYPES, PURPOSES, optionsOf, labelOf } from "../models/dataTypes.js";
 import { OPERATOR_GROUPS, OPERATOR_SYMBOLS } from "../models/operators.js";
 import { capitalizeFirst, formatAsQuestion } from "../models/textNormalization.js";
@@ -385,11 +385,19 @@ function selectField(options, value, onChange, { placeholder } = {}) {
   return select;
 }
 
+// Categoría de «agregar» que cada constructor tiene abierta, por `focusKey`. Es
+// estado efímero de la vista (no del modelo): sobrevive al re-render que conserva
+// el foco, para que tras agregar un elemento el panel siga en la misma categoría.
+// null = plegado (solo se ve «+ Agregar elemento»).
+const OPEN_CATEGORY = new Map();
+
 // Constructor visual de una expresión: fichas de tokens (dato/operador/valor) que
-// se agregan, borran y reordenan. Los datos vienen de selects propios (entrada /
-// resultado / condición) y seleccionar uno lo incorpora directamente; los valores
-// constantes, de un campo aparte; los operadores, de botones agrupados por tipo.
-// `focusKey` conserva el foco del campo de valor al re-renderizar (encadenar).
+// se agregan, borran y reordenan. Se muestra sobre todo la expresión y un claro
+// «+ Agregar elemento»; al abrirlo aparecen las categorías (dato de entrada, dato
+// resultante, condición, valor, operador) y solo el control de la elegida, para no
+// mostrar todas las herramientas a la vez.
+// `focusKey` conserva el foco del campo de valor al re-renderizar (encadenar) y
+// distingue el panel abierto de cada constructor.
 // `ctx` = { inputRefs, resultRefs, resolve, producedIds, conditions }.
 export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) {
   const { inputRefs = [], resultRefs = [], resolve = () => null, producedIds = new Set(), conditions = null, inputHint = null } = ctx;
@@ -481,37 +489,110 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     "+ valor",
   );
 
-  const dataControls = [inputControl, resultSelect, conditionSelect].filter(Boolean);
   const operatorGroups = Object.values(OPERATOR_GROUPS).map((group) => operatorGroup(group, (key) => append({ kind: "op", op: key })));
 
   const columnLabel = (text) => el("p", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, text);
 
-  // Columna izquierda: elegir qué agregar (datos, condiciones y valores).
-  const addColumn = el("div", { class: "min-w-0 space-y-1.5" }, [
-    columnLabel("Agregar"),
-    ...dataControls,
+  // Control de cada categoría, revelado solo cuando esa categoría está activa.
+  const valuePanel = el("div", { class: "space-y-1" }, [
     el("div", { class: "flex items-center gap-1" }, [valueInput, valueButton]),
     el("p", { class: "text-[11px] leading-snug text-slate-400" }, "Un valor puede ser un número (3), un texto («Aprueba»), etc."),
   ]);
+  const operatorPanel = el("div", { class: "flex flex-wrap items-start gap-2" }, operatorGroups);
 
-  // Columna derecha: los operadores, agrupados por tipo.
-  const operatorsColumn = el("div", { class: "min-w-0 space-y-1.5" }, [
-    columnLabel("Operadores"),
-    el("div", { class: "flex flex-wrap items-start gap-2" }, operatorGroups),
-  ]);
+  // Categorías de «agregar», claramente diferenciadas. Solo aparecen las que
+  // aplican: el dato resultante o la condición se ofrecen si hay alguno reutilizable.
+  const categories = [
+    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: inputControl },
+    resultSelect ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-violet-500", control: resultSelect } : null,
+    conditionSelect ? { key: "condition", label: "Condición", icon: "fork", tone: "text-amber-500", control: conditionSelect } : null,
+    { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", control: valuePanel },
+    { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", control: operatorPanel },
+  ].filter(Boolean);
 
   // Arriba: la expresión que se está construyendo (o una pista si está vacía).
   const expressionBox = el("div", { class: "rounded-md border border-slate-200 bg-slate-50/60 px-2 py-1.5" }, [
     columnLabel("Expresión"),
     tokens.length > 0
       ? el("div", { class: "mt-1 flex flex-wrap items-center gap-1" }, chips)
-      : el("p", { class: "mt-0.5 text-xs italic text-slate-400" }, "Elige datos, condiciones y operadores para construirla."),
+      : el("p", { class: "mt-0.5 text-xs italic text-slate-400" }, "Aún vacía: agrega datos, condiciones, valores y operadores."),
   ]);
 
-  return el("div", { class: "min-w-0 space-y-2.5" }, [
-    expressionBox,
-    el("div", { class: "grid gap-3 sm:grid-cols-2" }, [addColumn, operatorsColumn]),
-  ]);
+  // Zona de «agregar», progresiva: plegada muestra solo el disparador; abierta,
+  // las categorías y el control de la activa. El estado vive en OPEN_CATEGORY para
+  // sobrevivir al re-render (así se pueden encadenar varios elementos seguidos).
+  const adder = el("div", { class: "min-w-0" });
+  const setCategory = (value) => {
+    if (value == null) OPEN_CATEGORY.delete(focusKey);
+    else OPEN_CATEGORY.set(focusKey, value);
+    paintAdder();
+  };
+  const paintAdder = () => {
+    clear(adder);
+    const active = OPEN_CATEGORY.get(focusKey) ?? null;
+    if (active == null) {
+      adder.append(addTrigger(() => setCategory(categories[0].key)));
+      return;
+    }
+    const current = categories.find((category) => category.key === active) ?? categories[0];
+    adder.append(
+      el("div", { class: "space-y-2 rounded-md border border-slate-200 bg-white p-2" }, [
+        el("div", { class: "flex flex-wrap items-center gap-1" }, [
+          ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
+          collapseButton(() => setCategory(null)),
+        ]),
+        el("div", { class: "min-w-0" }, [current.control]),
+      ]),
+    );
+    // Al elegir «valor», el foco va al campo para escribir de inmediato.
+    if (current.key === "value") valueInput.focus({ preventScroll: true });
+  };
+  paintAdder();
+
+  return el("div", { class: "min-w-0 space-y-2", dataset: { exprBuilder: focusKey } }, [expressionBox, adder]);
+}
+
+// Disparador plegado del constructor: invita a agregar el primer/siguiente elemento.
+function addTrigger(onOpen) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700",
+      onclick: onOpen,
+    },
+    [icon("data", "h-3.5 w-3.5"), "+ Agregar elemento"],
+  );
+}
+
+// Ficha de una categoría de «agregar»: resaltada cuando es la activa.
+function categoryChip(category, selected, onSelect) {
+  return el(
+    "button",
+    {
+      type: "button",
+      "aria-pressed": String(selected),
+      class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
+        selected ? "border-indigo-300 bg-indigo-50 font-medium text-indigo-700" : "border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-slate-50"
+      }`,
+      onclick: onSelect,
+    },
+    [icon(category.icon, `h-3.5 w-3.5 shrink-0 ${selected ? "" : category.tone}`), el("span", {}, category.label)],
+  );
+}
+
+// Cierra el panel de «agregar» y vuelve a mostrar solo el disparador.
+function collapseButton(onCollapse) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "ml-auto shrink-0 rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600",
+      title: "Cerrar",
+      onclick: onCollapse,
+    },
+    "Listo",
+  );
 }
 
 // Un grupo de operadores (aritméticos, relacionales…) como caja rotulada con
