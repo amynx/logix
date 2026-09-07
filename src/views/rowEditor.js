@@ -427,7 +427,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   };
   const inputSelect = refSelect("Dato de entrada…", inputRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
   const resultSelect = refSelect("Dato resultante…", resultRefs.map((e) => ({ id: e.id, label: e.name })), (id) => ({ kind: "ref", dataId: id }));
-  const conditionSelect = refSelect("Condición…", conditionEntries, (id) => ({ kind: "cond", condId: id }));
+  const conditionSelect = refSelect("Condición reutilizable…", conditionEntries, (id) => ({ kind: "cond", condId: id }));
   // Sin datos de entrada disponibles, en lugar del selector se muestra la pista.
   const inputControl = inputSelect ?? (inputHint ? el("span", { class: "inline-flex items-center rounded-md border border-dashed border-slate-300 px-2 py-1 text-xs italic text-slate-400" }, inputHint) : null);
 
@@ -442,7 +442,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     type: "text",
     placeholder: "valor",
     autocomplete: "off",
-    class: `${CONTROL_CLASS} w-24 text-xs`,
+    class: `${CONTROL_CLASS} min-w-0 flex-1 text-xs`,
     dataset: { focusKey: `expr:${focusKey}` },
     onkeydown: (event) => {
       if (event.key === "Enter") {
@@ -469,13 +469,33 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   const dataControls = [inputControl, resultSelect, conditionSelect].filter(Boolean);
   const operatorGroups = Object.values(OPERATOR_GROUPS).map((group) => operatorGroup(group, (key) => append({ kind: "op", op: key })));
 
-  return el("div", { class: "min-w-0 space-y-2" }, [
-    tokens.length > 0 ? el("div", { class: "flex flex-wrap items-center gap-1" }, chips) : null,
-    el("div", { class: "flex flex-wrap items-center gap-2" }, [
-      ...dataControls,
-      el("div", { class: "flex items-center gap-1" }, [valueInput, valueButton]),
-    ]),
+  const columnLabel = (text) => el("p", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, text);
+
+  // Columna izquierda: elegir qué agregar (datos, condiciones y valores).
+  const addColumn = el("div", { class: "min-w-0 space-y-1.5" }, [
+    columnLabel("Agregar"),
+    ...dataControls,
+    el("div", { class: "flex items-center gap-1" }, [valueInput, valueButton]),
+    el("p", { class: "text-[11px] leading-snug text-slate-400" }, "Un valor puede ser un número (3), un texto («Aprueba»), etc."),
+  ]);
+
+  // Columna derecha: los operadores, agrupados por tipo.
+  const operatorsColumn = el("div", { class: "min-w-0 space-y-1.5" }, [
+    columnLabel("Operadores"),
     el("div", { class: "flex flex-wrap items-start gap-2" }, operatorGroups),
+  ]);
+
+  // Arriba: la expresión que se está construyendo (o una pista si está vacía).
+  const expressionBox = el("div", { class: "rounded-md border border-slate-200 bg-slate-50/60 px-2 py-1.5" }, [
+    columnLabel("Expresión"),
+    tokens.length > 0
+      ? el("div", { class: "mt-1 flex flex-wrap items-center gap-1" }, chips)
+      : el("p", { class: "mt-0.5 text-xs italic text-slate-400" }, "Elige datos, condiciones y operadores para construirla."),
+  ]);
+
+  return el("div", { class: "min-w-0 space-y-2.5" }, [
+    expressionBox,
+    el("div", { class: "grid gap-3 sm:grid-cols-2" }, [addColumn, operatorsColumn]),
   ]);
 }
 
