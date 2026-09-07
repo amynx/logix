@@ -15,6 +15,7 @@ const ZONE_TONES = {
   process: { bar: "border-indigo-300", title: "text-indigo-600", icon: "workflow" },
   result: { bar: "border-emerald-300", title: "text-emerald-600", icon: "flag" },
   branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
+  purpose: { bar: "border-amber-300", title: "text-amber-600", icon: "reuse" },
   comment: { bar: "border-slate-200", title: "text-slate-400", icon: "message" },
   condition: { bar: "border-indigo-300", title: "text-indigo-600", icon: "fork" },
   reuse: { bar: "border-emerald-300", title: "text-emerald-600", icon: "reuse" },
@@ -22,7 +23,7 @@ const ZONE_TONES = {
 
 // Etiquetas de los campos que comparten zona con otros (para distinguirlos). Los
 // campos que ocupan solos su zona no la necesitan: el título de la zona los nombra.
-const SUBLABELS = { condition: "Condición", operation: "Operación", purpose: "Propósito", usedIn: "Se usa en" };
+const SUBLABELS = { usedIn: "Se usa en" };
 
 // Número del paso: distintivo redondo para reconocer la actividad de un vistazo.
 export function stepNumber(position) {
@@ -128,35 +129,37 @@ export function stackedRow(label, value) {
 // `nodesByKey` mapea cada clave de campo a un nodo ya construido (o null); las
 // zonas sin contenido se omiten. `renderRow(label, value)` decide el estilo de
 // fila (en línea o apilada) según la vista.
-export function activityZones(nodesByKey, renderRow, kind = "operation") {
+// Las zonas se titulan como PREGUNTAS orientadoras (¿qué necesitas? → ¿qué haces?
+// → ¿qué obtienes? → ¿para qué?), para que la tarjeta se lea como el razonamiento
+// del análisis. `asQuestions:false` usa títulos cortos (para la cadena, más compacta).
+export function activityZones(nodesByKey, renderRow, kind = "operation", { asQuestions = true } = {}) {
   const row = (key, label = null) => (nodesByKey[key] ? renderRow(label, nodesByKey[key]) : null);
+  const q = (question, short) => (asQuestions ? question : short);
+
   if (kind === "condition") {
     return [
-      zoneBlock("Condición", ZONE_TONES.condition, [
-        row("conditionName", "Nombre"),
+      zoneBlock(q("¿Qué quieres comprobar?", "Condición"), ZONE_TONES.condition, [
         row("condition", "Pregunta"),
         row("operation", "Comprobación"),
+        row("conditionName", "Nombre"),
         row("evaluate"),
       ]),
       // Solo presente si la condición se evalúa (result/purpose no nulos).
-      zoneBlock("Evaluación", ZONE_TONES.result, [row("result", "Dato lógico"), row("purpose", SUBLABELS.purpose)]),
-      zoneBlock("Caminos", ZONE_TONES.branch, [
+      zoneBlock(q("¿Qué obtienes?", "Resultado"), ZONE_TONES.result, [row("result", "Dato lógico")]),
+      zoneBlock(q("¿Para qué lo usarás?", "Propósito"), ZONE_TONES.purpose, [row("purpose"), row("usedIn", SUBLABELS.usedIn)]),
+      zoneBlock(q("¿Qué pasa según el resultado?", "Caminos"), ZONE_TONES.branch, [
         row("ifTrue", "Si se cumple, entonces:"),
         row("ifFalse", "Si no se cumple, entonces:"),
       ]),
-      zoneBlock("Se usará en", ZONE_TONES.reuse, [row("usedIn")]),
       zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
     ].filter(Boolean);
   }
   return [
-    zoneBlock("Necesidad", ZONE_TONES.need, [row("problem")]),
-    zoneBlock("Datos de entrada", ZONE_TONES.input, [row("inputs")]),
-    zoneBlock("Proceso", ZONE_TONES.process, [row("condition", SUBLABELS.condition), row("operation", SUBLABELS.operation)]),
-    zoneBlock("Resultado", ZONE_TONES.result, [row("result"), row("purpose", SUBLABELS.purpose), row("usedIn", SUBLABELS.usedIn)]),
-    zoneBlock("Caminos", ZONE_TONES.branch, [
-      row("ifTrue", "Si se cumple, entonces:"),
-      row("ifFalse", "Si no se cumple, entonces:"),
-    ]),
+    zoneBlock(q("¿Qué necesitas hacer?", "Necesidad"), ZONE_TONES.need, [row("problem")]),
+    zoneBlock(q("¿Qué necesitas para hacerlo?", "Datos de entrada"), ZONE_TONES.input, [row("inputs")]),
+    zoneBlock(q("¿Qué debes hacer?", "Operación"), ZONE_TONES.process, [row("operation")]),
+    zoneBlock(q("¿Qué obtienes?", "Resultado"), ZONE_TONES.result, [row("result")]),
+    zoneBlock(q("¿Para qué usarás este dato?", "Propósito"), ZONE_TONES.purpose, [row("purpose"), row("usedIn", SUBLABELS.usedIn)]),
     zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
   ].filter(Boolean);
 }

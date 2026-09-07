@@ -182,7 +182,7 @@ function operationStepCard(step, activities) {
     usedIn: step.result ? usedInNode(step.usedInRowId, activities) : null,
     comment: step.comment ? commentBox(step.comment) : null,
   };
-  return stepShell(step, false, step.description || `Actividad ${step.position}`, activityZones(nodes, inlineRow, "operation"));
+  return stepShell(step, false, step.description || `Actividad ${step.position}`, activityZones(nodes, inlineRow, "operation", { asQuestions: false }));
 }
 
 function conditionStepCard(step, activities) {
@@ -199,7 +199,7 @@ function conditionStepCard(step, activities) {
     ifFalse: isDecision ? branchDetail(step.ifFalse) : null,
     comment: step.comment ? commentBox(step.comment) : null,
   };
-  return stepShell(step, true, step.conditionLabel, activityZones(nodes, inlineRow, "condition"));
+  return stepShell(step, true, step.conditionLabel, activityZones(nodes, inlineRow, "condition", { asQuestions: false }));
 }
 
 function stepShell(step, isCondition, title, body) {
