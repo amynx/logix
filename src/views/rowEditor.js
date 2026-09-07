@@ -239,8 +239,8 @@ export function dragHandle(rowId, setDragged) {
   return el(
     "span",
     {
-      class: "block cursor-move select-none text-slate-300 hover:text-slate-500",
-      title: "Arrastrar para reordenar",
+      class: "block cursor-grab select-none rounded px-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing",
+      title: "Arrastra para reordenar esta actividad",
       draggable: "true",
       "aria-label": "Reordenar actividad",
       ondragstart: (event) => {
@@ -602,7 +602,7 @@ function resultEditor(rowId, result, handlers) {
     el("input", {
       type: "text",
       value: result?.name ?? "",
-      placeholder: "nombre",
+      placeholder: "nombre del dato",
       class: CONTROL_CLASS,
       dataset: { focusKey: `res-name:${rowId}` },
       oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
