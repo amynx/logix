@@ -16,7 +16,6 @@ const ZONE_TONES = {
   result: { bar: "border-emerald-300", title: "text-emerald-600", icon: "flag" },
   branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
   purpose: { bar: "border-amber-300", title: "text-amber-600", icon: "reuse" },
-  comment: { bar: "border-slate-200", title: "text-slate-400", icon: "message" },
   condition: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
   reuse: { bar: "border-emerald-300", title: "text-emerald-600", icon: "reuse" },
 };
@@ -160,7 +159,7 @@ export function activityZones(nodesByKey, renderRow, kind = "operation", { asQue
     zoneBlock(q("¿Qué debes hacer?", "Operación"), ZONE_TONES.process, [row("operation")]),
     zoneBlock(q("¿Qué obtienes?", "Resultado"), ZONE_TONES.result, [row("result")]),
     zoneBlock(q("¿Para qué usarás este dato?", "Propósito"), ZONE_TONES.purpose, [row("purpose"), row("usedIn", SUBLABELS.usedIn)]),
-    zoneBlock("Comentario", ZONE_TONES.comment, [row("comment")]),
+    nodesByKey.comment ? el("div", { class: "pt-0.5" }, [nodesByKey.comment]) : null,
   ].filter(Boolean);
 }
 
