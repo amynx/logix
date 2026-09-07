@@ -54,10 +54,13 @@ export function buildRowFields(row, dataById, handlers, activities = [], produce
   // otras actividades, y datos de entrada. Para una operación, las entradas son las
   // definidas para esa actividad (`inputIds`); una condición (sin esa zona) ofrece
   // todos los datos de entrada declarados.
+  // Un dato producido pertenece a «Dato resultante», nunca a «Dato de entrada»,
+  // aunque se haya referenciado como entrada de la actividad.
   const resultRefs = allData.filter((entry) => producedIds.has(entry.id));
-  const inputRefs = isCondition
-    ? allData.filter((entry) => !producedIds.has(entry.id))
-    : row.inputIds.map((id) => dataById.get(id)).filter(Boolean);
+  const inputRefs = (isCondition
+    ? allData
+    : row.inputIds.map((id) => dataById.get(id)).filter(Boolean)
+  ).filter((entry) => !producedIds.has(entry.id));
   // Si no hay datos de entrada disponibles, una pista dice de dónde salen (para que
   // el selector no desaparezca sin explicación).
   const inputHint = inputRefs.length > 0
