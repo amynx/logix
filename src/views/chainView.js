@@ -31,7 +31,7 @@ export class ChainView {
 
     const body = isEmpty
       ? el("p", { class: "text-sm text-slate-400" }, "La cadena aparecerá aquí a medida que completes el análisis.")
-      : el("div", { class: "mx-auto max-w-2xl" }, flowNodes(chain));
+      : el("div", {}, [summaryBar(chain), el("div", { class: "mx-auto max-w-2xl" }, flowNodes(chain))]);
 
     this.container.append(
       el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
@@ -45,6 +45,23 @@ export class ChainView {
       ]),
     );
   }
+}
+
+// Resumen no invasivo del estado del razonamiento: cuántos datos, operaciones,
+// decisiones y respuestas lleva el análisis. Da una visión rápida de conjunto.
+function summaryBar(chain) {
+  const operaciones = chain.proceso.filter((step) => step.kind !== "condition").length;
+  const decisiones = chain.proceso.filter((step) => step.kind === "condition" && step.evaluateNow && step.purpose === "decision").length;
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const stats = [
+    ["data", plural(chain.entradas.length, "dato de entrada", "datos de entrada"), "text-blue-600"],
+    ["workflow", plural(operaciones, "operación", "operaciones"), "text-indigo-600"],
+    ["fork", plural(decisiones, "decisión", "decisiones"), "text-amber-600"],
+    ["flag", plural(chain.salidas.length, "respuesta final", "respuestas finales"), "text-emerald-600"],
+  ];
+  return el("div", { class: "mb-4 flex flex-wrap justify-center gap-2" }, stats.map(([iconName, text, color]) =>
+    el("span", { class: "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600" }, [icon(iconName, `h-3.5 w-3.5 ${color}`), text]),
+  ));
 }
 
 // Ensambla el flujo vertical: Entradas → cada actividad → Información final,
