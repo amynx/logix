@@ -143,14 +143,19 @@ export class CardsView {
   }
 }
 
-// Marcador de estado de una actividad (sin número): ✓ completa, ● en construcción
-// (la seleccionada), ⚠ revisar, ○ pendiente. Solo comunica el estado de un vistazo.
+// Estilo de cada estado de una actividad: un icono y un color representativos, para
+// reconocerlo de un vistazo — completa (✓ verde), en construcción (✎ índigo),
+// por revisar (⚠ ámbar) y pendiente (◎ gris).
+const STATUS_STYLE = {
+  done: { cls: "bg-emerald-500 text-white", icon: "check", title: "Completa" },
+  active: { cls: "bg-indigo-600 text-white", icon: "edit", title: "En construcción" },
+  warn: { cls: "bg-amber-500 text-white", icon: "alert", title: "Por revisar" },
+  todo: { cls: "border border-slate-300 bg-slate-50 text-slate-400", icon: "target", title: "Pendiente" },
+};
+
 function statusMarker(status) {
-  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full";
-  if (status === "done") return el("span", { class: `${base} bg-emerald-500 text-white`, title: "Completa" }, [icon("check", "h-3.5 w-3.5")]);
-  if (status === "warn") return el("span", { class: `${base} bg-amber-100 text-amber-700`, title: "Por revisar" }, [icon("alert", "h-3.5 w-3.5")]);
-  if (status === "active") return el("span", { class: base, title: "En construcción" }, [el("span", { class: "h-2.5 w-2.5 rounded-full bg-indigo-600" })]);
-  return el("span", { class: base, title: "Pendiente" }, [el("span", { class: "h-2.5 w-2.5 rounded-full border-2 border-slate-300" })]);
+  const style = STATUS_STYLE[status] ?? STATUS_STYLE.todo;
+  return el("span", { class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${style.cls}`, title: style.title }, [icon(style.icon, "h-3.5 w-3.5")]);
 }
 
 // Título breve de una actividad para la lista: su necesidad («¿qué necesitas
