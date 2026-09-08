@@ -61,6 +61,33 @@ function isRowEmpty(row) {
   );
 }
 
+const isFilled = (value) => (value ?? "").toString().trim().length > 0;
+
+// Una actividad está "lista" cuando tiene definidos todos sus campos activos, salvo
+// el comentario. Los campos activos dependen del tipo y, en una condición, de si se
+// evalúa ahora (produce un dato lógico, propósito y, si decide, sus caminos) o queda
+// reutilizable (solo la comprobación). `resolveData` da el dato producido por id.
+function isRowComplete(row, resolveData) {
+  const result = row.resultId ? resolveData(row.resultId) : null;
+  const resultOk = Boolean(result && result.name.trim() && result.type);
+  const purposeOk = isFilled(row.purpose);
+  const hasExpression = Array.isArray(row.operation) && row.operation.length > 0;
+
+  if (row.kind === "condition") {
+    const checkOk = isFilled(row.condition) && isFilled(row.conditionName) && hasExpression;
+    if (!row.evaluateNow) return checkOk; // reutilizable: solo la comprobación
+    // El dato lógico solo indica "se usa en" cuando alimenta una nueva operación;
+    // una decisión se resuelve con sus caminos, no con una actividad asociada.
+    const usedInOk = row.purpose !== "operation" || Boolean(row.usedInRowId);
+    const pathsOk = row.purpose !== "decision" || (Boolean(row.ifTrue?.type) && Boolean(row.ifFalse?.type));
+    return checkOk && resultOk && purposeOk && usedInOk && pathsOk;
+  }
+  // Operación: el dato producido debe indicar dónde se reutiliza cuando alimenta
+  // otra operación o una decisión posterior.
+  const usedInOk = !(row.purpose === "operation" || row.purpose === "decision") || Boolean(row.usedInRowId);
+  return isFilled(row.problem) && (row.inputIds?.length ?? 0) > 0 && hasExpression && resultOk && purposeOk && usedInOk;
+}
+
 export class AnalysisController {
   #saveTimer = null;
   #history = []; // instantáneas del análisis para deshacer/rehacer
@@ -399,13 +426,16 @@ export class AnalysisController {
     this.#renderTableKeepingFocus();
   }
 
-  // Estado de una actividad para la lista: revisar (tiene un aviso), pendiente
-  // (aún sin información) o completa. El «en construcción» lo marca la vista según
-  // la actividad seleccionada.
+  // Estado de una actividad para la lista, según su propio contenido: revisar (tiene
+  // un aviso), completa (todos sus campos activos definidos salvo el comentario),
+  // pendiente (aún sin información) o en construcción (empezada pero incompleta).
   #activityStatus(rowId, warnRowIds) {
     if (warnRowIds.has(rowId)) return "warn";
     const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
-    return row && isRowEmpty(row) ? "todo" : "done";
+    if (!row) return "todo";
+    if (isRowComplete(row, (id) => findData(this.analysis, id))) return "done";
+    if (isRowEmpty(row)) return "todo";
+    return "active";
   }
 
   #tableHandlers() {

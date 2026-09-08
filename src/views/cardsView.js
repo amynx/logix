@@ -66,13 +66,14 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers));
   }
 
-  // Un elemento de la lista: estado + número + título breve + tipo. Seleccionable y
-  // arrastrable (por su tirador) para reordenar. Lleva `data-row-id` (uno por
-  // actividad); el espacio de trabajo no, para no duplicar la representación.
+  // Un elemento de la lista: número (en el círculo) + tipo + título, con el estado
+  // en la esquina superior derecha. Seleccionable y arrastrable (por su tirador)
+  // para reordenar. Lleva `data-row-id` (uno por actividad); el espacio de trabajo
+  // no, para no duplicar la representación.
   #listItem(row, index, selectedId, dataById, handlers) {
     const isSelected = row.id === selectedId;
     const isCondition = row.kind === "condition";
-    const status = isSelected ? "active" : handlers.rowStatus?.(row.id) ?? "todo";
+    const status = handlers.rowStatus?.(row.id) ?? "todo";
     const setDragged = (id) => {
       this.draggedRowId = id;
     };
@@ -80,7 +81,7 @@ export class CardsView {
       "li",
       {
         dataset: { rowId: row.id },
-        class: `flex items-center gap-2 rounded-lg border px-2 py-2 transition ${
+        class: `relative flex items-center gap-2 rounded-lg border py-2 pl-2 pr-7 transition ${
           isSelected ? "border-indigo-300 bg-indigo-50 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
         }`,
         ondragover: (event) => {
@@ -100,8 +101,7 @@ export class CardsView {
       },
       [
         dragHandle(row.id, setDragged),
-        statusMarker(status),
-        el("span", { class: "w-4 shrink-0 text-center text-xs font-medium text-slate-400" }, String(index + 1)),
+        stepNumber(index + 1),
         el(
           "button",
           {
@@ -114,6 +114,7 @@ export class CardsView {
             el("span", { class: `min-w-0 truncate text-sm ${isSelected ? "font-semibold text-slate-900" : "text-slate-600"}` }, activityTitle(row, dataById)),
           ],
         ),
+        statusCorner(status),
       ],
     );
   }
@@ -147,15 +148,16 @@ export class CardsView {
 // reconocerlo de un vistazo — completa (✓ verde), en construcción (✎ índigo),
 // por revisar (⚠ ámbar) y pendiente (◎ gris).
 const STATUS_STYLE = {
-  done: { cls: "bg-emerald-500 text-white", icon: "check", title: "Completa" },
-  active: { cls: "bg-indigo-600 text-white", icon: "edit", title: "En construcción" },
-  warn: { cls: "bg-amber-500 text-white", icon: "alert", title: "Por revisar" },
-  todo: { cls: "border border-slate-300 bg-slate-50 text-slate-400", icon: "target", title: "Pendiente" },
+  done: { icon: "check", color: "text-emerald-600", title: "Completa" },
+  active: { icon: "edit", color: "text-indigo-600", title: "En construcción" },
+  warn: { icon: "alert", color: "text-amber-600", title: "Por revisar" },
+  todo: { icon: "target", color: "text-slate-400", title: "Pendiente" },
 };
 
-function statusMarker(status) {
+// El estado va en la esquina superior derecha de la actividad (icono + color).
+function statusCorner(status) {
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.todo;
-  return el("span", { class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${style.cls}`, title: style.title }, [icon(style.icon, "h-3.5 w-3.5")]);
+  return el("span", { class: `absolute right-1.5 top-1.5 ${style.color}`, title: style.title }, [icon(style.icon, "h-4 w-4")]);
 }
 
 // Título breve de una actividad para la lista: su necesidad («¿qué necesitas
