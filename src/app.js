@@ -10,9 +10,10 @@ import { CompletenessView } from "./views/completenessView.js";
 import { PdfView } from "./views/pdfView.js";
 import { StorageService } from "./services/storage/storageService.js";
 import { AnalysisController } from "./controllers/analysisController.js";
-import { initSectionNav } from "./views/sectionNav.js";
+import { initStageNav } from "./views/stageNav.js";
 import { maybeStartGuide, setExampleTutorialLoader } from "./views/guideView.js";
 import { initTheme } from "./utils/theme.js";
+import { trackEvent } from "./utils/analytics.js";
 
 function main() {
   initTheme();
@@ -62,7 +63,7 @@ function main() {
   setExampleTutorialLoader(() => controller.loadStudentGradeExample());
 
   controller.start();
-  initSectionNav();
+  initStageNav({ onChange: (stage) => trackEvent("go_to_stage", { stage }) });
   maybeStartGuide();
 }
 

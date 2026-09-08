@@ -50,36 +50,33 @@
       </div>
       <div id="toolbar" class="flex flex-wrap items-center justify-end gap-2"></div>
     </div>
-    <!-- Navegación por pasos: salta a cada sección del análisis -->
-    <nav id="section-nav" class="border-t border-slate-100">
-      <div class="mx-auto flex max-w-[100rem] gap-1 overflow-x-auto px-4 py-1.5">
-        <a href="#students-container" data-nav="students-container" class="section-step">1 · Estudiantes</a>
-        <a href="#analysis-info" data-nav="analysis-info" class="section-step">2 · Análisis</a>
-        <a href="#inputs-container" data-nav="inputs-container" class="section-step">3 · Datos de entrada</a>
-        <a href="#table-container" data-nav="table-container" class="section-step">4 · Actividades</a>
-        <a href="#chain-container" data-nav="chain-container" class="section-step">5 · Cadena</a>
-      </div>
-    </nav>
+    <!-- Progreso por etapas: Problema → Datos → Construcción → Cadena.
+         El paso se genera en stageNav.js para reflejar el estado de cada etapa. -->
+    <nav id="stage-nav" class="border-t border-slate-100"></nav>
   </header>
 
   <div class="mx-auto max-w-[100rem] px-4 pb-16">
-    <!-- 1. Estudiantes (grupo común + lista) -->
-    <section id="students-container" class="max-w-4xl py-6"></section>
+    <!-- Etapa 1 · Problema: quién lo resuelve (estudiantes) y el enunciado. -->
+    <div data-stage="problema" class="py-6">
+      <section id="students-container" class="max-w-4xl"></section>
+      <section id="analysis-info" class="mt-6"></section>
+    </div>
 
-    <!-- 2. Información del análisis (título, descripción y enunciado opcional) -->
-    <section id="analysis-info" class="pb-6"></section>
+    <!-- Etapa 2 · Datos: datos de entrada declarados. -->
+    <div data-stage="datos" class="py-6">
+      <section id="inputs-container"></section>
+    </div>
 
-    <!-- 3. Datos de entrada declarados (tabla a todo el ancho) -->
-    <section id="inputs-container" class="pb-6"></section>
+    <!-- Etapa 3 · Construcción: actividades (operaciones y condiciones) + pendientes. -->
+    <div data-stage="construccion" class="py-6">
+      <main id="table-container" class="pb-2"></main>
+      <section id="completeness-container" class="mt-6"></section>
+    </div>
 
-    <!-- 4. Actividades: tabla o tarjetas (operaciones y condiciones) -->
-    <main id="table-container" class="pb-4"></main>
-
-    <!-- Indicador de completitud (puntos por completar del análisis) -->
-    <section id="completeness-container" class="pb-6"></section>
-
-    <!-- 5. Cadena derivada: Entradas → Proceso → Salida -->
-    <section id="chain-container"></section>
+    <!-- Etapa 4 · Cadena derivada: Entradas → Proceso → Salida. -->
+    <div data-stage="cadena" class="py-6">
+      <section id="chain-container"></section>
+    </div>
   </div>
 
   <!-- Área de impresión para la exportación a PDF (oculta en pantalla) -->

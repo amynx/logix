@@ -5,6 +5,7 @@
 
 import { el, clear } from "../utils/dom.js";
 import { trackEvent } from "../utils/analytics.js";
+import { revealSection } from "./stageNav.js";
 
 const GUIDE_SEEN_KEY = "logix-guide-seen";
 
@@ -124,6 +125,10 @@ function runTour(steps, { markSeenOnClose = false }) {
 
   const render = () => {
     const step = steps[index];
+    // Trae a la vista la etapa que contiene el objetivo antes de resaltarlo, para
+    // que el recorrido funcione aunque cada etapa se muestre por separado.
+    if (typeof step.target === "string") revealSection(step.target);
+    else if (typeof step.target === "function") revealSection("table-container");
     clearHighlight();
     const highlight = resolveHighlight(step.target);
     if (highlight) highlight.classList.add("guide-highlight");

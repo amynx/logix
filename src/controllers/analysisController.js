@@ -35,6 +35,7 @@ import { collectAnalysisWarnings, migrateAnalysis } from "../validation/analysis
 import { buildChain } from "../models/chainModel.js";
 import { inferResultType } from "../models/operators.js";
 import { trackEvent } from "../utils/analytics.js";
+import { setStageStatus, revealSection } from "../views/stageNav.js";
 
 const DEFAULT_SAVE_DELAY = 500;
 
@@ -115,6 +116,23 @@ export class AnalysisController {
     this.renderTable();
     this.renderCompleteness();
     this.renderChain();
+    this.#updateStageStatus();
+  }
+
+  // Marca cada etapa como completa según el modelo, para que el paso superior
+  // muestre el avance real del razonamiento (✓ hecha / ○ pendiente).
+  #updateStageStatus() {
+    const hasTitle = Boolean(this.analysis.title?.trim());
+    const hasData = this.analysis.data.length > 0;
+    const hasRows = this.analysis.rows.length > 0;
+    const warnings = collectAnalysisWarnings(this.analysis);
+    const chain = buildChain(this.analysis);
+    setStageStatus({
+      problema: hasTitle ? "done" : "todo",
+      datos: hasData ? "done" : "todo",
+      construccion: hasRows && warnings.length === 0 ? "done" : "todo",
+      cadena: chain.salidas.length > 0 ? "done" : "todo",
+    });
   }
 
   renderCompleteness() {
@@ -127,6 +145,7 @@ export class AnalysisController {
   // desplaza a la vista.
   focusActivity(rowId) {
     if (!this.analysis.rows.some((row) => row.id === rowId)) return;
+    revealSection("table-container"); // la actividad vive en la etapa «Construcción»
     this.setRowEditing(rowId, true);
     const card = document.querySelector(`#table-container [data-row-id="${rowId}"]`);
     if (card && typeof card.scrollIntoView === "function") {
@@ -232,6 +251,7 @@ export class AnalysisController {
     this.#recordHistory();
     this.renderCompleteness();
     this.renderChain();
+    this.#updateStageStatus();
     this.#scheduleSave();
   }
 
