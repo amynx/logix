@@ -227,25 +227,22 @@ test("editing in the cards view updates the same analysis", async () => {
   assert.equal(result.name, "promedio");
 });
 
-test("a card toggles between edit and view mode", async () => {
+test("the cards view works the selected activity and switches on selection", async () => {
   const { doc, controller } = await mountApp({ viewMode: "cards" });
+  controller.addRow(); // dos actividades
+  const [id0, id1] = controller.analysis.rows.map((r) => r.id);
 
-  const card = () => doc.querySelector("#table-container [data-row-id]");
-  const rowId = card().dataset.rowId;
-  const btn = (re) => [...card().querySelectorAll("button")].find((b) => re.test(b.textContent));
+  // La actividad recién agregada queda seleccionada: es el espacio de trabajo, y
+  // solo hay uno (no todas las tarjetas a la vez).
+  assert.ok(doc.querySelector(`[data-workspace-row="${id1}"]`), "la nueva actividad es el espacio de trabajo");
+  assert.equal(doc.querySelectorAll("[data-workspace-row]").length, 1, "solo una actividad en el espacio de trabajo");
 
-  // La actividad inicial arranca en modo edición (aún no tiene información que ver).
-  assert.equal(card().dataset.editing, "true");
-  assert.ok(btn(/Listo/), "muestra «Listo» durante la edición");
-
-  btn(/Listo/).click();
-  assert.equal(controller.editingRows.has(rowId), false, "deja de estar en edición");
-  assert.equal(card().dataset.editing, "false");
-  assert.ok(btn(/Editar/), "muestra «Editar» en visualización");
-
-  btn(/Editar/).click();
-  assert.equal(controller.editingRows.has(rowId), true, "vuelve a edición");
-  assert.equal(card().dataset.editing, "true");
+  // Seleccionar otra desde la lista la trae al espacio de trabajo (sin «Listo»).
+  const item0 = [...doc.querySelectorAll("#table-container [data-row-id]")].find((li) => li.dataset.rowId === id0);
+  item0.querySelector("button").click();
+  assert.equal(controller.selectedRowId, id0, "queda seleccionada la primera");
+  assert.ok(doc.querySelector(`[data-workspace-row="${id0}"]`), "ahora se trabaja la primera");
+  assert.equal(doc.querySelector(`[data-workspace-row="${id1}"]`), null, "la otra ya no ocupa el espacio de trabajo");
 });
 
 test("finishing edit in the table shows the read-only summary with an Editar action", async () => {

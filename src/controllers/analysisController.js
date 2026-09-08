@@ -46,6 +46,21 @@ function valueFromFragment(fragment) {
   return match ? match[0] : "";
 }
 
+// Una actividad está "pendiente" (aún sin razonamiento) si el estudiante no ha
+// puesto nada útil todavía: sirve para marcar su estado en la lista de actividades.
+function isRowEmpty(row) {
+  const hasOperation = Array.isArray(row.operation) && row.operation.length > 0;
+  return (
+    !(row.problem ?? "").trim() &&
+    (row.inputIds?.length ?? 0) === 0 &&
+    !hasOperation &&
+    !(row.condition ?? "").trim() &&
+    !row.resultId &&
+    !(row.conditionName ?? "").trim() &&
+    !(row.purpose ?? "").trim()
+  );
+}
+
 export class AnalysisController {
   #saveTimer = null;
   #history = []; // instantáneas del análisis para deshacer/rehacer
@@ -67,6 +82,7 @@ export class AnalysisController {
     this.saveDelay = saveDelay;
     this.analysis = null;
     this.editingRows = new Set(); // ids de actividades en modo edición (estado de vista)
+    this.selectedRowId = null; // actividad activa en el espacio de trabajo (tarjetas)
     this.editingInputs = false; // sección de datos de entrada en modo edición
     this.editingStudents = false; // sección de estudiantes en modo edición
     this.showStatement = false; // mostrar el enunciado (opcional) en la sección 2
@@ -146,6 +162,7 @@ export class AnalysisController {
   focusActivity(rowId) {
     if (!this.analysis.rows.some((row) => row.id === rowId)) return;
     revealSection("table-container"); // la actividad vive en la etapa «Construcción»
+    this.selectedRowId = rowId; // ábrela en el espacio de trabajo (vista de tarjetas)
     this.setRowEditing(rowId, true);
     const card = document.querySelector(`#table-container [data-row-id="${rowId}"]`);
     if (card && typeof card.scrollIntoView === "function") {
@@ -374,11 +391,32 @@ export class AnalysisController {
     this.#activityView().renderKeepingFocus(this.analysis, this.#tableHandlers(), this.viewMode);
   }
 
+  // Selecciona la actividad que ocupa el espacio de trabajo (vista de tarjetas
+  // master-detail). Es estado de vista: no se persiste.
+  selectActivity(rowId) {
+    if (!this.analysis.rows.some((row) => row.id === rowId)) return;
+    this.selectedRowId = rowId;
+    this.#renderTableKeepingFocus();
+  }
+
+  // Estado de una actividad para la lista: revisar (tiene un aviso), pendiente
+  // (aún sin información) o completa. El «en construcción» lo marca la vista según
+  // la actividad seleccionada.
+  #activityStatus(rowId, warnRowIds) {
+    if (warnRowIds.has(rowId)) return "warn";
+    const row = this.analysis.rows.find((candidate) => candidate.id === rowId);
+    return row && isRowEmpty(row) ? "todo" : "done";
+  }
+
   #tableHandlers() {
+    const warnRowIds = new Set(collectAnalysisWarnings(this.analysis).map((w) => w.rowId).filter(Boolean));
     return {
       isRowEditing: (rowId) => this.editingRows.has(rowId),
       onEditRow: (rowId) => this.setRowEditing(rowId, true),
       onDoneRow: (rowId) => this.setRowEditing(rowId, false),
+      selectedRowId: () => this.selectedRowId,
+      onSelectRow: (rowId) => this.selectActivity(rowId),
+      rowStatus: (rowId) => this.#activityStatus(rowId, warnRowIds),
       onFieldChange: (rowId, changes) => this.updateRowField(rowId, changes),
       onStructuralChange: (rowId, changes) => this.updateRowStructure(rowId, changes),
       onAddRow: (kind) => this.addRow(kind),
@@ -501,6 +539,7 @@ export class AnalysisController {
     addRow(this.analysis, createRow({ kind }));
     const newRow = this.analysis.rows[this.analysis.rows.length - 1];
     this.editingRows.add(newRow.id);
+    this.selectedRowId = newRow.id; // la nueva actividad pasa a ser el espacio de trabajo
     this.renderTable();
     this.#afterChange();
     trackEvent(kind === "condition" ? "add_condition" : "add_activity");
@@ -512,8 +551,15 @@ export class AnalysisController {
       message: this.#deleteRowMessage(rowId),
     });
     if (!confirmed) return;
+    const removedIndex = this.analysis.rows.findIndex((row) => row.id === rowId);
     removeRow(this.analysis, rowId);
     this.editingRows.delete(rowId);
+    // Si se borró la actividad activa, selecciona una vecina para no dejar el
+    // espacio de trabajo vacío mientras queden actividades.
+    if (this.selectedRowId === rowId) {
+      const neighbor = this.analysis.rows[removedIndex] ?? this.analysis.rows[removedIndex - 1] ?? null;
+      this.selectedRowId = neighbor?.id ?? null;
+    }
     this.renderTable();
     this.#afterChange();
   }
