@@ -148,16 +148,21 @@ export class CardsView {
 // reconocerlo de un vistazo — completa (✓ verde), en construcción (✎ índigo),
 // por revisar (⚠ ámbar) y pendiente (◎ gris).
 const STATUS_STYLE = {
-  done: { icon: "check", color: "text-emerald-600", title: "Completa" },
-  active: { icon: "edit", color: "text-indigo-600", title: "En construcción" },
-  warn: { icon: "alert", color: "text-amber-600", title: "Por revisar" },
-  todo: { icon: "target", color: "text-slate-400", title: "Pendiente" },
+  done: { icon: "check", cls: "bg-emerald-500 text-white", title: "Completa" },
+  active: { icon: "edit", cls: "bg-indigo-600 text-white", title: "En construcción" },
+  warn: { icon: "alert", cls: "bg-amber-500 text-white", title: "Por revisar" },
+  todo: { icon: "target", cls: "bg-slate-300 text-white", title: "Pendiente" },
 };
 
-// El estado va en la esquina superior derecha de la actividad (icono + color).
+// El estado va en la esquina superior derecha de la actividad: el icono dentro de un
+// círculo del color que representa el estado.
 function statusCorner(status) {
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.todo;
-  return el("span", { class: `absolute right-1.5 top-1.5 ${style.color}`, title: style.title }, [icon(style.icon, "h-4 w-4")]);
+  return el(
+    "span",
+    { class: `absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full ${style.cls}`, title: style.title },
+    [icon(style.icon, "h-3 w-3")],
+  );
 }
 
 // Título breve de una actividad para la lista: su necesidad («¿qué necesitas
