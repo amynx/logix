@@ -811,7 +811,7 @@ test("the chain panel reflects external inputs and final outputs live", async ()
   const text = chainText();
   assert.match(text, /Entradas/);
   assert.match(text, /nota1/);
-  assert.match(text, /Salida/);
+  assert.match(text, /Información final/);
   assert.match(text, /Mostrar el resultado/);
 });
 
