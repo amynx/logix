@@ -16,7 +16,7 @@ import {
   markDropTarget,
   clearDropTarget,
 } from "./rowEditor.js";
-import { activityFlow, stepNumber, stackedRow } from "./cardLayout.js";
+import { activityFlow, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { icon } from "./icons.js";
@@ -50,9 +50,11 @@ export class CardsView {
     const wanted = handlers.selectedRowId?.();
     const selected = rows.find((row) => row.id === wanted) ?? rows[0];
 
-    const list = el("ol", { class: "space-y-1.5" }, rows.map((row, index) => this.#listItem(row, index, selected.id, dataById, handlers)));
-    const master = el("div", { class: "space-y-3" }, [list, addActivityButton(handlers.onAddRow)]);
-    const detail = this.#workspace(selected, rows.indexOf(selected), dataById, handlers, activities, producedIds);
+    const list = el("ol", { class: "space-y-1.5" }, rows.map((row) => this.#listItem(row, selected.id, dataById, handlers)));
+    // Los botones de agregar van ARRIBA: con muchas actividades no obligan a hacer
+    // scroll hasta el final de la lista para crear una nueva.
+    const master = el("div", { class: "space-y-3" }, [addActivityButton(handlers.onAddRow), list]);
+    const detail = this.#workspace(selected, dataById, handlers, activities, producedIds);
 
     this.container.append(
       header,
@@ -64,10 +66,10 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers));
   }
 
-  // Un elemento de la lista: estado + número + título breve + tipo. Seleccionable,
-  // y arrastrable (por su tirador) para reordenar. Lleva `data-row-id` (uno por
-  // actividad); el espacio de trabajo no, para no duplicar la representación.
-  #listItem(row, index, selectedId, dataById, handlers) {
+  // Un elemento de la lista: estado + título breve + tipo (sin numeración).
+  // Seleccionable y arrastrable (por su tirador) para reordenar. Lleva `data-row-id`
+  // (uno por actividad); el espacio de trabajo no, para no duplicar la representación.
+  #listItem(row, selectedId, dataById, handlers) {
     const isSelected = row.id === selectedId;
     const isCondition = row.kind === "condition";
     const status = isSelected ? "active" : handlers.rowStatus?.(row.id) ?? "todo";
@@ -98,7 +100,7 @@ export class CardsView {
       },
       [
         dragHandle(row.id, setDragged),
-        statusMarker(status, index + 1),
+        statusMarker(status),
         el(
           "button",
           {
@@ -115,17 +117,16 @@ export class CardsView {
     );
   }
 
-  // Espacio de trabajo de la actividad seleccionada: encabezado con su número y
-  // tipo, y debajo los campos como un flujo de razonamiento (siempre editable).
-  #workspace(row, index, dataById, handlers, activities, producedIds) {
+  // Espacio de trabajo de la actividad seleccionada: encabezado con su tipo (sin
+  // numeración) y debajo los campos como un flujo de razonamiento (siempre editable).
+  #workspace(row, dataById, handlers, activities, producedIds) {
     const isCondition = row.kind === "condition";
     const tint = isCondition ? "border-amber-200 bg-amber-50/20" : "border-slate-200 bg-white";
     const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
     return el("div", { class: `rounded-xl border ${tint} p-4 shadow-sm sm:p-5`, dataset: { workspaceRow: row.id } }, [
       el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-3" }, [
-        stepNumber(index + 1),
-        el("span", { class: `inline-flex items-center gap-1 text-sm font-semibold ${isCondition ? "text-amber-700" : "text-slate-700"}` }, [
-          icon(isCondition ? "fork" : "activities", "h-4 w-4"),
+        el("span", { class: `inline-flex items-center gap-1.5 text-sm font-semibold ${isCondition ? "text-amber-700" : "text-slate-700"}` }, [
+          icon(isCondition ? "fork" : "activities", `h-4 w-4 ${isCondition ? "text-amber-500" : "text-indigo-500"}`),
           isCondition ? "Condición" : "Actividad",
         ]),
         el("div", { class: "ml-auto" }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
@@ -140,14 +141,14 @@ export class CardsView {
   }
 }
 
-// Marcador de estado de una actividad, con el mismo lenguaje que el paso superior:
-// ✓ completa, ● en construcción (la seleccionada), ⚠ revisar, ○ pendiente (número).
-function statusMarker(status, position) {
-  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold";
+// Marcador de estado de una actividad (sin número): ✓ completa, ● en construcción
+// (la seleccionada), ⚠ revisar, ○ pendiente. Solo comunica el estado de un vistazo.
+function statusMarker(status) {
+  const base = "flex h-6 w-6 shrink-0 items-center justify-center rounded-full";
   if (status === "done") return el("span", { class: `${base} bg-emerald-500 text-white`, title: "Completa" }, [icon("check", "h-3.5 w-3.5")]);
   if (status === "warn") return el("span", { class: `${base} bg-amber-100 text-amber-700`, title: "Por revisar" }, [icon("alert", "h-3.5 w-3.5")]);
-  if (status === "active") return el("span", { class: `${base} bg-indigo-600 text-white`, title: "En construcción" }, String(position));
-  return el("span", { class: `${base} border border-slate-300 text-slate-400`, title: "Pendiente" }, String(position));
+  if (status === "active") return el("span", { class: base, title: "En construcción" }, [el("span", { class: "h-2.5 w-2.5 rounded-full bg-indigo-600" })]);
+  return el("span", { class: base, title: "Pendiente" }, [el("span", { class: "h-2.5 w-2.5 rounded-full border-2 border-slate-300" })]);
 }
 
 // Título breve de una actividad para la lista: su necesidad («¿qué necesitas
