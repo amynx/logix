@@ -35,7 +35,6 @@ export class CardsView {
     const rows = analysis.rows;
 
     const header = sectionHeader({
-      step: 4,
       title: "Actividades",
       subtitle: "Cada paso del análisis, en orden. Elige una para trabajar en ella.",
       iconName: "activities",

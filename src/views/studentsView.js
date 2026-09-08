@@ -25,58 +25,68 @@ export class StudentsView {
 
   render(group, students, editing, handlers) {
     clear(this.container);
+    if (editing) return this.container.append(this.#editingCard(group, students, handlers));
+    // Una vez configurados, los estudiantes son información secundaria: se muestran
+    // como una barra compacta para no competir con el enunciado del problema.
+    if (students.length > 0) return this.container.append(this.#compactBar(group, students, handlers));
+    return this.container.append(this.#emptyCard(handlers));
+  }
 
-    const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante");
-
-    let groupBlock;
-    let list;
-    let actions;
-    if (editing) {
-      // Modo edición: el grupo y los estudiantes se editan juntos.
-      groupBlock = el("div", { class: "mb-4" }, [
-        el("label", { for: "analysis-group", class: "block text-sm font-medium text-slate-700" }, "Grupo"),
-        el("div", { class: "mt-1" }, [
-          el("input", {
-            id: "analysis-group",
-            type: "text",
-            value: group ?? "",
-            placeholder: "N1, N2, N3…",
-            class: `${CONTROL_CLASS} w-40`,
-            oninput: (event) => handlers.onGroupChange(event.target.value),
-          }),
-        ]),
-      ]);
-      list =
-        students.length > 0
-          ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
-          : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer estudiante.");
-      actions = [
-        addButton,
-        el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneStudents() }, [icon("check", "h-4 w-4"), "Listo"]),
-      ];
-    } else {
-      // Modo visualización: grupo y estudiantes de solo lectura.
-      groupBlock = el("div", { class: "mb-4 text-sm" }, [
-        el("span", { class: "font-medium text-slate-700" }, "Grupo: "),
-        group ? el("span", { class: "text-slate-700" }, group) : el("span", { class: "text-slate-400" }, "sin asignar"),
-      ]);
-      if (students.length > 0) {
-        list = el("div", { class: "flex flex-wrap gap-2" }, students.map(studentChip));
-        actions = [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditStudents() }, [icon("edit", "h-4 w-4"), "Editar estudiantes"])];
-      } else {
-        list = emptyState("students", "Aún no hay estudiantes. Agrega al menos uno.");
-        actions = [addButton];
-      }
-    }
-
-    this.container.append(
-      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({ step: 1, title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
-        groupBlock,
-        list,
-        el("div", { class: "mt-3 flex flex-wrap gap-2" }, actions),
+  // Barra compacta (visualización): grupo + estudiantes en una línea, con «Editar».
+  #compactBar(group, students, handlers) {
+    return el("div", { class: "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm" }, [
+      el("span", { class: "inline-flex items-center gap-1.5 font-medium text-slate-700" }, [
+        icon("students", "h-4 w-4 text-indigo-500"),
+        group ? `Grupo ${group}` : "Sin grupo",
       ]),
-    );
+      el("span", { class: "text-slate-300" }, "·"),
+      el("div", { class: "flex flex-wrap gap-1.5" }, students.map(studentChip)),
+      el(
+        "button",
+        { type: "button", class: `${GHOST_BUTTON_CLASS} ml-auto py-1`, onclick: () => handlers.onEditStudents() },
+        [icon("edit", "h-4 w-4"), "Editar estudiantes"],
+      ),
+    ]);
+  }
+
+  // Estado vacío (sin estudiantes): invita a agregar el primero.
+  #emptyCard(handlers) {
+    return el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+      sectionHeader({ title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
+      emptyState("students", "Aún no hay estudiantes. Agrega al menos uno."),
+      el("div", { class: "mt-3" }, [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante")]),
+    ]);
+  }
+
+  // Modo edición: el grupo y los estudiantes se editan juntos.
+  #editingCard(group, students, handlers) {
+    const groupBlock = el("div", { class: "mb-4" }, [
+      el("label", { for: "analysis-group", class: "block text-sm font-medium text-slate-700" }, "Grupo"),
+      el("div", { class: "mt-1" }, [
+        el("input", {
+          id: "analysis-group",
+          type: "text",
+          value: group ?? "",
+          placeholder: "N1, N2, N3…",
+          class: `${CONTROL_CLASS} w-40`,
+          oninput: (event) => handlers.onGroupChange(event.target.value),
+        }),
+      ]),
+    ]);
+    const list =
+      students.length > 0
+        ? el("div", { class: "space-y-2" }, students.map((student) => studentRow(student, handlers)))
+        : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer estudiante.");
+    const actions = [
+      el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante"),
+      el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneStudents() }, [icon("check", "h-4 w-4"), "Listo"]),
+    ];
+    return el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+      sectionHeader({ title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
+      groupBlock,
+      list,
+      el("div", { class: "mt-3 flex flex-wrap gap-2" }, actions),
+    ]);
   }
 }
 

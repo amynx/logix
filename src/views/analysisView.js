@@ -319,7 +319,7 @@ export class AnalysisView {
 
     this.infoContainer.append(
       el("div", { class: "space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({ step: 2, title: "Análisis", subtitle: "Título y descripción del problema.", iconName: "new" }),
+        sectionHeader({ title: "Análisis", subtitle: "Título y descripción del problema.", iconName: "new" }),
         el("div", {}, [
           el("label", { for: "analysis-title", class: LABEL_CLASS }, "Título del análisis"),
           el("div", { class: "mt-1" }, [title]),

@@ -1,5 +1,5 @@
-// Encabezado de sección numerado, con icono, para guiar el flujo de trabajo
-// (① Estudiantes → ② Datos de entrada → ③ Actividades → ④ Cadena).
+// Encabezado de sección con icono. El progreso numerado vive ahora en el paso
+// superior por etapas (stageNav), así que aquí no se repite el número.
 
 import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
@@ -12,10 +12,9 @@ export function emptyState(iconName, text) {
   ]);
 }
 
-export function sectionHeader({ step, title, subtitle, iconName, trailing, help }) {
-  return el("div", { class: "mb-3 flex items-center gap-3" }, [
-    el("span", { class: "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700" }, String(step)),
-    el("span", { class: "text-indigo-500" }, [icon(iconName, "h-5 w-5")]),
+export function sectionHeader({ title, subtitle, iconName, trailing, help }) {
+  return el("div", { class: "mb-3 flex items-center gap-2.5" }, [
+    el("span", { class: "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-500" }, [icon(iconName, "h-5 w-5")]),
     el("div", { class: "min-w-0" }, [
       el("h2", { class: "text-sm font-semibold text-slate-800" }, title),
       subtitle ? el("p", { class: "text-xs text-slate-400" }, subtitle) : null,
