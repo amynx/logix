@@ -131,7 +131,9 @@ export class CardsView {
         el("div", { class: "ml-auto" }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
       ]),
       el("div", { class: "mt-4 space-y-3.5" }, [
-        fields.kind ? el("div", {}, [fields.kind]) : null,
+        // El tipo se decide al crear la actividad («Agregar operación» / «Agregar
+        // condición»); aquí solo se recuerda qué hace, sin un conmutador que confunda.
+        el("p", { class: "text-xs text-slate-400" }, isCondition ? "Comprueba algo: una pregunta de Sí / No." : "Calcula o transforma datos para obtener uno nuevo."),
         activityFlow(fields, stackedRow, row.kind),
       ]),
     ]);
