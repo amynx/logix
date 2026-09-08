@@ -16,7 +16,7 @@ import {
   markDropTarget,
   clearDropTarget,
 } from "./rowEditor.js";
-import { activityFlow, stackedRow } from "./cardLayout.js";
+import { activityFlow, stepNumber, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { icon } from "./icons.js";
@@ -50,11 +50,11 @@ export class CardsView {
     const wanted = handlers.selectedRowId?.();
     const selected = rows.find((row) => row.id === wanted) ?? rows[0];
 
-    const list = el("ol", { class: "space-y-1.5" }, rows.map((row) => this.#listItem(row, selected.id, dataById, handlers)));
+    const list = el("ol", { class: "space-y-1.5" }, rows.map((row, index) => this.#listItem(row, index, selected.id, dataById, handlers)));
     // Los botones de agregar van ARRIBA: con muchas actividades no obligan a hacer
     // scroll hasta el final de la lista para crear una nueva.
     const master = el("div", { class: "space-y-3" }, [addActivityButton(handlers.onAddRow), list]);
-    const detail = this.#workspace(selected, dataById, handlers, activities, producedIds);
+    const detail = this.#workspace(selected, rows.indexOf(selected), dataById, handlers, activities, producedIds);
 
     this.container.append(
       header,
@@ -66,10 +66,10 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers));
   }
 
-  // Un elemento de la lista: estado + título breve + tipo (sin numeración).
-  // Seleccionable y arrastrable (por su tirador) para reordenar. Lleva `data-row-id`
-  // (uno por actividad); el espacio de trabajo no, para no duplicar la representación.
-  #listItem(row, selectedId, dataById, handlers) {
+  // Un elemento de la lista: estado + número + título breve + tipo. Seleccionable y
+  // arrastrable (por su tirador) para reordenar. Lleva `data-row-id` (uno por
+  // actividad); el espacio de trabajo no, para no duplicar la representación.
+  #listItem(row, index, selectedId, dataById, handlers) {
     const isSelected = row.id === selectedId;
     const isCondition = row.kind === "condition";
     const status = isSelected ? "active" : handlers.rowStatus?.(row.id) ?? "todo";
@@ -101,6 +101,7 @@ export class CardsView {
       [
         dragHandle(row.id, setDragged),
         statusMarker(status),
+        el("span", { class: "w-4 shrink-0 text-center text-xs font-medium text-slate-400" }, String(index + 1)),
         el(
           "button",
           {
@@ -117,14 +118,15 @@ export class CardsView {
     );
   }
 
-  // Espacio de trabajo de la actividad seleccionada: encabezado con su tipo (sin
-  // numeración) y debajo los campos como un flujo de razonamiento (siempre editable).
-  #workspace(row, dataById, handlers, activities, producedIds) {
+  // Espacio de trabajo de la actividad seleccionada: encabezado con su número y
+  // tipo, y debajo los campos como un flujo de razonamiento (siempre editable).
+  #workspace(row, index, dataById, handlers, activities, producedIds) {
     const isCondition = row.kind === "condition";
     const tint = isCondition ? "border-amber-200 bg-amber-50/20" : "border-slate-200 bg-white";
     const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
     return el("div", { class: `rounded-xl border ${tint} p-4 shadow-sm sm:p-5`, dataset: { workspaceRow: row.id } }, [
       el("div", { class: "flex items-center gap-2 border-b border-slate-100 pb-3" }, [
+        stepNumber(index + 1),
         el("span", { class: `inline-flex items-center gap-1.5 text-sm font-semibold ${isCondition ? "text-amber-700" : "text-slate-700"}` }, [
           icon(isCondition ? "fork" : "activities", `h-4 w-4 ${isCondition ? "text-amber-500" : "text-indigo-500"}`),
           isCondition ? "Condición" : "Actividad",
