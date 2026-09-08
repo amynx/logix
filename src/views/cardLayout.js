@@ -163,6 +163,70 @@ export function activityZones(nodesByKey, renderRow, kind = "operation", { asQue
   ].filter(Boolean);
 }
 
+// Disposición HORIZONTAL de la actividad como flujo de razonamiento: agrupa las
+// zonas en fases (Datos → Proceso → Resultado) que se leen de izquierda a derecha
+// aprovechando el ancho, en vez de una columna alta que obliga a hacer scroll. En
+// pantallas angostas las fases se apilan (con conectores «↓»). Mismas zonas y
+// colores que `activityZones`; solo cambia el arreglo.
+export function activityFlow(nodesByKey, renderRow, kind = "operation") {
+  const row = (key, label = null) => (nodesByKey[key] ? renderRow(label, nodesByKey[key]) : null);
+  const comment = nodesByKey.comment ? el("div", { class: "pt-0.5" }, [nodesByKey.comment]) : null;
+
+  let phases;
+  if (kind === "condition") {
+    phases = [
+      { grow: "lg:flex-[1.2]", blocks: [
+        zoneBlock("¿Qué quieres comprobar?", ZONE_TONES.condition, [row("condition", "Pregunta"), row("operation", "Comprobación"), row("conditionName", "Nombre"), row("evaluate")]),
+      ] },
+      { grow: "lg:flex-1", blocks: [
+        zoneBlock("¿Qué obtienes?", ZONE_TONES.result, [row("result", "Dato lógico")]),
+        zoneBlock("¿Para qué lo usarás?", ZONE_TONES.purpose, [row("purpose"), row("usedIn", SUBLABELS.usedIn)]),
+      ] },
+      { grow: "lg:flex-1", blocks: [
+        zoneBlock("¿Qué pasa según el resultado?", ZONE_TONES.branch, [row("ifTrue", "Si se cumple, entonces:"), row("ifFalse", "Si no se cumple, entonces:")]),
+        comment,
+      ] },
+    ];
+  } else {
+    phases = [
+      { grow: "lg:flex-1", blocks: [
+        zoneBlock("¿Qué necesitas hacer?", ZONE_TONES.need, [row("problem")]),
+        zoneBlock("¿Qué necesitas para hacerlo?", ZONE_TONES.input, [row("inputs")]),
+      ] },
+      { grow: "lg:flex-[1.4]", blocks: [
+        zoneBlock("¿Qué debes hacer?", ZONE_TONES.process, [row("operation")]),
+      ] },
+      { grow: "lg:flex-1", blocks: [
+        zoneBlock("¿Qué obtienes?", ZONE_TONES.result, [row("result")]),
+        zoneBlock("¿Para qué usarás este dato?", ZONE_TONES.purpose, [row("purpose"), row("usedIn", SUBLABELS.usedIn)]),
+        comment,
+      ] },
+    ];
+  }
+
+  const columns = phases
+    .map((phase) => {
+      const present = phase.blocks.filter(Boolean);
+      return present.length > 0 ? el("div", { class: `min-w-0 flex-1 space-y-3 ${phase.grow}` }, present) : null;
+    })
+    .filter(Boolean);
+
+  const children = [];
+  columns.forEach((column, index) => {
+    if (index > 0) children.push(flowConnector());
+    children.push(column);
+  });
+  return el("div", { class: "flex flex-col gap-3 lg:flex-row lg:items-stretch" }, children);
+}
+
+// Conector entre fases: hacia abajo cuando se apilan, hacia la derecha en fila.
+function flowConnector() {
+  return el("div", { class: "flex shrink-0 items-center justify-center text-slate-300 lg:px-1" }, [
+    el("span", { class: "lg:hidden" }, "↓"),
+    el("span", { class: "hidden lg:inline" }, "→"),
+  ]);
+}
+
 // Zona agrupada: barra y título (con icono) en su color + filas. Null si no hay filas.
 function zoneBlock(title, tone, rows) {
   const present = rows.filter(Boolean);

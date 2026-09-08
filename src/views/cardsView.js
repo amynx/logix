@@ -16,7 +16,7 @@ import {
   markDropTarget,
   clearDropTarget,
 } from "./rowEditor.js";
-import { activityZones, stepNumber, stackedRow } from "./cardLayout.js";
+import { activityFlow, stepNumber, stackedRow } from "./cardLayout.js";
 import { sectionHeader } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { icon } from "./icons.js";
@@ -132,7 +132,7 @@ export class CardsView {
       ]),
       el("div", { class: "mt-4 space-y-3.5" }, [
         fields.kind ? el("div", {}, [fields.kind]) : null,
-        ...activityZones(fields, stackedRow, row.kind),
+        activityFlow(fields, stackedRow, row.kind),
       ]),
     ]);
   }
