@@ -893,9 +893,11 @@ test("the completeness indicator lists pending items and clears when complete", 
   assert.match(panel().textContent, /Por completar/);
   assert.match(panel().textContent, /título/);
 
-  // El ejemplo guiado está completo: el indicador lo confirma.
+  // El ejemplo guiado está completo: se limpian los pendientes y la cadena muestra
+  // la información final (la confirmación vive ahí y en el paso «Cadena», no aquí).
   [...doc.querySelectorAll("#toolbar button")].find((b) => b.textContent === "Ejemplo guiado").click();
-  assert.match(panel().textContent, /completo/);
+  assert.doesNotMatch(panel().textContent, /Por completar/, "sin pendientes cuando está completo");
+  assert.match(doc.getElementById("chain-container").textContent, /Información final/, "la cadena muestra la información final");
 });
 
 test("undo and redo revert and reapply a change", async () => {
@@ -1030,7 +1032,8 @@ test("saving warns about incomplete analysis and can be cancelled", async () => 
 
 test("saving a complete analysis exports without warnings", async () => {
   const { doc, controller } = await mountApp();
-  controller.analysis.title = "Análisis listo"; // sin filas problemáticas
+  // Un análisis realmente completo: el ejemplo guiado (con su información final).
+  controller.loadStudentGradeExample();
 
   await controller.saveToFile();
 

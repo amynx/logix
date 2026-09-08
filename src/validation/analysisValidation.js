@@ -282,5 +282,23 @@ export function collectAnalysisWarnings(analysis) {
     }
   });
 
+  // El análisis solo está completo cuando produce una información final: mientras no
+  // haya ninguna salida (un propósito «respuesta» o un camino de respuesta), queda
+  // pendiente aunque las actividades individuales estén bien.
+  if (analysis.rows.length > 0 && !producesFinalOutput(analysis)) {
+    add("El análisis todavía no genera una información final (elige «Generar la información final» o define un camino de respuesta).");
+  }
+
   return warnings;
+}
+
+// Hay salida si alguna actividad tiene propósito «respuesta» o algún camino de una
+// decisión termina en una respuesta (coincide con las salidas de la cadena).
+function producesFinalOutput(analysis) {
+  return analysis.rows.some(
+    (row) =>
+      row.purpose === "response" ||
+      (row.ifTrue?.type === "response" && (row.ifTrue.value?.length ?? 0) > 0) ||
+      (row.ifFalse?.type === "response" && (row.ifFalse.value?.length ?? 0) > 0),
+  );
 }

@@ -15,15 +15,10 @@ export class CompletenessView {
   render(warnings, handlers = {}) {
     clear(this.container);
 
-    if (warnings.length === 0) {
-      this.container.append(
-        el("div", { class: "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700" }, [
-          icon("check", "h-4 w-4"),
-          "El análisis está completo.",
-        ]),
-      );
-      return;
-    }
+    // Sin pendientes no se muestra nada: que el análisis está completo lo comunican
+    // el paso «Cadena» (que se marca ✓ solo cuando hay una salida) y el bloque de
+    // información final. Un banner aquí solo añadía ruido.
+    if (warnings.length === 0) return;
 
     const item = (warning) => {
       if (warning.rowId && handlers.onFocusActivity) {
