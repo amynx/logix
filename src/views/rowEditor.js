@@ -14,7 +14,7 @@ import { PENDING_ACTIVITY } from "../models/analysisModel.js";
 // Estilo discreto: sin borde ni fondo hasta pasar el cursor o enfocar.
 const CONTROL_CLASS =
   "w-full rounded border border-transparent bg-transparent px-2 py-1 text-sm text-slate-900 " +
-  "outline-none hover:border-slate-200 hover:bg-slate-50 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-200 " +
+  "outline-none hover:border-slate-200 hover:bg-slate-50 focus:border-[oklch(0.72_0.09_300)] focus:bg-[var(--lx-surface)] focus:ring-2 focus:ring-[oklch(0.90_0.05_300)] " +
   "disabled:cursor-not-allowed disabled:text-slate-300";
 
 // Orden y etiquetas de los campos de una actividad (usado por ambas vistas).
@@ -277,7 +277,7 @@ export function editButton(onClick) {
     "button",
     {
       type: "button",
-      class: "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-700",
+      class: "inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-[oklch(0.90_0.04_300)] hover:text-[var(--lx-violet)]",
       title: "Editar esta actividad",
       onclick: onClick,
     },
@@ -291,7 +291,7 @@ export function doneButton(onClick) {
     "button",
     {
       type: "button",
-      class: "inline-flex items-center gap-1 rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700",
+      class: "inline-flex items-center gap-1 rounded-md bg-[var(--lx-violet)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--lx-violet-hover)]",
       title: "Terminar de editar",
       onclick: onClick,
     },
@@ -304,29 +304,31 @@ export function deleteButton(onClick) {
     "button",
     {
       type: "button",
-      class: "rounded px-2 py-1 text-slate-400 hover:bg-red-50 hover:text-red-600",
+      class: "inline-flex h-8 w-8 items-center justify-center rounded-[var(--lx-r-control)] text-[var(--lx-ink-muted)] hover:bg-[oklch(0.96_0.02_25)] hover:text-[oklch(0.55_0.15_25)]",
       title: "Eliminar actividad",
       "aria-label": "Eliminar actividad",
       onclick: onClick,
     },
-    "🗑",
+    "✕",
   );
 }
 
+// Dos botones punteados para agregar un paso: operación (hover violeta) o condición
+// (hover ámbar). Apilados, ocupan el ancho del riel de la etapa Construcción.
 export function addActivityButton(onAddRow) {
-  const button = (kind, label, iconName) =>
+  const button = (kind, label, iconName, hover) =>
     el(
       "button",
       {
         type: "button",
-        class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50",
+        class: `inline-flex w-full items-center gap-1.5 rounded-[var(--lx-r-control)] border border-dashed border-[var(--lx-border-dashed)] bg-[var(--lx-surface)] px-3 py-2 text-[13.5px] font-medium text-[var(--lx-ink-body)] ${hover}`,
         onclick: () => onAddRow(kind),
       },
       [icon(iconName, "h-4 w-4"), label],
     );
-  return el("div", { class: "mt-3 flex flex-wrap gap-2" }, [
-    button("operation", "Agregar operación", "workflow"),
-    button("condition", "Agregar condición", "fork"),
+  return el("div", { class: "flex flex-col gap-2" }, [
+    button("operation", "Agregar operación", "workflow", "hover:border-[var(--lx-violet)] hover:text-[var(--lx-violet)]"),
+    button("condition", "Agregar condición", "fork", "hover:border-[var(--lx-condicion-fg)] hover:text-[var(--lx-condicion-fg)]"),
   ]);
 }
 
@@ -463,21 +465,21 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   const inputChips = refChips(
     inputRefs.map((e) => ({ id: e.id, label: e.name, type: e.type })),
     (id) => ({ kind: "ref", dataId: id }),
-    "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+    "border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)] hover:brightness-95",
     "data",
     inputHint,
   );
   const resultChips = refChips(
     resultRefs.map((e) => ({ id: e.id, label: e.name, type: e.type })),
     (id) => ({ kind: "ref", dataId: id }),
-    "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    "border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)] hover:brightness-95",
     "reuse",
     "Aún no hay datos producidos por otras actividades.",
   );
   const conditionChips = refChips(
     conditionEntries,
     (id) => ({ kind: "cond", condId: id }),
-    "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+    "border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] text-[var(--lx-condicion-fg)] hover:brightness-95",
     "fork",
     "Aún no hay otras condiciones reutilizables.",
   );
@@ -509,7 +511,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     "button",
     {
       type: "button",
-      class: "shrink-0 rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-700",
+      class: "shrink-0 rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-500 hover:border-[oklch(0.90_0.04_300)] hover:text-[var(--lx-violet)]",
       title: "Agregar valor",
       onmousedown: (event) => event.preventDefault(),
       onclick: addValue,
@@ -531,9 +533,9 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   // Categorías de «agregar», claramente diferenciadas. Solo aparecen las que
   // aplican: el dato resultante o la condición se ofrecen si hay alguno reutilizable.
   const categories = [
-    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: inputChips },
-    hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: resultChips } : null,
-    hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-amber-500", control: conditionChips } : null,
+    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", control: inputChips },
+    hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", control: resultChips } : null,
+    hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-[var(--lx-condicion-fg)]", control: conditionChips } : null,
     { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", control: valuePanel },
     { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", control: operatorPanel },
   ].filter(Boolean);
@@ -587,7 +589,7 @@ function addTrigger(onOpen, label = "+ Agregar elemento") {
     "button",
     {
       type: "button",
-      class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-indigo-300 hover:bg-indigo-50/50 hover:text-indigo-700",
+      class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-[oklch(0.90_0.04_300)] hover:bg-[oklch(0.972_0.018_300)] hover:text-[var(--lx-violet)]",
       onclick: onOpen,
     },
     [icon("data", "h-3.5 w-3.5"), label],
@@ -602,7 +604,7 @@ function categoryChip(category, selected, onSelect) {
       type: "button",
       "aria-pressed": String(selected),
       class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
-        selected ? "border-indigo-300 bg-indigo-50 font-medium text-indigo-700" : "border-slate-200 bg-white text-slate-500 hover:border-indigo-200 hover:bg-slate-50"
+        selected ? "border-[oklch(0.90_0.04_300)] bg-[oklch(0.972_0.018_300)] font-medium text-[var(--lx-violet)]" : "border-slate-200 bg-white text-slate-500 hover:border-[oklch(0.90_0.04_300)] hover:bg-[var(--lx-bg)]"
       }`,
       onclick: onSelect,
     },
@@ -639,7 +641,7 @@ function operatorGroup(group, onPick) {
             type: "button",
             title: `${group.label}: ${symbol}`,
             dataset: { op: key },
-            class: "min-w-[2rem] rounded border border-slate-200 bg-white px-2 py-1 text-sm font-mono font-semibold text-slate-700 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700",
+            class: "min-w-[2rem] rounded border border-slate-200 bg-white px-2 py-1 text-sm font-mono font-semibold text-slate-700 hover:border-[oklch(0.72_0.09_300)] hover:bg-[oklch(0.972_0.018_300)] hover:text-[var(--lx-violet)]",
             onmousedown: (event) => event.preventDefault(),
             onclick: () => onPick(key),
           },
@@ -684,9 +686,9 @@ function describeToken(token, resolve, producedIds = new Set(), resolveCondition
   if (token.kind === "cond") {
     const condition = resolveCondition ? resolveCondition(token.condId) : null;
     return {
-      leading: icon("fork", "h-3 w-3 shrink-0 text-amber-500"),
+      leading: icon("fork", "h-3 w-3 shrink-0 text-[var(--lx-condicion-fg)]"),
       text: condition ? condition.label : "(condición eliminada)",
-      className: "border border-amber-200 bg-amber-50 text-amber-700",
+      className: "border border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] text-[var(--lx-condicion-fg)]",
       extra: "font-semibold",
     };
   }
@@ -695,15 +697,15 @@ function describeToken(token, resolve, producedIds = new Set(), resolveCondition
     const text = datum ? datum.name || "(sin nombre)" : "(dato eliminado)";
     if (producedIds.has(token.dataId)) {
       return {
-        leading: icon("reuse", "h-3 w-3 shrink-0 text-emerald-500"),
+        leading: icon("reuse", "h-3 w-3 shrink-0 text-[var(--lx-resultante-fg)]"),
         text,
-        className: "border border-emerald-200 bg-emerald-50 text-emerald-700",
+        className: "border border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)]",
       };
     }
     return {
-      leading: icon("data", "h-3 w-3 shrink-0 text-blue-500"),
+      leading: icon("data", "h-3 w-3 shrink-0 text-[var(--lx-entrada-fg)]"),
       text,
-      className: "border border-blue-200 bg-blue-50 text-blue-700",
+      className: "border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)]",
     };
   }
   if (token.kind === "op") {
@@ -712,7 +714,7 @@ function describeToken(token, resolve, producedIds = new Set(), resolveCondition
   return {
     leading: icon("hash", "h-3 w-3 shrink-0 text-slate-400"),
     text: token.value || "∅",
-    className: "border border-slate-200 bg-slate-100 text-slate-600",
+    className: "border border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-muted)]",
     extra: "font-mono",
   };
 }
@@ -750,7 +752,7 @@ function purposeOptions(purpose, onChange) {
         "aria-pressed": String(selected),
         dataset: { purpose: value },
         class: `flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition ${
-          selected ? "border-amber-300 bg-amber-50 font-medium text-amber-800" : "border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:bg-amber-50/60"
+          selected ? "border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] font-medium text-[var(--lx-condicion-fg)]" : "border-slate-200 bg-white text-slate-600 hover:border-[var(--lx-condicion-border)] hover:bg-[var(--lx-condicion-bg)]"
         }`,
         onclick: () => onChange(value),
       },
@@ -767,7 +769,7 @@ function purposeOptions(purpose, onChange) {
 // Interruptor de una condición: ¿evaluarla ahora (produce un dato lógico) o
 // dejarla reutilizable para más adelante? Cambia los campos que muestra la tarjeta.
 function evaluateToggle(checked, onChange) {
-  const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-200" });
+  const box = el("input", { type: "checkbox", class: "h-3.5 w-3.5 rounded border-slate-300 text-[var(--lx-violet)] focus:ring-2 focus:ring-[oklch(0.90_0.05_300)]" });
   box.checked = Boolean(checked);
   box.onchange = (event) => onChange(event.target.checked);
   const label = el("label", { class: "inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-600 hover:text-slate-800" }, [
@@ -869,7 +871,7 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
         type: "button",
         dataset: { addInput: entry.id },
         class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
-          produced ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+          produced ? "border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)] hover:brightness-95" : "border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)] hover:brightness-95"
         }`,
         onmousedown: (event) => event.preventDefault(),
         onclick: () => handlers.onReuseInput(rowId, entry.id),
@@ -885,8 +887,8 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   // Mismo mecanismo progresivo que el constructor de expresiones: categorías
   // diferenciadas y solo las fichas de la activa (no todas a la vez).
   const categories = [
-    entradas.length > 0 ? { key: "input", label: "Dato de entrada", icon: "data", tone: "text-blue-500", control: chipWrap(entradas) } : null,
-    resultantes.length > 0 ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-emerald-500", control: chipWrap(resultantes) } : null,
+    entradas.length > 0 ? { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", control: chipWrap(entradas) } : null,
+    resultantes.length > 0 ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", control: chipWrap(resultantes) } : null,
   ].filter(Boolean);
 
   const picker = el("div", { class: "min-w-0" });

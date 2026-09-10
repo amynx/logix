@@ -6,18 +6,18 @@
 import { el } from "../utils/dom.js";
 import { icon } from "./icons.js";
 
-// Tonos por zona: refuerzan el lenguaje de color entrada(azul) → proceso(índigo)
-// → resultado(verde), con la condición y la decisión (sus caminos y propósito) en
-// naranja y el contexto en gris. Cada zona lleva un icono para reconocerla rápido.
+// Tonos por zona (tokens del rediseño): entrada y proceso en violeta, resultado en
+// verde, condición y decisión (sus caminos y propósito) en ámbar, y el contexto en
+// gris. Cada zona lleva un icono para reconocerla rápido.
 const ZONE_TONES = {
-  need: { bar: "border-slate-200", title: "text-slate-400", icon: "target" },
-  input: { bar: "border-blue-300", title: "text-blue-600", icon: "data" },
-  process: { bar: "border-indigo-300", title: "text-indigo-600", icon: "workflow" },
-  result: { bar: "border-emerald-300", title: "text-emerald-600", icon: "flag" },
-  branch: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
-  purpose: { bar: "border-amber-300", title: "text-amber-600", icon: "reuse" },
-  condition: { bar: "border-amber-300", title: "text-amber-600", icon: "fork" },
-  reuse: { bar: "border-emerald-300", title: "text-emerald-600", icon: "reuse" },
+  need: { bar: "border-[var(--lx-border)]", title: "text-[var(--lx-ink-muted)]", icon: "target" },
+  input: { bar: "border-[var(--lx-entrada-border)]", title: "text-[var(--lx-entrada-fg)]", icon: "data" },
+  process: { bar: "border-[oklch(0.90_0.04_300)]", title: "text-[var(--lx-violet)]", icon: "workflow" },
+  result: { bar: "border-[var(--lx-resultante-border)]", title: "text-[var(--lx-resultante-fg)]", icon: "flag" },
+  branch: { bar: "border-[var(--lx-condicion-border)]", title: "text-[var(--lx-condicion-fg)]", icon: "fork" },
+  purpose: { bar: "border-[var(--lx-condicion-border)]", title: "text-[var(--lx-condicion-fg)]", icon: "reuse" },
+  condition: { bar: "border-[var(--lx-condicion-border)]", title: "text-[var(--lx-condicion-fg)]", icon: "fork" },
+  reuse: { bar: "border-[var(--lx-resultante-border)]", title: "text-[var(--lx-resultante-fg)]", icon: "reuse" },
 };
 
 // Etiquetas de los campos que comparten zona con otros (para distinguirlos). Los
@@ -28,7 +28,7 @@ const SUBLABELS = { usedIn: "Se usa en" };
 export function stepNumber(position) {
   return el(
     "span",
-    { class: "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700" },
+    { class: "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--lx-entrada-bg)] text-xs font-semibold text-[var(--lx-entrada-fg)]" },
     String(position),
   );
 }
@@ -48,8 +48,8 @@ export function commentBox(content) {
 // Caja para la condición: se lee como una pregunta (icono de interrogación + cursiva).
 // `content` puede ser texto o nodos con referencias resaltadas.
 export function questionBox(content) {
-  return el("div", { class: "flex items-start gap-1.5 rounded-md border border-amber-100 bg-amber-50/50 px-2.5 py-2 text-sm italic leading-relaxed text-slate-700" }, [
-    icon("help", "h-3.5 w-3.5 mt-1 text-amber-500"),
+  return el("div", { class: "flex items-start gap-1.5 rounded-[var(--lx-r-panel)] border border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] px-2.5 py-2 text-sm italic leading-relaxed text-[var(--lx-ink-body)]" }, [
+    icon("help", "h-3.5 w-3.5 mt-1 text-[var(--lx-condicion-fg)]"),
     el("span", { class: "min-w-0 whitespace-pre-wrap" }, content),
   ]);
 }
@@ -78,15 +78,15 @@ function referenceChip(name, produced) {
   return el(
     "span",
     {
-      class: `inline-flex items-center gap-1 rounded px-1 py-0.5 align-middle not-italic ${produced ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`,
+      class: `inline-flex items-center gap-1 rounded-[var(--lx-r-chip)] px-1 py-0.5 align-middle not-italic ${produced ? "bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)]" : "bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)]"}`,
     },
-    [icon(produced ? "reuse" : "data", `h-3 w-3 ${produced ? "text-emerald-500" : "text-blue-500"}`), el("span", {}, name)],
+    [icon(produced ? "reuse" : "data", `h-3 w-3 ${produced ? "text-[var(--lx-resultante-fg)]" : "text-[var(--lx-entrada-fg)]"}`), el("span", {}, name)],
   );
 }
 
 // Caja para la operación: se lee como una fórmula (recuadro tenue, monoespaciada).
 export function formulaBox(node) {
-  return el("div", { class: "inline-flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-sm text-slate-700" }, [node]);
+  return el("div", { class: "inline-flex flex-wrap items-center gap-1 rounded-[var(--lx-r-panel)] border border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] px-2 py-1 [font-family:var(--lx-font-mono)] text-sm text-[var(--lx-ink-body)]" }, [node]);
 }
 
 // Antepone un "=" al dato producido para enfatizar que es el resultado del paso.
