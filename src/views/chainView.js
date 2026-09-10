@@ -8,6 +8,7 @@ import { el, clear } from "../utils/dom.js";
 import { typeBadge } from "./badges.js";
 import { formulaBox } from "./cardLayout.js";
 import { icon } from "./icons.js";
+import { goToStage } from "./stageNav.js";
 
 // Acentos por tipo de nodo, coherentes con el color semántico del resto:
 // entrada azul, operación índigo, condición naranja, información final verde.
@@ -24,16 +25,26 @@ export class ChainView {
 
   render(chain) {
     clear(this.container);
-    const isEmpty =
-      chain.entradas.length === 0 && chain.proceso.length === 0 && chain.salidas.length === 0;
-
-    const body = isEmpty
-      ? el("p", { class: "text-center text-sm text-[var(--lx-ink-muted)]" }, "La cadena aparecerá aquí a medida que completes el análisis.")
-      : el("div", {}, [summaryBar(chain), ...flowNodes(chain)]);
-
+    // La cadena no se vacía por sí sola: refleja las demás etapas. Cuando falta una
+    // parte, se muestra un hueco punteado que lleva a la etapa que la completa.
+    const hasContent = chain.entradas.length > 0 || chain.proceso.length > 0 || chain.salidas.length > 0;
+    const body = el("div", {}, [hasContent ? summaryBar(chain) : null, ...flowNodes(chain)].filter(Boolean));
     // El diseño centra la etapa Cadena en una columna de 720px, sin tarjeta externa.
     this.container.append(el("div", { class: "mx-auto max-w-[720px]" }, [body]));
   }
+}
+
+// Hueco punteado: cuando falta una parte de la cadena, invita a ir a completarla.
+function holeButton(text, stageId) {
+  return el(
+    "button",
+    {
+      type: "button",
+      class: "flex w-full items-center justify-center gap-1.5 rounded-[var(--lx-r-panel)] border border-dashed border-[var(--lx-border-dashed)] px-3 py-5 text-[13px] font-medium text-[var(--lx-ink-muted)] hover:border-[var(--lx-violet)] hover:text-[var(--lx-violet)]",
+      onclick: () => goToStage(stageId),
+    },
+    [text, icon("chevron", "h-4 w-4 -rotate-90")],
+  );
 }
 
 // Resumen no invasivo del estado del razonamiento: cuántos datos, operaciones,
@@ -57,9 +68,15 @@ function summaryBar(chain) {
 // intercalando conectores «↓» para que se lea como una secuencia.
 function flowNodes(chain) {
   const blocks = [];
-  blocks.push(inputsBlock(chain.entradas));
-  for (const step of chain.proceso) {
-    blocks.push(down(), step.kind === "condition" ? conditionNode(step) : operationNode(step));
+  blocks.push(chain.entradas.length > 0 ? inputsBlock(chain.entradas) : holeButton("Aquí irán tus datos de entrada · Ir a Datos", "datos"));
+  blocks.push(down());
+  if (chain.proceso.length > 0) {
+    chain.proceso.forEach((step, index) => {
+      if (index > 0) blocks.push(down());
+      blocks.push(step.kind === "condition" ? conditionNode(step) : operationNode(step));
+    });
+  } else {
+    blocks.push(holeButton("Aquí irán tus actividades · Ir a Construcción", "construccion"));
   }
   blocks.push(down(), outputBlock(chain.salidas));
   return blocks;

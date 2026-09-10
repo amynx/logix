@@ -185,7 +185,7 @@ test("renders analysis info and a seeded row with all columns", async () => {
   assert.ok(doc.getElementById("analysis-title"), "title input exists");
   assert.ok(doc.getElementById("analysis-description"), "description textarea exists");
 
-  assert.equal(doc.querySelectorAll("thead th").length, 12, "12 header cells (# + 10 columns + actions)");
+  assert.equal(doc.querySelectorAll("#table-container thead th").length, 12, "12 header cells (# + 10 columns + actions)");
   assert.equal(doc.querySelectorAll("#table-container tbody tr").length, 1, "one seeded row");
   assert.equal(doc.querySelectorAll("#table-container tbody tr td").length, 12, "row has 12 cells");
 });

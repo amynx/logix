@@ -8,7 +8,6 @@ import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
 import { NAME_CONVENTIONS } from "../models/nameConventions.js";
 import { normalizeFieldOnBlur } from "./rowEditor.js";
-import { emptyState } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
@@ -65,7 +64,12 @@ export class InputsView {
     let body;
     let footer = null;
     if (inputs.length === 0 && !editing) {
-      body = emptyState("data", "Aún no hay datos de entrada. Agrégalos aquí o selecciónalos en el enunciado.");
+      // Estado vacío: la tabla conserva su cabecera y muestra una fila fantasma con
+      // el ejemplo, para que se vea qué va en cada columna antes de agregar el primero.
+      body = el("div", { class: "space-y-2" }, [
+        ghostTable(usingStatement),
+        el("p", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, "Así se verá cada dato. Agrégalos aquí o selecciónalos en el enunciado."),
+      ]);
     } else if (editing) {
       body =
         inputs.length > 0
@@ -141,23 +145,46 @@ function transformationLegend() {
   ]);
 }
 
-// Tabla de datos de entrada; en edición las celdas tienen controles, en
-// visualización muestran el valor de solo lectura.
-function inputsTable(inputs, editing, handlers, usingStatement) {
-  const columns = columnsFor(usingStatement);
+// Cabeceras de la tabla (nombre + nota por columna), reutilizadas por la tabla real
+// y por la fila fantasma del estado vacío.
+function tableHead(columns, withActions) {
   const headCells = columns.map((column) =>
     el("th", { class: `${TH_CLASS} ${column.width}`, scope: "col" }, [
       el("div", { class: "text-[11.5px] font-semibold text-[var(--lx-ink-body)]" }, column.label),
       el("div", { class: "mt-0.5 text-[11.5px] font-normal text-[var(--lx-ink-muted)]" }, column.help),
     ]),
   );
-  if (editing) headCells.push(el("th", { class: `${TH_CLASS} w-10` }, el("span", { class: "sr-only" }, "Acciones")));
+  if (withActions) headCells.push(el("th", { class: `${TH_CLASS} w-10` }, el("span", { class: "sr-only" }, "Acciones")));
+  return el("thead", {}, [el("tr", {}, headCells)]);
+}
 
+// Fila fantasma del estado vacío: el ejemplo completo en gris, para ver qué va en
+// cada columna sin un cartel de «no hay nada».
+function ghostTable(usingStatement) {
+  const columns = columnsFor(usingStatement);
+  const ghost = (node) => el("td", { class: `${TD_CLASS} text-[var(--lx-ink-ghost)]` }, node);
+  const source = ghost(el("span", { class: "inline-flex items-center gap-1.5" }, [icon("data", "h-3.5 w-3.5 text-[var(--lx-ink-ghost)]"), "4 en el primer parcial"]));
+  const value = ghost(el("span", { class: MONO }, "4"));
+  const type = el("td", { class: TD_CLASS }, [el("span", { class: "inline-flex rounded-[var(--lx-r-chip)] border border-dashed border-[var(--lx-border-dashed)] px-1.5 py-0.5 text-[11px] text-[var(--lx-ink-ghost)]" }, "Numérico")]);
+  const name = ghost(el("span", { class: `${MONO} font-medium` }, "nota1"));
+  const cells = usingStatement ? [source, value, type, name] : [name, type, value];
+  return el("div", { class: "overflow-x-auto rounded-[var(--lx-r-panel)] border border-[var(--lx-border)]" }, [
+    el("table", { class: "w-full min-w-[640px] border-collapse text-[13.5px]" }, [
+      tableHead(columns, false),
+      el("tbody", {}, [el("tr", {}, cells)]),
+    ]),
+  ]);
+}
+
+// Tabla de datos de entrada; en edición las celdas tienen controles, en
+// visualización muestran el valor de solo lectura.
+function inputsTable(inputs, editing, handlers, usingStatement) {
+  const columns = columnsFor(usingStatement);
   const rows = inputs.map((entry) => (editing ? editRow(entry, handlers, usingStatement) : viewRow(entry, usingStatement)));
 
   return el("div", { class: "overflow-x-auto rounded-[var(--lx-r-panel)] border border-[var(--lx-border)]" }, [
     el("table", { class: "w-full min-w-[640px] border-collapse text-[13.5px]" }, [
-      el("thead", {}, [el("tr", {}, headCells)]),
+      tableHead(columns, editing),
       el("tbody", {}, rows),
     ]),
   ]);

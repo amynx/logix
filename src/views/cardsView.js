@@ -33,7 +33,7 @@ export class CardsView {
     const rows = analysis.rows;
 
     if (rows.length === 0) {
-      this.container.append(activitiesEmptyState(), el("div", { class: "mt-3" }, [addActivityButton(handlers.onAddRow)]));
+      this.container.append(activitiesEmptyState(handlers.onAddRow));
       return;
     }
 
@@ -192,23 +192,29 @@ function activityTitle(row, dataById) {
   return (result?.name ?? "").trim() || "Actividad sin definir";
 }
 
-// Estado vacío que orienta el primer paso: explica los dos tipos de actividad y
-// para qué sirve cada botón de «Agregar…».
-function activitiesEmptyState() {
-  const option = (iconName, tone, title, text) =>
-    el("div", { class: "flex items-start gap-2 rounded-lg border border-[var(--lx-border)] bg-[var(--lx-surface)] p-3" }, [
-      el("span", { class: `mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${tone}` }, [icon(iconName, "h-4 w-4")]),
-      el("div", {}, [
-        el("div", { class: "text-sm font-semibold text-[var(--lx-ink-body)]" }, title),
-        el("div", { class: "text-xs text-[var(--lx-ink-muted)]" }, text),
+// Estado vacío: en vez de un cartel, el esqueleto de una actividad (las tres zonas
+// en punteado) con la acción que lo llena en el centro.
+function activitiesEmptyState(onAddRow) {
+  const zone = (n, title, help) =>
+    el("div", { class: "flex-1 rounded-[var(--lx-r-panel)] border border-dashed border-[var(--lx-border-dashed)] p-3" }, [
+      el("div", { class: "mb-1 flex items-center gap-1.5" }, [
+        el("span", { class: "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] bg-[var(--lx-surface-sunken)] text-[11px] font-semibold text-[var(--lx-ink-muted)]" }, String(n)),
+        el("span", { class: "text-[13px] font-semibold text-[var(--lx-ink-muted)]" }, title),
       ]),
+      el("p", { class: "text-[12px] text-[var(--lx-ink-ghost)]" }, help),
     ]);
-  return el("div", { class: "rounded-[var(--lx-r-card)] border border-dashed border-[var(--lx-border-dashed)] bg-[var(--lx-surface-muted)] p-4" }, [
-    el("p", { class: "mb-3 text-sm text-[var(--lx-ink-body)]" }, "Descompón el problema en pasos. Cada paso es de uno de dos tipos:"),
-    el("div", { class: "grid gap-2 sm:grid-cols-2" }, [
-      option("workflow", "bg-[var(--lx-entrada-bg)] text-[var(--lx-violet)]", "Operación", "Calcula o transforma datos para obtener uno nuevo."),
-      option("fork", "bg-[var(--lx-condicion-bg)] text-[var(--lx-condicion-fg)]", "Condición", "Comprueba algo: una pregunta de Sí / No."),
+  const addBtn = (kind, label, iconName, cls) =>
+    el("button", { type: "button", class: `inline-flex items-center gap-1.5 rounded-[var(--lx-r-control)] px-3.5 py-2 text-[13.5px] font-medium ${cls}`, onclick: () => onAddRow(kind) }, [icon(iconName, "h-4 w-4"), label]);
+  return el("div", { class: "rounded-[var(--lx-r-card)] border border-dashed border-[var(--lx-border-dashed)] bg-[var(--lx-surface-muted)] p-6" }, [
+    el("div", { class: "mb-5 flex flex-col gap-3 lg:flex-row" }, [
+      zone(1, "Qué necesitas", "Los datos que usa este paso."),
+      zone(2, "Qué haces", "La operación o comprobación."),
+      zone(3, "Qué obtienes", "El dato que produce."),
     ]),
-    el("p", { class: "mt-3 text-xs text-[var(--lx-ink-muted)]" }, "Usa los botones de abajo para agregar la primera. ¿Dudas? Abre la «Guía» o pulsa «?»."),
+    el("p", { class: "mb-5 text-center text-[13.5px] text-[var(--lx-ink-muted)]" }, "Empieza por el primer paso del proceso: algo que calcule un dato nuevo o que compruebe una condición."),
+    el("div", { class: "flex flex-wrap justify-center gap-2" }, [
+      addBtn("operation", "+ Agregar operación", "workflow", "bg-[var(--lx-violet)] text-white hover:bg-[var(--lx-violet-hover)]"),
+      addBtn("condition", "+ Agregar condición", "fork", "border border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] text-[var(--lx-condicion-fg)] hover:brightness-95"),
+    ]),
   ]);
 }
