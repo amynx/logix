@@ -41,7 +41,17 @@ export class CardsView {
     const wanted = handlers.selectedRowId?.();
     const selected = rows.find((row) => row.id === wanted) ?? rows[0];
 
-    const list = el("ol", { class: "space-y-1.5" }, rows.map((row, index) => this.#listItem(row, index, selected.id, dataById, handlers)));
+    // La lista intercala, entre dos pasos, un conector con el dato que produce el
+    // paso anterior: así se ve qué se transporta de una actividad a la siguiente.
+    const listChildren = [];
+    rows.forEach((row, index) => {
+      if (index > 0) {
+        const produced = rows[index - 1].resultId ? dataById.get(rows[index - 1].resultId) : null;
+        listChildren.push(railConnector(produced));
+      }
+      listChildren.push(this.#listItem(row, index, selected.id, dataById, handlers));
+    });
+    const list = el("ol", {}, listChildren);
     // Los botones de agregar van ARRIBA: con muchas actividades no obligan a hacer
     // scroll hasta el final de la lista para crear una nueva.
     const railLabel = el("div", { class: "mb-2 flex items-baseline gap-2" }, [
@@ -147,6 +157,17 @@ const STATUS_STYLE = {
   warn: { icon: "alert", cls: "bg-[var(--lx-amber)] text-white", title: "Por revisar" },
   todo: { icon: "target", cls: "bg-[var(--lx-ink-ghost)] text-white", title: "Pendiente" },
 };
+
+// Conector entre dos pasos del riel: una línea vertical y, si el paso anterior
+// produce un dato, un chip con ese dato (lo que se transporta al siguiente paso).
+function railConnector(datum) {
+  return el("li", { class: "flex items-center gap-2 pl-[26px]", "aria-hidden": datum ? null : "true" }, [
+    el("span", { class: "h-[22px] w-px shrink-0 bg-[var(--lx-border-dashed)]" }),
+    datum
+      ? el("span", { class: "[font-family:var(--lx-font-mono)] inline-flex items-center rounded-[var(--lx-r-chip)] border border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] px-1.5 py-0.5 text-[11px] text-[var(--lx-resultante-fg)]", title: "Dato que pasa al siguiente paso" }, datum.name || "(sin nombre)")
+      : null,
+  ]);
+}
 
 // El estado va en la esquina superior derecha de la actividad: el icono dentro de un
 // círculo del color que representa el estado.

@@ -221,9 +221,13 @@ export function activityFlow(nodesByKey, renderRow, kind = "operation") {
 
 // Conector entre fases: hacia abajo cuando se apilan, hacia la derecha en fila.
 function flowConnector() {
-  return el("div", { class: "flex shrink-0 items-center justify-center text-slate-300 lg:px-1" }, [
-    el("span", { class: "lg:hidden" }, "↓"),
-    el("span", { class: "hidden lg:inline" }, "→"),
+  // Disco de 26px con la flecha: hacia abajo cuando las zonas se apilan, hacia la
+  // derecha cuando van en fila (a partir de lg).
+  return el("div", { class: "flex shrink-0 items-center justify-center py-1 lg:px-1 lg:py-0", "aria-hidden": "true" }, [
+    el("span", { class: "flex h-[26px] w-[26px] items-center justify-center rounded-full border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-muted)] shadow-[var(--lx-shadow-card)]" }, [
+      el("span", { class: "lg:hidden" }, "↓"),
+      el("span", { class: "hidden lg:inline" }, "→"),
+    ]),
   ]);
 }
 
