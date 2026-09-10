@@ -5,18 +5,16 @@
 // COMPRENDER cómo fluye el análisis. Deriva de buildChain; solo se ocupa del DOM.
 
 import { el, clear } from "../utils/dom.js";
-import { sectionHeader } from "./sectionHeader.js";
 import { typeBadge } from "./badges.js";
 import { formulaBox } from "./cardLayout.js";
-import { helpButton } from "./helpView.js";
 import { icon } from "./icons.js";
 
 // Acentos por tipo de nodo, coherentes con el color semántico del resto:
 // entrada azul, operación índigo, condición naranja, información final verde.
 const NODE = {
-  input: "border-blue-200 bg-blue-50/60",
-  operation: "border-indigo-200 bg-white",
-  condition: "border-amber-200 bg-amber-50/40",
+  input: "border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)]/60",
+  operation: "border-[oklch(0.90_0.04_300)] bg-[var(--lx-surface)]",
+  condition: "border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)]/40",
 };
 
 export class ChainView {
@@ -30,20 +28,11 @@ export class ChainView {
       chain.entradas.length === 0 && chain.proceso.length === 0 && chain.salidas.length === 0;
 
     const body = isEmpty
-      ? el("p", { class: "text-sm text-slate-400" }, "La cadena aparecerá aquí a medida que completes el análisis.")
-      : el("div", {}, [summaryBar(chain), el("div", { class: "mx-auto max-w-2xl" }, flowNodes(chain))]);
+      ? el("p", { class: "text-center text-sm text-[var(--lx-ink-muted)]" }, "La cadena aparecerá aquí a medida que completes el análisis.")
+      : el("div", {}, [summaryBar(chain), ...flowNodes(chain)]);
 
-    this.container.append(
-      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({
-          title: "Cadena del análisis",
-          subtitle: "Cómo fluye tu razonamiento: de los datos a la información final.",
-          iconName: "chain",
-          help: helpButton(0), // pestaña "Interfaz" (símbolos e indicadores)
-        }),
-        body,
-      ]),
-    );
+    // El diseño centra la etapa Cadena en una columna de 720px, sin tarjeta externa.
+    this.container.append(el("div", { class: "mx-auto max-w-[720px]" }, [body]));
   }
 }
 
@@ -54,13 +43,13 @@ function summaryBar(chain) {
   const decisiones = chain.proceso.filter((step) => step.kind === "condition" && step.evaluateNow && step.purpose === "decision").length;
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   const stats = [
-    ["data", plural(chain.entradas.length, "dato de entrada", "datos de entrada"), "text-blue-600"],
-    ["workflow", plural(operaciones, "operación", "operaciones"), "text-indigo-600"],
-    ["fork", plural(decisiones, "decisión", "decisiones"), "text-amber-600"],
-    ["flag", plural(chain.salidas.length, "respuesta final", "respuestas finales"), "text-emerald-600"],
+    ["data", plural(chain.entradas.length, "dato de entrada", "datos de entrada"), "text-[var(--lx-entrada-fg)]"],
+    ["workflow", plural(operaciones, "operación", "operaciones"), "text-[var(--lx-violet)]"],
+    ["fork", plural(decisiones, "decisión", "decisiones"), "text-[var(--lx-condicion-fg)]"],
+    ["flag", plural(chain.salidas.length, "respuesta final", "respuestas finales"), "text-[var(--lx-resultante-fg)]"],
   ];
   return el("div", { class: "mb-4 flex flex-wrap justify-center gap-2" }, stats.map(([iconName, text, color]) =>
-    el("span", { class: "inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600" }, [icon(iconName, `h-3.5 w-3.5 ${color}`), text]),
+    el("span", { class: "inline-flex items-center gap-1.5 rounded-full border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-1 text-xs font-medium text-[var(--lx-ink-body)]" }, [icon(iconName, `h-3.5 w-3.5 ${color}`), text]),
   ));
 }
 
@@ -78,16 +67,16 @@ function flowNodes(chain) {
 
 // Conector vertical entre nodos.
 function down() {
-  return el("div", { class: "flex justify-center py-1 text-slate-300", "aria-hidden": "true" }, "↓");
+  return el("div", { class: "flex justify-center py-1 text-[var(--lx-ink-ghost)]", "aria-hidden": "true" }, "↓");
 }
 
 // Nodo de entradas: los datos que recibe el programa (azul).
 function inputsBlock(entradas) {
   return el("div", { class: `rounded-lg border ${NODE.input} p-3` }, [
-    el("div", { class: "mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-blue-600" }, [icon("data", "h-3.5 w-3.5"), "Entradas"]),
+    el("div", { class: "mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--lx-entrada-fg)]" }, [icon("data", "h-3.5 w-3.5"), "Entradas"]),
     entradas.length > 0
       ? el("div", { class: "flex flex-wrap gap-1.5" }, entradas.map((datum) => dataChip(datum, "blue")))
-      : el("p", { class: "text-sm text-slate-400" }, "Aún no has identificado datos de entrada."),
+      : el("p", { class: "text-sm text-[var(--lx-ink-muted)]" }, "Aún no has identificado datos de entrada."),
   ]);
 }
 
@@ -98,30 +87,30 @@ function operationNode(step) {
       ? formulaBox(expressionEl(step.operation))
       : step.inputs.length > 0
         ? el("div", { class: "flex flex-wrap gap-1.5" }, step.inputs.map((datum) => dataChip(datum, datum.produced ? "emerald" : "blue")))
-        : el("span", { class: "text-sm italic text-slate-400" }, "sin operación definida");
+        : el("span", { class: "text-sm italic text-[var(--lx-ink-muted)]" }, "sin operación definida");
   const produces = step.result ? el("div", { class: "flex items-center gap-1.5 text-sm" }, [arrow(), dataChip(step.result, "emerald")]) : null;
-  return nodeShell(step.position, "workflow", NODE.operation, "text-indigo-700", step.description || `Actividad ${step.position}`, [expr, produces]);
+  return nodeShell(step.position, "workflow", NODE.operation, "text-[var(--lx-violet)]", step.description || `Actividad ${step.position}`, [expr, produces]);
 }
 
 // Nodo de condición: la pregunta, la comparación y, si es una decisión, sus
 // caminos (Sí / No) hacia lo que ocurre en cada caso (naranja).
 function conditionNode(step) {
   const isDecision = step.evaluateNow && step.purpose === "decision";
-  const question = step.condition ? el("p", { class: "text-sm italic text-slate-700" }, `¿${step.condition.replace(/^¿|\?$/g, "")}?`) : null;
+  const question = step.condition ? el("p", { class: "text-sm italic text-[var(--lx-ink-body)]" }, `¿${step.condition.replace(/^¿|\?$/g, "")}?`) : null;
   const comparison = step.operation.length > 0 ? formulaBox(expressionEl(step.operation)) : null;
   const produces = step.evaluateNow && step.result ? el("div", { class: "flex items-center gap-1.5 text-sm" }, [arrow(), dataChip(step.result, "emerald")]) : null;
   const branches = isDecision
     ? el("div", { class: "mt-1 space-y-1" }, [branchLine("Sí", step.ifTrue), branchLine("No", step.ifFalse)])
     : null;
   const title = step.description || step.conditionLabel || `Condición ${step.position}`;
-  return nodeShell(step.position, "fork", NODE.condition, "text-amber-700", title, [question, comparison, produces, branches]);
+  return nodeShell(step.position, "fork", NODE.condition, "text-[var(--lx-condicion-fg)]", title, [question, comparison, produces, branches]);
 }
 
 // Nodo genérico: número de paso, icono y título, con el cuerpo alineado debajo.
 function nodeShell(position, iconName, cls, titleColor, title, body) {
   return el("div", { class: `rounded-lg border ${cls} p-3` }, [
     el("div", { class: "mb-1.5 flex items-center gap-1.5" }, [
-      el("span", { class: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-500" }, String(position)),
+      el("span", { class: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--lx-surface-sunken)] text-[11px] font-semibold text-[var(--lx-ink-muted)]" }, String(position)),
       icon(iconName, `h-3.5 w-3.5 ${titleColor}`),
       el("span", { class: `min-w-0 text-sm font-semibold ${titleColor}` }, title),
     ]),
@@ -135,8 +124,8 @@ function branchLine(branchCase, path) {
     path.parts.length > 0
       ? expressionEl(path.parts)
       : path.type
-        ? el("span", { class: "text-slate-500" }, path.flow === "finaliza" ? "respuesta final" : "continúa")
-        : el("span", { class: "italic text-slate-400" }, "sin definir");
+        ? el("span", { class: "text-[var(--lx-ink-muted)]" }, path.flow === "finaliza" ? "respuesta final" : "continúa")
+        : el("span", { class: "italic text-[var(--lx-ink-muted)]" }, "sin definir");
   return el("div", { class: "flex items-center gap-1.5 text-sm" }, [caseBadge(branchCase), arrow(), outcome]);
 }
 
@@ -146,27 +135,27 @@ function outputBlock(salidas) {
   const items =
     salidas.length > 0
       ? salidas.map((output) =>
-          el("div", { class: "flex flex-wrap items-center gap-1.5 rounded-md border border-emerald-200 bg-white/70 px-2.5 py-1.5 text-sm text-emerald-800" }, [
+          el("div", { class: "flex flex-wrap items-center gap-1.5 rounded-md border border-[var(--lx-resultante-border)] bg-[var(--lx-surface)]/70 px-2.5 py-1.5 text-sm text-[var(--lx-resultante-fg)]" }, [
             output.branch ? caseBadge(output.branch) : null,
             expressionEl(output.parts, "emerald"),
-            output.condition ? el("span", { class: "text-[11px] text-emerald-700/80" }, `· cuando ${output.condition}`) : null,
+            output.condition ? el("span", { class: "text-[11px] text-[var(--lx-resultante-fg)]/80" }, `· cuando ${output.condition}`) : null,
           ]),
         )
-      : [el("p", { class: "text-sm text-emerald-700/70" }, "Aún no defines la información final (un propósito «Generar la información final» o un camino de respuesta).")];
-  return el("div", { class: "rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3.5" }, [
-    el("div", { class: "mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-700" }, [icon("flag", "h-4 w-4"), "Información final"]),
+      : [el("p", { class: "text-sm text-[var(--lx-resultante-fg)]/70" }, "Aún no defines la información final (un propósito «Generar la información final» o un camino de respuesta).")];
+  return el("div", { class: "rounded-[var(--lx-r-card)] border-2 border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] p-4" }, [
+    el("div", { class: "mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--lx-resultante-fg)]" }, [icon("flag", "h-4 w-4"), "Información final"]),
     el("div", { class: "space-y-1.5" }, items),
   ]);
 }
 
 // Flecha en línea "→" para "produce" / "entonces".
 function arrow() {
-  return el("span", { class: "font-semibold text-slate-400" }, "→");
+  return el("span", { class: "font-semibold text-[var(--lx-ink-muted)]" }, "→");
 }
 
 // Ficha de un dato con su color semántico (entrada azul, producido verde).
 function dataChip(datum, tone) {
-  const style = tone === "emerald" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-blue-200 bg-blue-50 text-blue-700";
+  const style = tone === "emerald" ? "border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)]" : "border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)]";
   return el("span", { class: `inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-sm ${style}` }, [
     el("span", { class: "whitespace-nowrap" }, datum.name || "(sin nombre)"),
     typeBadge(datum.type),
@@ -175,7 +164,7 @@ function dataChip(datum, tone) {
 
 // Indica el caso de la condición: Sí (se cumple) o No (no se cumple).
 function caseBadge(branchCase) {
-  const style = branchCase === "Sí" ? "bg-emerald-600 text-white" : "bg-rose-500 text-white";
+  const style = branchCase === "Sí" ? "bg-[var(--lx-green)] text-white" : "bg-rose-500 text-white";
   return el("span", { class: `shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${style}` }, branchCase);
 }
 
@@ -191,12 +180,12 @@ function expressionEl(parts, tone = "blue") {
 
 function partNode(part, tone) {
   if (part.kind === "ref") {
-    const style = tone === "emerald" ? "bg-emerald-100 text-emerald-800" : "bg-blue-100 text-blue-700";
+    const style = tone === "emerald" ? "bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)]" : "bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)]";
     return el("span", { class: `whitespace-nowrap rounded px-1 py-0.5 text-xs font-medium ${style}`, title: "Dato utilizado" }, part.text);
   }
   if (part.kind === "cond") {
-    return el("span", { class: "whitespace-nowrap rounded bg-amber-100 px-1 py-0.5 text-xs font-semibold text-amber-700", title: "Condición" }, part.text);
+    return el("span", { class: "whitespace-nowrap rounded bg-[var(--lx-condicion-bg)] px-1 py-0.5 text-xs font-semibold text-[var(--lx-condicion-fg)]", title: "Condición" }, part.text);
   }
-  if (part.kind === "op") return el("span", { class: "text-slate-400" }, part.text);
+  if (part.kind === "op") return el("span", { class: "text-[var(--lx-ink-muted)]" }, part.text);
   return el("span", {}, part.text);
 }
