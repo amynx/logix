@@ -521,7 +521,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
 
   const operatorGroups = Object.values(OPERATOR_GROUPS).map((group) => operatorGroup(group, (key) => append({ kind: "op", op: key })));
 
-  const columnLabel = (text) => el("p", { class: "text-[0.6rem] font-semibold uppercase tracking-wide text-slate-400" }, text);
+  const columnLabel = (text) => el("p", { class: "text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--lx-ink-muted)]" }, text);
 
   // Control de cada categoría, revelado solo cuando esa categoría está activa.
   const valuePanel = el("div", { class: "space-y-1" }, [
@@ -541,11 +541,11 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   ].filter(Boolean);
 
   // Arriba: la expresión que se está construyendo (o una pista si está vacía).
-  const expressionBox = el("div", { class: "rounded-md border border-slate-200 bg-slate-50/60 px-2 py-1.5" }, [
+  const expressionBox = el("div", { class: "rounded-[12px] border border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] px-3 py-2.5" }, [
     columnLabel("Expresión"),
     tokens.length > 0
-      ? el("div", { class: "mt-1 flex flex-wrap items-center gap-1" }, chips)
-      : el("p", { class: "mt-0.5 text-xs italic text-slate-400" }, "Aún vacía: agrega datos, condiciones, valores y operadores."),
+      ? el("div", { class: "mt-1.5 flex flex-wrap items-center gap-1.5" }, chips)
+      : el("p", { class: "mt-1 text-[13px] italic text-[var(--lx-ink-muted)]" }, "Aún vacía: agrega datos, condiciones, valores y operadores."),
   ]);
 
   // Zona de «agregar», progresiva: plegada muestra solo el disparador; abierta,
@@ -659,10 +659,11 @@ function operatorGroup(group, onPick) {
 function operationTokenChip(token, resolve, producedIds, resolveCondition, { onRemove, draggable, onDragStart, onDrop }) {
   const { leading, text, className, extra = "" } = describeToken(token, resolve, producedIds, resolveCondition);
   const cursor = draggable ? "cursor-move" : "";
+  const isOp = token.kind === "op";
   return el(
     "span",
     {
-      class: `inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs ${extra} ${cursor} ${className}`,
+      class: `group inline-flex max-w-full min-w-0 items-center gap-1 rounded-[6px] text-[13px] [font-family:var(--lx-font-mono)] ${isOp ? "px-1" : "px-2 py-[3px]"} ${extra} ${cursor} ${className}`,
       draggable: draggable ? "true" : null,
       title: draggable ? "Arrastra para reordenar" : null,
       ondragstart: onDragStart,
@@ -677,7 +678,8 @@ function operationTokenChip(token, resolve, producedIds, resolveCondition, { onR
       leading,
       // break-words: un valor largo se ajusta dentro de la tarjeta en vez de desbordar.
       el("span", { class: "min-w-0 break-words" }, text),
-      el("button", { type: "button", class: "text-slate-400 hover:text-red-600", title: "Quitar", onclick: onRemove }, "×"),
+      // La × aparece al pasar el cursor, para que la expresión se lea limpia.
+      el("button", { type: "button", class: "-mr-0.5 opacity-0 transition group-hover:opacity-100 text-[var(--lx-ink-muted)] hover:text-[oklch(0.55_0.15_25)]", title: "Quitar", onclick: onRemove }, "×"),
     ],
   );
 }
@@ -713,7 +715,8 @@ function describeToken(token, resolve, producedIds = new Set(), resolveCondition
     };
   }
   if (token.kind === "op") {
-    return { leading: null, text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "bg-slate-200 text-slate-700", extra: "font-mono font-bold" };
+    // Los operadores van sin fondo (solo el símbolo), para que resalten los datos.
+    return { leading: null, text: OPERATOR_SYMBOLS[token.op] ?? "?", className: "text-[var(--lx-ink-body)]", extra: "font-semibold" };
   }
   return {
     leading: icon("hash", "h-3 w-3 shrink-0 text-slate-400"),
@@ -848,12 +851,12 @@ function typeLabel(type) {
 // constructor de expresiones.
 function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   const chips = entries.map((entry) =>
-    el("div", { class: "flex items-center gap-2 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-1.5", title: "Se edita en la sección «Datos de entrada»" }, [
+    el("div", { class: "group flex items-center gap-2 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-1.5", title: "Se edita en la sección «Datos de entrada»" }, [
       el("span", { class: "[font-family:var(--lx-font-mono)] min-w-0 flex-1 truncate text-[13px] text-[var(--lx-ink-body)]" }, entry.name || "(sin nombre)"),
       typeLabel(entry.type),
       el("button", {
         type: "button",
-        class: "shrink-0 rounded px-1 text-[var(--lx-ink-muted)] hover:text-[oklch(0.55_0.15_25)]",
+        class: "shrink-0 rounded px-1 text-[var(--lx-ink-muted)] opacity-0 transition group-hover:opacity-100 hover:text-[oklch(0.55_0.15_25)]",
         title: "Quitar referencia",
         onclick: () => handlers.onRemoveRowInput(rowId, entry.id),
       }, "×"),
