@@ -896,11 +896,13 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   // Mismo mecanismo progresivo que el constructor de expresiones: categorías
   // diferenciadas y solo las fichas de la activa (no todas a la vez).
   const categories = [
-    entradas.length > 0 ? { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", control: chipWrap(entradas) } : null,
-    resultantes.length > 0 ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", control: chipWrap(resultantes) } : null,
+    entradas.length > 0 ? { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", help: "Los que declaraste en el paso Datos.", control: chipWrap(entradas) } : null,
+    resultantes.length > 0 ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", help: "Los que produjo otra actividad.", control: chipWrap(resultantes) } : null,
   ].filter(Boolean);
 
-  const picker = el("div", { class: "min-w-0" });
+  // Mismo panel emergente que el selector de la expresión, para que ambos se sientan
+  // igual: flota bajo el botón y se queda abierto para agregar varios datos.
+  const picker = el("div", { class: "relative min-w-0" });
   const setCategory = (value) => {
     if (value == null) OPEN_INPUT_PICKER.delete(rowId);
     else OPEN_INPUT_PICKER.set(rowId, value);
@@ -909,17 +911,17 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   const paint = () => {
     clear(picker);
     const active = OPEN_INPUT_PICKER.get(rowId) ?? null;
-    if (active == null) {
-      picker.append(addTrigger(() => setCategory(categories[0].key), "+ Agregar dato"));
-      return;
-    }
+    picker.append(addTrigger(() => setCategory(active == null ? categories[0].key : null), "+ Agregar dato", active != null));
+    if (active == null) return;
     const current = categories.find((category) => category.key === active) ?? categories[0];
     picker.append(
-      el("div", { class: "space-y-2 rounded-md border border-slate-200 bg-white p-2" }, [
+      el("div", { class: "absolute left-0 top-full z-20 mt-1 w-full min-w-[260px] space-y-2 rounded-[13px] border border-[oklch(0.85_0.06_300)] bg-[var(--lx-surface)] p-3 shadow-[var(--lx-shadow-pop)]" }, [
+        el("p", { class: "text-[12.5px] font-medium text-[var(--lx-ink-body)]" }, "¿De dónde sale el dato?"),
         el("div", { class: "flex flex-wrap items-center gap-1" }, [
           ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
           collapseButton(() => setCategory(null)),
         ]),
+        el("p", { class: "text-[11.5px] text-[var(--lx-ink-muted)]" }, current.help ?? ""),
         el("div", { class: "min-w-0" }, [current.control]),
       ]),
     );

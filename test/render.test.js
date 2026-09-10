@@ -111,7 +111,8 @@ function referenceInput(doc, rowIndex, dataId) {
 }
 function addInputByChip(cell, dataId) {
   const trigger = [...cell.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar dato"));
-  if (trigger) trigger.click();
+  // El disparador alterna abrir/cerrar; solo lo pulsamos si el panel está cerrado.
+  if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
   let chip = cell.querySelector(`button[data-add-input="${dataId}"]`);
   if (!chip) {
     for (const label of ["Dato de entrada", "Dato resultante"]) {

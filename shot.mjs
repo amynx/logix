@@ -11,10 +11,10 @@ if (await close.count()) await close.first().click();
 await page.waitForTimeout(300);
 await page.getByRole("button", { name: /Construcción/ }).first().click();
 await page.waitForTimeout(400);
-// open the expression element selector popover
-const add = page.locator('[data-workspace-row] button', { hasText: /Agregar elemento/ }).first();
+// open the "+ Agregar dato" picker in the inputs zone
+const add = page.locator('[data-workspace-row] button', { hasText: /Agregar dato/ }).first();
 if (await add.count()) await add.click();
 await page.waitForTimeout(300);
-await page.screenshot({ path: `${OUT}/f5b-popover.png` });
+await page.screenshot({ path: `${OUT}/f5b-datos-popover.png`, clip: { x: 320, y: 400, width: 700, height: 420 } });
 await browser.close();
 console.log("done");
