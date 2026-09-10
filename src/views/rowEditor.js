@@ -533,11 +533,11 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   // Categorías de «agregar», claramente diferenciadas. Solo aparecen las que
   // aplican: el dato resultante o la condición se ofrecen si hay alguno reutilizable.
   const categories = [
-    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", control: inputChips },
-    hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", control: resultChips } : null,
-    hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-[var(--lx-condicion-fg)]", control: conditionChips } : null,
-    { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", control: valuePanel },
-    { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", control: operatorPanel },
+    { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", help: "Los que declaraste en el paso Datos.", control: inputChips },
+    hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", help: "Los que produjo otra actividad.", control: resultChips } : null,
+    hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-[var(--lx-condicion-fg)]", help: "El resultado de una comprobación anterior.", control: conditionChips } : null,
+    { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", help: "Un número o texto que escribes tú.", control: valuePanel },
+    { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", help: "Qué relación hay entre los elementos.", control: operatorPanel },
   ].filter(Boolean);
 
   // Arriba: la expresión que se está construyendo (o una pista si está vacía).
@@ -551,7 +551,10 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   // Zona de «agregar», progresiva: plegada muestra solo el disparador; abierta,
   // las categorías y el control de la activa. El estado vive en OPEN_CATEGORY para
   // sobrevivir al re-render (así se pueden encadenar varios elementos seguidos).
-  const adder = el("div", { class: "min-w-0" });
+  // El selector es un PANEL EMERGENTE bajo el botón: no empuja el contenido y se
+  // queda abierto para agregar varios elementos. El estado vive en OPEN_CATEGORY
+  // para sobrevivir al re-render.
+  const adder = el("div", { class: "relative min-w-0" });
   const setCategory = (value) => {
     if (value == null) OPEN_CATEGORY.delete(focusKey);
     else OPEN_CATEGORY.set(focusKey, value);
@@ -560,18 +563,19 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   const paintAdder = () => {
     clear(adder);
     const active = OPEN_CATEGORY.get(focusKey) ?? null;
-    if (active == null) {
-      adder.append(addTrigger(() => setCategory(categories[0].key)));
-      return;
-    }
+    adder.append(addTrigger(() => setCategory(active == null ? categories[0].key : null), "+ Agregar elemento", active != null));
+    if (active == null) return;
     const current = categories.find((category) => category.key === active) ?? categories[0];
     adder.append(
-      el("div", { class: "space-y-2 rounded-md border border-slate-200 bg-white p-2" }, [
+      el("div", { class: "absolute left-0 top-full z-20 mt-1 w-full min-w-[280px] space-y-2 rounded-[13px] border border-[oklch(0.85_0.06_300)] bg-[var(--lx-surface)] p-3 shadow-[var(--lx-shadow-pop)]" }, [
+        el("p", { class: "text-[12.5px] font-medium text-[var(--lx-ink-body)]" }, "¿Qué agregas a la expresión?"),
         el("div", { class: "flex flex-wrap items-center gap-1" }, [
           ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
           collapseButton(() => setCategory(null)),
         ]),
+        el("p", { class: "text-[11.5px] text-[var(--lx-ink-muted)]" }, current.help ?? ""),
         el("div", { class: "min-w-0" }, [current.control]),
+        el("p", { class: "border-t border-[var(--lx-border-soft)] pt-1.5 text-[11px] text-[var(--lx-ink-ghost)]" }, "Agrega los elementos en el orden en que se leen."),
       ]),
     );
     // Al elegir «valor», el foco va al campo para escribir de inmediato.
@@ -584,12 +588,17 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
 
 // Disparador plegado de un selector progresivo: invita a agregar el primer/siguiente
 // elemento. Se reutiliza en el constructor de expresiones y en los datos de entrada.
-function addTrigger(onOpen, label = "+ Agregar elemento") {
+function addTrigger(onOpen, label = "+ Agregar elemento", isOpen = false) {
   return el(
     "button",
     {
       type: "button",
-      class: "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-500 hover:border-[oklch(0.90_0.04_300)] hover:bg-[oklch(0.972_0.018_300)] hover:text-[var(--lx-violet)]",
+      "aria-expanded": String(isOpen),
+      class: `flex w-full items-center justify-center gap-1.5 rounded-[var(--lx-r-control)] border border-dashed px-2 py-1.5 text-xs font-medium ${
+        isOpen
+          ? "border-[oklch(0.85_0.06_300)] bg-[oklch(0.972_0.018_300)] text-[var(--lx-violet)]"
+          : "border-[var(--lx-border-dashed)] text-[var(--lx-ink-muted)] hover:border-[oklch(0.90_0.04_300)] hover:bg-[oklch(0.972_0.018_300)] hover:text-[var(--lx-violet)]"
+      }`,
       onclick: onOpen,
     },
     [icon("data", "h-3.5 w-3.5"), label],

@@ -11,6 +11,10 @@ if (await close.count()) await close.first().click();
 await page.waitForTimeout(300);
 await page.getByRole("button", { name: /Construcción/ }).first().click();
 await page.waitForTimeout(400);
-await page.screenshot({ path: `${OUT}/f5b-refine.png` });
+// open the expression element selector popover
+const add = page.locator('[data-workspace-row] button', { hasText: /Agregar elemento/ }).first();
+if (await add.count()) await add.click();
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}/f5b-popover.png` });
 await browser.close();
 console.log("done");

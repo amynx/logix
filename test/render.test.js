@@ -133,7 +133,8 @@ function exprRoot(cell) {
 }
 function openExpr(root) {
   const trigger = [...root.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar elemento"));
-  if (trigger) trigger.click();
+  // El disparador alterna abrir/cerrar; solo lo pulsamos si el panel está cerrado.
+  if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
 }
 function exprCategory(root, label) {
   const chip = [...root.querySelectorAll("button")].find((b) => b.textContent.trim() === label);
