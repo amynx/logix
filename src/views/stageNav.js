@@ -37,12 +37,12 @@ function attachFooters() {
     const prev = STAGES[index - 1];
     const next = STAGES[index + 1];
     wrapper.append(
-      el("div", { class: "mt-8 flex items-center justify-between gap-3 border-t border-slate-100 pt-4", dataset: { stageFooter: "true" } }, [
+      el("div", { class: "mx-auto mt-8 flex max-w-[82.5rem] items-center justify-between gap-3 border-t border-[var(--lx-border-soft)] px-4 pt-4 sm:px-7", dataset: { stageFooter: "true" } }, [
         prev
-          ? el("button", { type: "button", class: "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700", onclick: () => goToStage(prev.id) }, [icon("chevron", "h-4 w-4 rotate-90"), prev.label])
+          ? el("button", { type: "button", class: "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] px-3 text-[13.5px] font-medium text-[var(--lx-ink-muted)] hover:bg-[var(--lx-bg)] hover:text-[var(--lx-ink-body)]", onclick: () => goToStage(prev.id) }, [icon("chevron", "h-4 w-4 rotate-90"), prev.label])
           : el("span", {}),
         next
-          ? el("button", { type: "button", class: "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-indigo-700", onclick: () => goToStage(next.id) }, ["Continuar", icon("chevron", "h-4 w-4 -rotate-90")])
+          ? el("button", { type: "button", class: "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] bg-[var(--lx-violet)] px-3.5 text-[13.5px] font-medium text-white hover:bg-[var(--lx-violet-hover)]", onclick: () => goToStage(next.id) }, ["Continuar", icon("chevron", "h-4 w-4 -rotate-90")])
           : el("span", {}),
       ]),
     );
@@ -91,15 +91,15 @@ function renderStepper() {
   const steps = STAGES.map((stage, index) => stepButton(stage, index));
   const withConnectors = [];
   steps.forEach((step, index) => {
-    if (index > 0) withConnectors.push(el("span", { class: "mx-1 h-px w-4 shrink-0 bg-slate-200 sm:w-8", "aria-hidden": "true" }));
+    if (index > 0) withConnectors.push(el("span", { class: "mx-1.5 h-px w-4 shrink-0 bg-[var(--lx-border)] sm:w-[30px]", "aria-hidden": "true" }));
     withConnectors.push(step);
   });
 
   const active = STAGES.find((stage) => stage.id === activeStage);
   nav.append(
-    el("div", { class: "mx-auto max-w-[100rem] px-4 py-2" }, [
+    el("div", { class: "mx-auto max-w-[82.5rem] px-4 pb-[11px] pt-[10px] sm:px-7" }, [
       el("div", { class: "flex items-center overflow-x-auto" }, withConnectors),
-      active ? el("p", { class: "mt-0.5 text-xs text-slate-400" }, active.hint) : null,
+      active ? el("p", { class: "ml-[2px] mt-1 text-[12.5px] text-[var(--lx-ink-muted)]" }, active.hint) : null,
     ]),
   );
 }
@@ -107,21 +107,18 @@ function renderStepper() {
 function stepButton(stage, index) {
   const isActive = stage.id === activeStage;
   const isDone = statusById[stage.id] === "done";
-  // El marcador combina estado y número: ✓ hecha, ● activa, número si pendiente.
+  // Disco de 20px: ✓ blanco sobre verde si la etapa está completa; si no, el número
+  // sobre blanco con borde. La etapa actual resalta el botón (fondo/borde violeta).
   const marker = isDone
-    ? el("span", { class: "flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white" }, [icon("check", "h-3.5 w-3.5")])
+    ? el("span", { class: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[oklch(0.72_0.14_158)] text-white" }, [icon("check", "h-3 w-3")])
     : el(
         "span",
-        {
-          class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-            isActive ? "bg-indigo-600 text-white" : "border border-slate-300 text-slate-400"
-          }`,
-        },
+        { class: "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[11px] font-semibold text-[var(--lx-ink-muted)]" },
         String(index + 1),
       );
   const label = el(
     "span",
-    { class: `text-sm ${isActive ? "font-semibold text-slate-900" : isDone ? "font-medium text-slate-600" : "text-slate-400"}` },
+    { class: `text-[14px] ${isActive ? "font-semibold text-[var(--lx-ink)]" : isDone ? "font-medium text-[var(--lx-ink-body)]" : "text-[var(--lx-ink-muted)]"}` },
     stage.label,
   );
   return el(
@@ -130,7 +127,11 @@ function stepButton(stage, index) {
       type: "button",
       dataset: { stageStep: stage.id },
       "aria-current": isActive ? "step" : null,
-      class: `group flex shrink-0 items-center gap-2 rounded-md px-2 py-1 transition hover:bg-slate-100 ${isActive ? "bg-indigo-50/60" : ""}`,
+      class: `group flex shrink-0 items-center gap-2 rounded-[var(--lx-r-control)] border px-[11px] py-[6px] transition ${
+        isActive
+          ? "border-[oklch(0.90_0.04_300)] bg-[oklch(0.972_0.018_300)]"
+          : "border-transparent hover:bg-[var(--lx-bg)]"
+      }`,
       onclick: () => goToStage(stage.id),
     },
     [marker, label],
