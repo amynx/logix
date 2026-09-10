@@ -316,19 +316,19 @@ export function deleteButton(onClick) {
 // Dos botones punteados para agregar un paso: operación (hover violeta) o condición
 // (hover ámbar). Apilados, ocupan el ancho del riel de la etapa Construcción.
 export function addActivityButton(onAddRow) {
-  const button = (kind, label, iconName, hover) =>
+  const button = (kind, label, squareCls, hover) =>
     el(
       "button",
       {
         type: "button",
-        class: `inline-flex w-full items-center gap-1.5 rounded-[var(--lx-r-control)] border border-dashed border-[var(--lx-border-dashed)] bg-[var(--lx-surface)] px-3 py-2 text-[13.5px] font-medium text-[var(--lx-ink-body)] ${hover}`,
+        class: `inline-flex w-full items-center gap-2 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-2 text-[13.5px] font-medium text-[var(--lx-ink-body)] ${hover}`,
         onclick: () => onAddRow(kind),
       },
-      [icon(iconName, "h-4 w-4"), label],
+      [el("span", { class: `flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] text-[13px] font-semibold ${squareCls}` }, "+"), label],
     );
   return el("div", { class: "flex flex-col gap-2" }, [
-    button("operation", "Agregar operación", "workflow", "hover:border-[var(--lx-violet)] hover:text-[var(--lx-violet)]"),
-    button("condition", "Agregar condición", "fork", "hover:border-[var(--lx-condicion-fg)] hover:text-[var(--lx-condicion-fg)]"),
+    button("operation", "Agregar operación", "bg-[var(--lx-entrada-bg)] text-[var(--lx-violet)]", "hover:border-[var(--lx-violet)]"),
+    button("condition", "Agregar condición", "bg-[var(--lx-condicion-bg)] text-[var(--lx-condicion-fg)]", "hover:border-[var(--lx-condicion-fg)]"),
   ]);
 }
 
@@ -457,7 +457,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
           onmousedown: (event) => event.preventDefault(),
           onclick: () => append(makeToken(entry.id)),
         },
-        [icon(iconName, "h-3 w-3 shrink-0"), el("span", {}, entry.label), entry.type ? typeBadge(entry.type) : null],
+        [icon(iconName, "h-3 w-3 shrink-0"), el("span", {}, entry.label), typeLabel(entry.type)],
       ),
     ));
   };
@@ -536,7 +536,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     { key: "input", label: "Dato de entrada", icon: "data", tone: "text-[var(--lx-entrada-fg)]", help: "Los que declaraste en el paso Datos.", control: inputChips },
     hasNamed(resultRefs) ? { key: "result", label: "Dato resultante", icon: "reuse", tone: "text-[var(--lx-resultante-fg)]", help: "Los que produjo otra actividad.", control: resultChips } : null,
     hasNamed(conditionEntries) ? { key: "condition", label: "Condición", icon: "fork", tone: "text-[var(--lx-condicion-fg)]", help: "El resultado de una comprobación anterior.", control: conditionChips } : null,
-    { key: "value", label: "Valor", icon: "hash", tone: "text-slate-400", help: "Un número o texto que escribes tú.", control: valuePanel },
+    { key: "value", label: "Valor fijo", icon: "hash", tone: "text-slate-400", help: "Un número o texto que escribes tú.", control: valuePanel },
     { key: "operator", label: "Operador", icon: "workflow", tone: "text-slate-400", help: "Qué relación hay entre los elementos.", control: operatorPanel },
   ].filter(Boolean);
 
@@ -569,13 +569,13 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
     adder.append(
       el("div", { class: "absolute left-0 top-full z-20 mt-1 w-full min-w-[280px] space-y-2 rounded-[13px] border border-[oklch(0.85_0.06_300)] bg-[var(--lx-surface)] p-3 shadow-[var(--lx-shadow-pop)]" }, [
         el("p", { class: "text-[12.5px] font-medium text-[var(--lx-ink-body)]" }, "¿Qué agregas a la expresión?"),
-        el("div", { class: "flex flex-wrap items-center gap-1" }, [
-          ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
-          collapseButton(() => setCategory(null)),
-        ]),
+        el("div", { class: "flex flex-wrap items-center gap-1.5" }, categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key)))),
         el("p", { class: "text-[11.5px] text-[var(--lx-ink-muted)]" }, current.help ?? ""),
         el("div", { class: "min-w-0" }, [current.control]),
-        el("p", { class: "border-t border-[var(--lx-border-soft)] pt-1.5 text-[11px] text-[var(--lx-ink-ghost)]" }, "Agrega los elementos en el orden en que se leen."),
+        el("div", { class: "flex items-center justify-between gap-2 border-t border-[var(--lx-border-soft)] pt-2" }, [
+          el("p", { class: "text-[11px] text-[var(--lx-ink-ghost)]" }, "Agrega los elementos en el orden en que se leen."),
+          selectorDone(() => setCategory(null)),
+        ]),
       ]),
     );
     // Al elegir «valor», el foco va al campo para escribir de inmediato.
@@ -612,25 +612,20 @@ function categoryChip(category, selected, onSelect) {
     {
       type: "button",
       "aria-pressed": String(selected),
-      class: `inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition ${
-        selected ? "border-[oklch(0.90_0.04_300)] bg-[oklch(0.972_0.018_300)] font-medium text-[var(--lx-violet)]" : "border-slate-200 bg-white text-slate-500 hover:border-[oklch(0.90_0.04_300)] hover:bg-[var(--lx-bg)]"
+      class: `inline-flex items-center rounded-[var(--lx-r-control)] border px-2.5 py-1 text-[12.5px] transition ${
+        selected ? "border-[oklch(0.85_0.06_300)] bg-[oklch(0.972_0.018_300)] font-medium text-[var(--lx-violet)]" : "border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-muted)] hover:border-[oklch(0.90_0.04_300)] hover:text-[var(--lx-ink-body)]"
       }`,
       onclick: onSelect,
     },
-    [icon(category.icon, `h-3.5 w-3.5 shrink-0 ${selected ? "" : category.tone}`), el("span", {}, category.label)],
+    el("span", {}, category.label),
   );
 }
 
-// Cierra el panel de «agregar» y vuelve a mostrar solo el disparador.
-function collapseButton(onCollapse) {
+// Botón «Listo» del pie del selector: cierra el panel emergente (acción primaria).
+function selectorDone(onDone) {
   return el(
     "button",
-    {
-      type: "button",
-      class: "ml-auto shrink-0 rounded px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600",
-      title: "Cerrar",
-      onclick: onCollapse,
-    },
+    { type: "button", class: "inline-flex shrink-0 items-center rounded-[var(--lx-r-control)] bg-[var(--lx-violet)] px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--lx-violet-hover)]", onclick: onDone },
     "Listo",
   );
 }
@@ -842,24 +837,23 @@ function branchEditor(branch, key, { structural, rowId, exprCtx }) {
   return el("div", { class: "space-y-1" }, children);
 }
 
+// Tipo de un dato como texto discreto a la derecha del nombre (Numérico/Lógico/Texto).
+function typeLabel(type) {
+  return type ? el("span", { class: "shrink-0 text-[11px] text-[var(--lx-ink-muted)]" }, labelOf(DATA_TYPES, type)) : null;
+}
+
 // Datos de entrada de la fila: solo se reutilizan. Fichas de solo lectura de los ya
 // referenciados + un «+ Agregar dato» progresivo que, al abrirse, muestra los datos
 // disponibles (de entrada y resultantes) como fichas, con el mismo mecanismo que el
 // constructor de expresiones.
 function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
   const chips = entries.map((entry) =>
-    el("div", { class: "flex items-center gap-1" }, [
-      el(
-        "span",
-        {
-          class: "flex flex-1 items-center gap-1.5 rounded border border-dashed border-slate-300 bg-slate-50 px-2 py-1 text-slate-600",
-          title: "Se edita en la sección «Datos de entrada»",
-        },
-        [el("span", { class: "min-w-0 truncate" }, entry.name || "(sin nombre)"), typeBadge(entry.type)],
-      ),
+    el("div", { class: "flex items-center gap-2 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-1.5", title: "Se edita en la sección «Datos de entrada»" }, [
+      el("span", { class: "[font-family:var(--lx-font-mono)] min-w-0 flex-1 truncate text-[13px] text-[var(--lx-ink-body)]" }, entry.name || "(sin nombre)"),
+      typeLabel(entry.type),
       el("button", {
         type: "button",
-        class: "shrink-0 rounded px-2 py-1 text-slate-400 hover:bg-slate-100 hover:text-red-600",
+        class: "shrink-0 rounded px-1 text-[var(--lx-ink-muted)] hover:text-[oklch(0.55_0.15_25)]",
         title: "Quitar referencia",
         onclick: () => handlers.onRemoveRowInput(rowId, entry.id),
       }, "×"),
@@ -886,7 +880,7 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
         onmousedown: (event) => event.preventDefault(),
         onclick: () => handlers.onReuseInput(rowId, entry.id),
       },
-      [icon(produced ? "reuse" : "data", "h-3 w-3 shrink-0"), el("span", {}, entry.name || "(sin nombre)"), typeBadge(entry.type)],
+      [icon(produced ? "reuse" : "data", "h-3 w-3 shrink-0"), el("span", {}, entry.name || "(sin nombre)"), typeLabel(entry.type)],
     );
   };
   const chipWrap = (items) => el("div", { class: "flex flex-wrap gap-1" }, items.map(dataChipButton));
@@ -918,12 +912,13 @@ function inputsEditor(rowId, entries, availableInputs, producedIds, handlers) {
     picker.append(
       el("div", { class: "absolute left-0 top-full z-20 mt-1 w-full min-w-[260px] space-y-2 rounded-[13px] border border-[oklch(0.85_0.06_300)] bg-[var(--lx-surface)] p-3 shadow-[var(--lx-shadow-pop)]" }, [
         el("p", { class: "text-[12.5px] font-medium text-[var(--lx-ink-body)]" }, "¿De dónde sale el dato?"),
-        el("div", { class: "flex flex-wrap items-center gap-1" }, [
-          ...categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key))),
-          collapseButton(() => setCategory(null)),
-        ]),
+        el("div", { class: "flex flex-wrap items-center gap-1.5" }, categories.map((category) => categoryChip(category, category.key === current.key, () => setCategory(category.key)))),
         el("p", { class: "text-[11.5px] text-[var(--lx-ink-muted)]" }, current.help ?? ""),
         el("div", { class: "min-w-0" }, [current.control]),
+        el("div", { class: "flex items-center justify-between gap-2 border-t border-[var(--lx-border-soft)] pt-2" }, [
+          el("p", { class: "text-[11px] text-[var(--lx-ink-ghost)]" }, "Puedes agregar varios."),
+          selectorDone(() => setCategory(null)),
+        ]),
       ]),
     );
   };

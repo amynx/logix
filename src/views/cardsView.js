@@ -184,7 +184,7 @@ function contextBar(index, rows, dataById) {
 function railNumber(position, selected) {
   return el(
     "span",
-    { class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${selected ? "bg-[var(--lx-violet)] text-white" : "bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-muted)]"}` },
+    { class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] text-[11px] font-semibold ${selected ? "bg-[var(--lx-violet)] text-white" : "bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-muted)]"}` },
     String(position),
   );
 }
@@ -316,8 +316,8 @@ const STATUS_STYLE = {
 // Conector entre dos pasos del riel: una línea vertical y, si el paso anterior
 // produce un dato, un chip con ese dato (lo que se transporta al siguiente paso).
 function railConnector(datum) {
-  return el("li", { class: "flex items-center gap-2 pl-[26px]", "aria-hidden": datum ? null : "true" }, [
-    el("span", { class: "h-[22px] w-px shrink-0 bg-[var(--lx-border-dashed)]" }),
+  return el("li", { class: "flex items-center gap-2 py-1.5 pl-[27px]", "aria-hidden": datum ? null : "true" }, [
+    el("span", { class: "h-4 w-px shrink-0 bg-[var(--lx-border-dashed)]" }),
     datum
       ? el("span", { class: "[font-family:var(--lx-font-mono)] inline-flex items-center rounded-[var(--lx-r-chip)] border border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] px-1.5 py-0.5 text-[11px] text-[var(--lx-resultante-fg)]", title: "Dato que pasa al siguiente paso" }, datum.name || "(sin nombre)")
       : null,

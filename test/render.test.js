@@ -155,7 +155,7 @@ function addExprElement(cell, text) {
       return;
     }
   }
-  exprCategory(root, "Valor");
+  exprCategory(root, "Valor fijo");
   const valueInput = root.querySelector('input[placeholder="valor"]');
   valueInput.value = text;
   [...root.querySelectorAll("button")].find((b) => b.textContent.includes("+ valor")).click();

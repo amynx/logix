@@ -11,10 +11,11 @@ if (await close.count()) await close.first().click();
 await page.waitForTimeout(300);
 await page.getByRole("button", { name: /Construcción/ }).first().click();
 await page.waitForTimeout(400);
-await page.screenshot({ path: `${OUT}/refine-construccion.png`, fullPage: true });
-// select the condition (3rd rail item)
-const items = page.locator("#table-container li[data-row-id]");
-if (await items.count() >= 3) { await items.nth(2).locator("button").first().click(); await page.waitForTimeout(400); }
-await page.screenshot({ path: `${OUT}/refine-condicion.png`, fullPage: true });
+await page.screenshot({ path: `${OUT}/refine2-construccion.png` });
+// open the expression selector
+const add = page.locator('[data-workspace-row] button', { hasText: /\+ elemento/ }).first();
+if (await add.count()) await add.click();
+await page.waitForTimeout(300);
+await page.screenshot({ path: `${OUT}/refine2-selector.png` });
 await browser.close();
 console.log("done");
