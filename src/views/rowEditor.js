@@ -563,7 +563,7 @@ export function expressionEditor(tokens, onChange, focusKey = "expr", ctx = {}) 
   const paintAdder = () => {
     clear(adder);
     const active = OPEN_CATEGORY.get(focusKey) ?? null;
-    adder.append(addTrigger(() => setCategory(active == null ? categories[0].key : null), "+ Agregar elemento", active != null));
+    adder.append(addTrigger(() => setCategory(active == null ? categories[0].key : null), "+ elemento", active != null));
     if (active == null) return;
     const current = categories.find((category) => category.key === active) ?? categories[0];
     adder.append(
@@ -734,12 +734,13 @@ function resultEditor(rowId, result, handlers) {
   });
   typeSelect.dataset.focusKey = `res-type:${rowId}`;
 
-  return el("div", { class: "space-y-1" }, [
+  // El dato producido en un panel violeta destacado: nombre en monoespaciada grande.
+  return el("div", { class: "space-y-2 rounded-[var(--lx-r-panel)] border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)]/50 p-3" }, [
     el("input", {
       type: "text",
       value: result?.name ?? "",
       placeholder: "nombre del dato",
-      class: CONTROL_CLASS,
+      class: "w-full border-0 bg-transparent p-0 [font-family:var(--lx-font-mono)] text-[15px] font-medium text-[var(--lx-entrada-fg)] outline-none placeholder:text-[var(--lx-ink-ghost)] focus:ring-0",
       dataset: { focusKey: `res-name:${rowId}` },
       oninput: (event) => handlers.onResultChange(rowId, { name: event.target.value }),
       // Al desenfocar, el nombre del dato resultante adopta la convención vigente.
@@ -749,8 +750,8 @@ function resultEditor(rowId, result, handlers) {
   ]);
 }
 
-// Propósito del dato resultante (qué le ocurrirá después) como opciones visuales
-// diferenciadas, para darle protagonismo: cada destino es una tarjeta seleccionable.
+// Propósito del dato resultante (qué le ocurrirá después) como control segmentado:
+// tres destinos en un grupo; el elegido se eleva sobre el fondo hundido.
 function purposeOptions(purpose, onChange) {
   const option = (value, iconName) => {
     const selected = purpose === value;
@@ -760,15 +761,15 @@ function purposeOptions(purpose, onChange) {
         type: "button",
         "aria-pressed": String(selected),
         dataset: { purpose: value },
-        class: `flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition ${
-          selected ? "border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)] font-medium text-[var(--lx-condicion-fg)]" : "border-slate-200 bg-white text-slate-600 hover:border-[var(--lx-condicion-border)] hover:bg-[var(--lx-condicion-bg)]"
+        class: `inline-flex flex-1 items-center justify-center gap-1.5 rounded-[7px] px-3 py-2 text-center text-[13px] transition ${
+          selected ? "bg-[var(--lx-surface)] font-medium text-[var(--lx-ink)] shadow-[var(--lx-shadow-card)]" : "text-[var(--lx-ink-muted)] hover:text-[var(--lx-ink-body)]"
         }`,
         onclick: () => onChange(value),
       },
       [icon(iconName, "h-3.5 w-3.5 shrink-0"), el("span", {}, labelOf(PURPOSES, value))],
     );
   };
-  return el("div", { class: "space-y-1" }, [
+  return el("div", { class: "flex flex-wrap gap-1 rounded-[var(--lx-r-field)] border border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] p-1" }, [
     option("operation", "workflow"),
     option("decision", "fork"),
     option("response", "flag"),

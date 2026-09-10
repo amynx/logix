@@ -133,7 +133,7 @@ function exprRoot(cell) {
   return cell.matches?.("[data-expr-builder]") ? cell : cell.querySelector("[data-expr-builder]");
 }
 function openExpr(root) {
-  const trigger = [...root.querySelectorAll("button")].find((b) => b.textContent.includes("Agregar elemento"));
+  const trigger = [...root.querySelectorAll("button")].find((b) => /\belemento\b/.test(b.textContent));
   // El disparador alterna abrir/cerrar; solo lo pulsamos si el panel está cerrado.
   if (trigger && trigger.getAttribute("aria-expanded") !== "true") trigger.click();
 }

@@ -16,8 +16,9 @@ import {
   markDropTarget,
   clearDropTarget,
 } from "./rowEditor.js";
-import { activityFlow, stepNumber, stackedRow } from "./cardLayout.js";
+import { stackedRow } from "./cardLayout.js";
 import { icon } from "./icons.js";
+import { goToStage } from "./stageNav.js";
 
 export class CardsView {
   constructor({ container }) {
@@ -58,8 +59,8 @@ export class CardsView {
       el("span", { class: "text-[11.5px] font-semibold uppercase tracking-[0.08em] text-[var(--lx-ink-muted)]" }, "El flujo"),
       el("span", { class: "text-[12px] text-[var(--lx-ink-ghost)]" }, `${rows.length} ${rows.length === 1 ? "paso" : "pasos"}`),
     ]);
-    const master = el("div", { class: "space-y-3 md:sticky md:top-[20px]" }, [railLabel, addActivityButton(handlers.onAddRow), list]);
-    const detail = this.#workspace(selected, rows.indexOf(selected), dataById, handlers, activities, producedIds);
+    const master = el("div", { class: "space-y-3 md:sticky md:top-[20px]" }, [railLabel, list, addActivityButton(handlers.onAddRow)]);
+    const detail = this.#workspace(selected, rows, dataById, handlers, activities, producedIds);
 
     this.container.append(
       el("div", { class: "grid items-start gap-[22px] md:grid-cols-[268px_minmax(0,1fr)]" }, [master, detail]),
@@ -70,14 +71,13 @@ export class CardsView {
     renderPreservingFocus(this.container, () => this.render(analysis, handlers));
   }
 
-  // Un elemento de la lista: número (en el círculo) + tipo + título, con el estado
-  // en la esquina superior derecha. Seleccionable y arrastrable (por su tirador)
-  // para reordenar. Lleva `data-row-id` (uno por actividad); el espacio de trabajo
-  // no, para no duplicar la representación.
+  // Un elemento de la lista: número + título + tipo (dos líneas), con un punto de
+  // estado a la derecha. Seleccionable y arrastrable (por su tirador). Lleva
+  // `data-row-id` (uno por actividad); el espacio de trabajo no, para no duplicar.
   #listItem(row, index, selectedId, dataById, handlers) {
     const isSelected = row.id === selectedId;
     const isCondition = row.kind === "condition";
-    const status = handlers.rowStatus?.(row.id) ?? "todo";
+    const status = isSelected ? "active" : handlers.rowStatus?.(row.id) ?? "todo";
     const setDragged = (id) => {
       this.draggedRowId = id;
     };
@@ -85,7 +85,7 @@ export class CardsView {
       "li",
       {
         dataset: { rowId: row.id },
-        class: `relative flex items-center gap-2 rounded-lg border py-2 pl-2 pr-7 transition ${
+        class: `relative flex items-center gap-2 rounded-[var(--lx-r-control)] border py-2 pl-2 pr-3 transition ${
           isSelected ? "border-[oklch(0.90_0.04_300)] bg-[oklch(0.972_0.018_300)] shadow-[var(--lx-shadow-card)]" : "border-[var(--lx-border)] bg-[var(--lx-surface)] hover:border-[var(--lx-border-dashed)] hover:bg-[var(--lx-bg)]"
         }`,
         ondragover: (event) => {
@@ -105,47 +105,202 @@ export class CardsView {
       },
       [
         dragHandle(row.id, setDragged),
-        stepNumber(index + 1),
+        railNumber(index + 1, isSelected),
         el(
           "button",
           {
             type: "button",
-            class: "flex min-w-0 flex-1 items-center gap-1.5 text-left",
+            class: "flex min-w-0 flex-1 flex-col text-left",
             onclick: () => handlers.onSelectRow?.(row.id),
           },
           [
-            icon(isCondition ? "fork" : "workflow", `h-3.5 w-3.5 shrink-0 ${isCondition ? "text-[var(--lx-condicion-fg)]" : "text-[var(--lx-violet)]"}`),
-            el("span", { class: `min-w-0 truncate text-sm ${isSelected ? "font-semibold text-[var(--lx-ink)]" : "text-[var(--lx-ink-body)]"}` }, activityTitle(row, dataById)),
+            el("span", { class: `min-w-0 truncate text-[13.5px] ${isSelected ? "font-semibold text-[var(--lx-ink)]" : "font-medium text-[var(--lx-ink-body)]"}` }, activityTitle(row, dataById)),
+            el("span", { class: "text-[12px] text-[var(--lx-ink-muted)]" }, isCondition ? "Condición" : "Operación"),
           ],
         ),
-        statusCorner(status),
+        statusDot(status),
       ],
     );
   }
 
-  // Espacio de trabajo de la actividad seleccionada: encabezado con su número y
-  // tipo, y debajo los campos como un flujo de razonamiento (siempre editable).
-  #workspace(row, index, dataById, handlers, activities, producedIds) {
+  // Espacio de trabajo de la actividad: barra de contexto, cabecera (tipo + nombre
+  // del paso), las tres zonas del razonamiento, el pie «¿Y después?» y la navegación.
+  #workspace(row, rows, dataById, handlers, activities, producedIds) {
+    const index = rows.indexOf(row);
     const isCondition = row.kind === "condition";
-    const tint = isCondition ? "border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)]/40" : "border-[var(--lx-border)] bg-[var(--lx-surface)]";
     const fields = buildRowFields(row, dataById, handlers, activities, producedIds);
-    return el("div", { class: `rounded-[var(--lx-r-card)] border ${tint} p-4 shadow-[var(--lx-shadow-card)] sm:p-5`, dataset: { workspaceRow: row.id } }, [
-      el("div", { class: "flex items-center gap-2 border-b border-[var(--lx-border-soft)] pb-3" }, [
-        stepNumber(index + 1),
-        el("span", { class: `inline-flex items-center gap-1.5 text-sm font-semibold ${isCondition ? "text-[var(--lx-condicion-fg)]" : "text-[var(--lx-ink-body)]"}` }, [
-          icon(isCondition ? "fork" : "activities", `h-4 w-4 ${isCondition ? "text-[var(--lx-condicion-fg)]" : "text-[var(--lx-violet)]"}`),
-          isCondition ? "Condición" : "Actividad",
-        ]),
-        el("div", { class: "ml-auto" }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
+    const result = row.resultId ? dataById.get(row.resultId) : null;
+
+    // El nombre del paso (la necesidad, o el nombre de la condición) es el título:
+    // se reutiliza el campo editable, restilizado como encabezado grande.
+    const titleInput = isCondition ? fields.conditionName : fields.problem;
+    if (titleInput) {
+      titleInput.className =
+        "w-full min-w-0 resize-none overflow-hidden whitespace-nowrap border-0 bg-transparent p-0 [font-family:var(--lx-font-display)] text-[21px] font-semibold leading-tight tracking-[-0.015em] text-[var(--lx-ink)] outline-none placeholder:text-[var(--lx-ink-ghost)] focus:ring-0";
+      titleInput.placeholder = isCondition ? "Nombra la comprobación…" : "Nombra este paso…";
+      if (titleInput.tagName === "TEXTAREA") titleInput.rows = 1;
+    }
+    const accent = isCondition ? "text-[var(--lx-condicion-fg)]" : "text-[var(--lx-violet)]";
+    const header = el("div", { class: "flex items-start gap-3 border-b border-[var(--lx-border-soft)] pb-4" }, [
+      workspaceNumber(index + 1, isCondition),
+      el("div", { class: "min-w-0 flex-1" }, [
+        el("p", { class: `text-[11.5px] font-semibold uppercase tracking-[0.08em] ${accent}` }, isCondition ? "Condición" : "Operación"),
+        el("div", { class: "mt-0.5" }, [titleInput ?? el("span", {}, activityTitle(row, dataById))]),
+        el("p", { class: "mt-1 text-[13px] text-[var(--lx-ink-muted)]" }, isCondition ? "Una condición comprueba algo: una pregunta que se responde Sí o No." : "Una operación calcula o transforma datos para obtener uno nuevo."),
       ]),
-      el("div", { class: "mt-4 space-y-3.5" }, [
-        // El tipo se decide al crear la actividad («Agregar operación» / «Agregar
-        // condición»); aquí solo se recuerda qué hace, sin un conmutador que confunda.
-        el("p", { class: "text-xs text-[var(--lx-ink-muted)]" }, isCondition ? "Comprueba algo: una pregunta de Sí / No." : "Calcula o transforma datos para obtener uno nuevo."),
-        activityFlow(fields, stackedRow, row.kind),
-      ]),
+      el("div", { class: "shrink-0" }, [deleteButton(() => handlers.onDeleteRow(row.id))]),
     ]);
+
+    const zones = isCondition ? conditionZones(fields) : operationZones(fields);
+    const after = afterBlock(fields, result);
+    const nav = workspaceNav(index, rows.length, rows, handlers);
+
+    const card = el("div", { class: "overflow-hidden rounded-[var(--lx-r-card)] border border-[var(--lx-border)] bg-[var(--lx-surface)] shadow-[var(--lx-shadow-card)]", dataset: { workspaceRow: row.id } }, [
+      el("div", { class: "p-5 sm:p-6" }, [header, el("div", { class: "mt-5" }, [zones])]),
+      after,
+      nav,
+    ]);
+    return el("div", { class: "space-y-3" }, [contextBar(index, rows, dataById), card]);
   }
+}
+
+// Barra de contexto: de dónde viene el dato (paso anterior o «Datos de entrada»),
+// el paso actual y a dónde va (paso siguiente o «Información final»).
+function contextBar(index, rows, dataById) {
+  const step = (i) => `Actividad ${i + 1} · ${activityTitle(rows[i], dataById)}`;
+  const prev = index === 0 ? "Datos de entrada" : step(index - 1);
+  const next = index === rows.length - 1 ? "Información final" : step(index + 1);
+  const arrow = () => el("span", { class: "shrink-0 text-[var(--lx-border-dashed)]" }, "→");
+  return el("div", { class: "flex items-center gap-2 overflow-x-auto rounded-[var(--lx-r-panel)] bg-[oklch(0.955_0.012_290)] px-3.5 py-2 text-[12.5px]" }, [
+    el("span", { class: "shrink-0 text-[var(--lx-ink-muted)]" }, prev),
+    arrow(),
+    el("span", { class: "shrink-0 font-semibold text-[var(--lx-ink)]" }, step(index)),
+    arrow(),
+    el("span", { class: "shrink-0 text-[var(--lx-ink-muted)]" }, next),
+  ]);
+}
+
+// Número del paso en el riel: violeta lleno cuando está seleccionado.
+function railNumber(position, selected) {
+  return el(
+    "span",
+    { class: `flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${selected ? "bg-[var(--lx-violet)] text-white" : "bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-muted)]"}` },
+    String(position),
+  );
+}
+
+// Cuadrado con el número del paso en la cabecera del espacio de trabajo.
+function workspaceNumber(position, isCondition) {
+  const bg = isCondition ? "bg-[var(--lx-amber)]" : "bg-[var(--lx-violet)]";
+  return el("span", { class: `flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[8px] ${bg} text-[14px] font-semibold text-white` }, String(position));
+}
+
+// Punto de estado (7px) a la derecha del ítem del riel.
+function statusDot(status) {
+  const tone = { done: "bg-[var(--lx-green)]", active: "bg-[var(--lx-violet)]", warn: "bg-[var(--lx-amber)]", todo: "bg-[var(--lx-border-dashed)]" }[status] ?? "bg-[var(--lx-border-dashed)]";
+  return el("span", { class: `h-[7px] w-[7px] shrink-0 rounded-full ${tone}`, title: STATUS_STYLE[status]?.title ?? "" });
+}
+
+// Zona numerada del razonamiento: título + ayuda + contenido.
+function zone(n, title, help, content) {
+  return el("div", { class: "min-w-0 flex-1 space-y-2" }, [
+    el("div", { class: "flex items-center gap-2" }, [
+      el("span", { class: "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] bg-[var(--lx-surface-sunken)] text-[11px] font-semibold text-[var(--lx-ink-muted)]" }, String(n)),
+      el("span", { class: "text-[14px] font-semibold text-[var(--lx-ink)]" }, title),
+    ]),
+    el("p", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, help),
+    el("div", { class: "min-w-0" }, [content]),
+  ]);
+}
+
+// Conector circular entre zonas (→ en fila, ↓ apiladas).
+function zoneArrow() {
+  return el("div", { class: "flex shrink-0 items-center justify-center py-1 lg:px-1 lg:py-0", "aria-hidden": "true" }, [
+    el("span", { class: "flex h-[26px] w-[26px] items-center justify-center rounded-full border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-muted)] shadow-[var(--lx-shadow-card)]" }, [
+      el("span", { class: "lg:hidden" }, "↓"),
+      el("span", { class: "hidden lg:inline" }, "→"),
+    ]),
+  ]);
+}
+
+function zonesRow(...zones) {
+  const present = zones.filter(Boolean);
+  const children = [];
+  present.forEach((z, i) => {
+    if (i > 0) children.push(zoneArrow());
+    children.push(z);
+  });
+  return el("div", { class: "flex flex-col gap-3 lg:flex-row lg:items-start" }, children);
+}
+
+// Las tres zonas de una operación: Qué necesitas → Qué haces → Qué obtienes.
+function operationZones(fields) {
+  return zonesRow(
+    zone(1, "Qué necesitas", "Los datos que entran en este paso.", fields.inputs),
+    zone(2, "Qué haces", "Escribe la expresión que combina esos datos.", fields.operation),
+    zone(3, "Qué obtienes", "El dato nuevo que produce este paso.", fields.result),
+  );
+}
+
+// Las zonas de una condición: Qué compruebas → Cómo lo compruebas → Qué obtienes,
+// y debajo (si es una decisión evaluada) los caminos Sí/No.
+function conditionZones(fields) {
+  const check = el("div", { class: "space-y-2" }, [fields.condition, fields.evaluate].filter(Boolean));
+  const paths = fields.ifTrue || fields.ifFalse
+    ? el("div", { class: "mt-4 space-y-2 rounded-[var(--lx-r-panel)] border border-[var(--lx-condicion-border)] bg-[var(--lx-condicion-bg)]/40 p-3" }, [
+        el("p", { class: "text-[13px] font-semibold text-[var(--lx-condicion-fg)]" }, "¿Qué pasa según el resultado?"),
+        fields.ifTrue ? stackedRow("Si se cumple, entonces:", fields.ifTrue) : null,
+        fields.ifFalse ? stackedRow("Si no se cumple, entonces:", fields.ifFalse) : null,
+      ].filter(Boolean))
+    : null;
+  return el("div", {}, [
+    zonesRow(
+      zone(1, "Qué compruebas", "La pregunta que se responde Sí o No.", check),
+      zone(2, "Cómo lo compruebas", "La comparación que la decide.", fields.operation),
+      fields.result ? zone(3, "Qué obtienes", "El dato lógico que produce.", fields.result) : null,
+    ),
+    paths,
+  ].filter(Boolean));
+}
+
+// Pie «¿Y después?»: qué se hará con el dato producido (propósito segmentado),
+// dónde se usa y el comentario. Solo aparece si la actividad produce un dato.
+function afterBlock(fields, result) {
+  if (!fields.purpose) return null;
+  const resultName = result?.name ? result.name : "este dato";
+  return el("div", { class: "border-t border-[var(--lx-border-soft)] bg-[var(--lx-surface-muted)] px-5 py-4 sm:px-6" }, [
+    el("div", { class: "mb-3 flex flex-wrap items-baseline gap-x-2" }, [
+      el("span", { class: "text-[14px] font-semibold text-[var(--lx-ink)]" }, "¿Y después?"),
+      el("span", { class: "text-[13px] text-[var(--lx-ink-muted)]" }, `Qué harás con ${resultName}.`),
+    ]),
+    el("div", { class: "grid gap-4 lg:grid-cols-2" }, [
+      el("div", { class: "space-y-2" }, [
+        fields.purpose,
+        fields.usedIn ? el("div", { class: "flex flex-wrap items-center gap-2 text-[13px]" }, [el("span", { class: "text-[var(--lx-ink-muted)]" }, "Se usa en"), el("div", { class: "min-w-0 flex-1" }, [fields.usedIn])]) : null,
+      ].filter(Boolean)),
+      el("div", {}, [
+        el("p", { class: "mb-1 text-[13px] text-[var(--lx-ink-body)]" }, "Comentario"),
+        fields.comment,
+      ]),
+    ]),
+  ]);
+}
+
+// Navegación entre actividades: paso anterior · «Actividad N de M» · siguiente
+// (o «Continuar a Cadena» en la última).
+function workspaceNav(index, total, rows, handlers) {
+  const prev = index > 0 ? el("button", { type: "button", class: "inline-flex items-center gap-1.5 rounded-[var(--lx-r-control)] px-3 py-1.5 text-[13px] font-medium text-[var(--lx-ink-muted)] hover:bg-[var(--lx-bg)] hover:text-[var(--lx-ink-body)]", onclick: () => handlers.onSelectRow?.(rows[index - 1].id) }, [icon("chevron", "h-4 w-4 rotate-90"), "Paso anterior"]) : el("span", {});
+  const isLast = index === total - 1;
+  const next = el(
+    "button",
+    { type: "button", class: "inline-flex items-center gap-1.5 rounded-[var(--lx-r-control)] bg-[var(--lx-violet)] px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-[var(--lx-violet-hover)]", onclick: () => (isLast ? goToStage("cadena") : handlers.onSelectRow?.(rows[index + 1].id)) },
+    [isLast ? "Continuar a Cadena" : "Siguiente actividad", icon("chevron", "h-4 w-4 -rotate-90")],
+  );
+  return el("div", { class: "flex items-center justify-between gap-3 border-t border-[var(--lx-border-soft)] px-5 py-3 sm:px-6" }, [
+    prev,
+    el("span", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, `Actividad ${index + 1} de ${total}`),
+    next,
+  ]);
 }
 
 // Estilo de cada estado de una actividad: un icono y un color representativos, para
@@ -167,17 +322,6 @@ function railConnector(datum) {
       ? el("span", { class: "[font-family:var(--lx-font-mono)] inline-flex items-center rounded-[var(--lx-r-chip)] border border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] px-1.5 py-0.5 text-[11px] text-[var(--lx-resultante-fg)]", title: "Dato que pasa al siguiente paso" }, datum.name || "(sin nombre)")
       : null,
   ]);
-}
-
-// El estado va en la esquina superior derecha de la actividad: el icono dentro de un
-// círculo del color que representa el estado.
-function statusCorner(status) {
-  const style = STATUS_STYLE[status] ?? STATUS_STYLE.todo;
-  return el(
-    "span",
-    { class: `absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full ${style.cls}`, title: style.title },
-    [icon(style.icon, "h-3 w-3")],
-  );
 }
 
 // Título breve de una actividad para la lista: su necesidad («¿qué necesitas
