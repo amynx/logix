@@ -447,9 +447,9 @@ test("the inputs section collapses to read-only chips when done", async () => {
 
 test("selecting a fragment of the statement adds it as an input datum", async () => {
   const { doc, controller } = await mountApp();
-  // El enunciado es opcional: se activa con la casilla antes de usarlo.
+  // El enunciado es opcional: se activa con la casilla-botón antes de usarlo.
   assert.equal(doc.getElementById("analysis-statement"), null, "el enunciado está oculto por defecto");
-  doc.querySelector("#analysis-info input[type='checkbox']").click();
+  [...doc.querySelectorAll("#analysis-info button")].find((b) => /Tengo el enunciado/.test(b.textContent)).click();
 
   const statement = doc.getElementById("analysis-statement");
   assert.ok(statement, "al activarlo aparece el campo de enunciado");

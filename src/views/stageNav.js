@@ -9,10 +9,34 @@ import { el, clear } from "../utils/dom.js";
 import { icon } from "./icons.js";
 
 export const STAGES = [
-  { id: "problema", label: "Problema", hint: "Entiende el problema y quién lo resuelve." },
-  { id: "datos", label: "Datos", hint: "Identifica los datos que recibe el programa." },
-  { id: "construccion", label: "Construcción", hint: "Descompón el proceso paso a paso." },
-  { id: "cadena", label: "Cadena", hint: "Observa cómo fluye tu razonamiento." },
+  {
+    id: "problema",
+    label: "Problema",
+    hint: "Entiende el problema y quién lo resuelve.",
+    title: "El problema",
+    intro: "Escribe de qué trata. Si tienes el enunciado, úsalo para identificar los datos.",
+  },
+  {
+    id: "datos",
+    label: "Datos",
+    hint: "Identifica los datos que recibe el programa.",
+    title: "Datos de entrada",
+    intro: "Transforma lo que dice el enunciado en datos con nombre y tipo. En las actividades solo se reutilizan estos.",
+  },
+  {
+    id: "construccion",
+    label: "Construcción",
+    hint: "Descompón el proceso paso a paso.",
+    title: "Actividades",
+    intro: "Descompón el proceso en pasos. Cada paso toma unos datos, hace algo con ellos y produce uno nuevo.",
+  },
+  {
+    id: "cadena",
+    label: "Cadena",
+    hint: "Observa cómo fluye tu razonamiento.",
+    title: "Cadena del análisis",
+    intro: "Cómo fluye tu razonamiento: de los datos a la información final.",
+  },
 ];
 
 let activeStage = STAGES[0].id;
@@ -56,10 +80,28 @@ export function goToStage(stageId, { silent = false } = {}) {
     node.classList.toggle("hidden", node.dataset.stage !== stageId);
   });
   renderStepper();
+  renderStageHeader();
   if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   if (!silent && onChangeCb) onChangeCb(stageId);
+}
+
+// Encabezado de la etapa: antetítulo «PASO N DE 4 · ETAPA», título y entradilla.
+function renderStageHeader() {
+  const host = document.getElementById("stage-header");
+  if (!host) return;
+  clear(host);
+  const index = STAGES.findIndex((stage) => stage.id === activeStage);
+  const stage = STAGES[index];
+  if (!stage) return;
+  host.append(
+    el("div", { class: "mb-5" }, [
+      el("p", { class: "text-[11.5px] font-semibold uppercase tracking-[0.09em] text-[var(--lx-violet)]" }, `Paso ${index + 1} de ${STAGES.length} · ${stage.label}`),
+      el("h1", { class: "mt-1 [font-family:var(--lx-font-display)] text-[26px] font-semibold tracking-[-0.02em] text-[var(--lx-ink)]" }, stage.title),
+      el("p", { class: "mt-1 max-w-[62ch] text-[14px] text-[var(--lx-ink-muted)]" }, stage.intro),
+    ]),
+  );
 }
 
 // Trae a la vista la etapa que contiene una sección concreta (p. ej. al saltar a

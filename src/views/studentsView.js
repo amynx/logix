@@ -8,15 +8,15 @@ import { sectionHeader, emptyState } from "./sectionHeader.js";
 import { icon } from "./icons.js";
 
 const CONTROL_CLASS =
-  "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
-  "outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
+  "rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2 py-1 text-[13.5px] text-[var(--lx-ink)] " +
+  "outline-none focus:border-[oklch(0.72_0.09_300)] focus:ring-2 focus:ring-[oklch(0.90_0.05_300)]";
 
 const GHOST_BUTTON_CLASS =
-  "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 " +
-  "text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
+  "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-3 " +
+  "text-[13.5px] font-medium text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700";
+  "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] bg-[var(--lx-violet)] px-3.5 text-[13.5px] font-medium text-white hover:bg-[var(--lx-violet-hover)]";
 
 export class StudentsView {
   constructor({ container }) {
@@ -34,16 +34,16 @@ export class StudentsView {
 
   // Barra compacta (visualización): grupo + estudiantes en una línea, con «Editar».
   #compactBar(group, students, handlers) {
-    return el("div", { class: "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm" }, [
-      el("span", { class: "inline-flex items-center gap-1.5 font-medium text-slate-700" }, [
-        icon("students", "h-4 w-4 text-indigo-500"),
+    return el("div", { class: "flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--lx-r-panel)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-3.5 py-2.5 text-[13.5px] shadow-[var(--lx-shadow-card)]" }, [
+      el("span", { class: "inline-flex items-center gap-1.5 font-medium text-[var(--lx-ink-body)]" }, [
+        icon("students", "h-4 w-4 text-[var(--lx-violet)]"),
         group ? `Grupo ${group}` : "Sin grupo",
       ]),
-      el("span", { class: "text-slate-300" }, "·"),
+      el("span", { class: "text-[var(--lx-border-dashed)]" }, "·"),
       el("div", { class: "flex flex-wrap gap-1.5" }, students.map(studentChip)),
       el(
         "button",
-        { type: "button", class: `${GHOST_BUTTON_CLASS} ml-auto py-1`, onclick: () => handlers.onEditStudents() },
+        { type: "button", class: `${GHOST_BUTTON_CLASS} ml-auto`, onclick: () => handlers.onEditStudents() },
         [icon("edit", "h-4 w-4"), "Editar estudiantes"],
       ),
     ]);
@@ -51,7 +51,7 @@ export class StudentsView {
 
   // Estado vacío (sin estudiantes): invita a agregar el primero.
   #emptyCard(handlers) {
-    return el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+    return el("section", { class: "rounded-[var(--lx-r-card)] border border-[var(--lx-border)] bg-[var(--lx-surface)] p-5 shadow-[var(--lx-shadow-card)]" }, [
       sectionHeader({ title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
       emptyState("students", "Aún no hay estudiantes. Agrega al menos uno."),
       el("div", { class: "mt-3" }, [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante")]),
@@ -81,7 +81,7 @@ export class StudentsView {
       el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddStudent() }, "+ Agregar estudiante"),
       el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneStudents() }, [icon("check", "h-4 w-4"), "Listo"]),
     ];
-    return el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
+    return el("section", { class: "rounded-[var(--lx-r-card)] border border-[var(--lx-border)] bg-[var(--lx-surface)] p-5 shadow-[var(--lx-shadow-card)]" }, [
       sectionHeader({ title: "Estudiantes", subtitle: "El grupo es común a todos; agrega los estudiantes que participan.", iconName: "students" }),
       groupBlock,
       list,
@@ -94,7 +94,7 @@ export class StudentsView {
 function studentChip(student) {
   const parts = [student.idNumber, student.fullName].map((value) => (value ?? "").trim()).filter(Boolean);
   const label = parts.length > 0 ? parts.join(" · ") : "(estudiante sin datos)";
-  return el("span", { class: "inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm text-slate-700" }, label);
+  return el("span", { class: "inline-flex items-center gap-1.5 rounded-[var(--lx-r-chip)] border border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] px-2.5 py-1 text-[13px] text-[var(--lx-ink-body)]" }, label);
 }
 
 function studentRow(student, handlers) {

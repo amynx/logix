@@ -4,20 +4,23 @@
 
 import { el, clear } from "../utils/dom.js";
 import { icon } from "./icons.js";
-import { sectionHeader } from "./sectionHeader.js";
 import { openHelp } from "./helpView.js";
 import { startExampleTutorial } from "./guideView.js";
 import { toggleTheme } from "../utils/theme.js";
 import { trackEvent } from "../utils/analytics.js";
 import { capitalizeFirst } from "../models/textNormalization.js";
 import { attachMentions } from "./mentionMenu.js";
+import { goToStage } from "./stageNav.js";
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm " +
-  "text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
+  "w-full rounded-[var(--lx-r-field)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-[13px] py-[10px] " +
+  "text-[14.5px] text-[var(--lx-ink)] outline-none placeholder:text-[var(--lx-ink-ghost)] " +
+  "focus:border-[oklch(0.72_0.09_300)] focus:ring-2 focus:ring-[oklch(0.90_0.05_300)]";
 
-const LABEL_CLASS = "block text-sm font-medium text-slate-700";
-const HELP_CLASS = "mt-1 text-xs text-slate-500";
+const LABEL_CLASS = "block text-[13px] font-medium text-[var(--lx-ink-body)]";
+const HELP_CLASS = "mt-1 text-[12.5px] text-[var(--lx-ink-muted)]";
+// Tarjeta base del rediseño (superficie, borde y sombra por token).
+const CARD_CLASS = "rounded-[var(--lx-r-card)] border border-[var(--lx-border)] bg-[var(--lx-surface)] p-5 shadow-[var(--lx-shadow-card)]";
 
 // Acorta un fragmento largo para mostrarlo en una etiqueta.
 function truncate(text, max = 40) {
@@ -293,11 +296,11 @@ export class AnalysisView {
       clear(selectionBar);
       const fragment = selectedFragment();
       if (!fragment) {
-        selectionBar.append(el("span", { class: "text-xs text-slate-400" }, "Selecciona un fragmento del enunciado para agregarlo como dato de entrada."));
+        selectionBar.append(el("span", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, "Selecciona un fragmento del enunciado para agregarlo como dato de entrada."));
         return;
       }
       if (isFragmentAdded(fragment)) {
-        selectionBar.append(el("span", { class: "inline-flex items-center gap-1.5 text-xs text-emerald-600" }, [icon("check", "h-3.5 w-3.5"), `«${truncate(fragment)}» ya está en Datos de entrada.`]));
+        selectionBar.append(el("span", { class: "inline-flex items-center gap-1.5 text-[12.5px] text-[var(--lx-resultante-fg)]" }, [icon("check", "h-3.5 w-3.5"), `«${truncate(fragment)}» ya está en Datos de entrada.`]));
         return;
       }
       selectionBar.append(
@@ -305,7 +308,7 @@ export class AnalysisView {
           "button",
           {
             type: "button",
-            class: "inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-100",
+            class: "inline-flex items-center gap-1.5 rounded-[var(--lx-r-control)] border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] px-2.5 py-1 text-[13px] font-medium text-[var(--lx-entrada-fg)] hover:brightness-95",
             // Evita que el botón robe el foco y pierda la selección del textarea.
             onmousedown: (event) => event.preventDefault(),
             onclick: () => {
@@ -318,30 +321,61 @@ export class AnalysisView {
       );
     };
 
-    this.infoContainer.append(
-      el("div", { class: "space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({ title: "Análisis", subtitle: "Título y descripción del problema.", iconName: "new" }),
+    // Casilla-botón "Tengo el enunciado del problema": una fila completa con un
+    // cuadro que se rellena de violeta y muestra ✓ cuando está activa.
+    const statementToggle = el(
+      "button",
+      {
+        type: "button",
+        class: "flex w-full items-center gap-2.5 rounded-[var(--lx-r-field)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-3 py-2.5 text-left text-[13.5px] font-medium text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]",
+        "aria-pressed": String(Boolean(showStatement)),
+        onclick: () => onToggleStatement(),
+      },
+      [
+        el(
+          "span",
+          { class: `flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[5px] border ${showStatement ? "border-[var(--lx-violet)] bg-[var(--lx-violet)] text-white" : "border-[var(--lx-border)]"}` },
+          showStatement ? [icon("check", "h-3 w-3")] : [],
+        ),
+        "Tengo el enunciado del problema",
+      ],
+    );
+
+    // Recuento de fragmentos ya convertidos en datos de entrada (llevan `source`).
+    const addedCount = analysis.data.filter((entry) => (entry.source ?? "").trim()).length;
+    const statementFooter = el("div", { class: "mt-3 flex flex-wrap items-center justify-between gap-2 text-[12.5px]" }, [
+      el("span", { class: "text-[var(--lx-ink-muted)]" }, addedCount > 0 ? `${addedCount} ${addedCount === 1 ? "fragmento agregado" : "fragmentos agregados"} como datos` : "Aún no has agregado fragmentos."),
+      el("button", { type: "button", class: "inline-flex items-center gap-1 font-medium text-[var(--lx-violet)] hover:underline", onclick: () => goToStage("datos") }, ["Ver los datos", icon("chevron", "h-3.5 w-3.5 -rotate-90")]),
+    ]);
+
+    // Izquierda: "De qué trata" (título y descripción). Derecha: "El enunciado".
+    const numeral = (n) => el("span", { class: "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] bg-[var(--lx-surface-sunken)] text-[11px] font-semibold text-[var(--lx-ink-muted)]" }, String(n));
+    const cardTitle = (n, text) => el("div", { class: "mb-4 flex items-center gap-2" }, [numeral(n), el("h2", { class: "[font-family:var(--lx-font-display)] text-[16px] font-semibold tracking-[-0.01em] text-[var(--lx-ink)]" }, text)]);
+
+    const leftCard = el("div", { class: `flex-1 basis-[380px] ${CARD_CLASS}` }, [
+      cardTitle(1, "De qué trata"),
+      el("div", { class: "space-y-4" }, [
         el("div", {}, [
           el("label", { for: "analysis-title", class: LABEL_CLASS }, "Título del análisis"),
-          el("div", { class: "mt-1" }, [title]),
+          el("div", { class: "mt-1.5" }, [title]),
         ]),
         el("div", {}, [
           el("label", { for: "analysis-description", class: LABEL_CLASS }, "Descripción del problema"),
-          el("div", { class: "mt-1" }, [description]),
+          el("div", { class: "mt-1.5" }, [description]),
           el("p", { class: HELP_CLASS }, "Contexto general: qué necesidad debe resolver el programa."),
         ]),
-        el("div", {}, [
-          el("label", { class: "flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700" }, [
-            el("input", { type: "checkbox", checked: showStatement || null, class: "h-4 w-4 rounded border-slate-300", onchange: () => onToggleStatement() }),
-            "Usar el enunciado del problema para identificar los datos (opcional)",
-          ]),
-          el("p", { class: HELP_CLASS }, "Pega el enunciado completo y selecciona fragmentos para agregarlos como datos de entrada. Si no lo necesitas, déjalo desactivado."),
-          showStatement
-            ? el("div", { class: "mt-2" }, [statement, selectionBar])
-            : null,
-        ]),
       ]),
-    );
+    ]);
+
+    const rightCard = el("div", { class: `flex-[1.3] basis-[440px] ${CARD_CLASS} border-[oklch(0.90_0.03_300)]` }, [
+      cardTitle(2, "El enunciado"),
+      statementToggle,
+      showStatement
+        ? el("div", { class: "mt-3 space-y-2" }, [statement, selectionBar, statementFooter])
+        : el("p", { class: HELP_CLASS + " mt-3" }, "Si lo activas, podrás pegar el enunciado y seleccionar fragmentos para convertirlos en datos de entrada. Si no, los declararás a mano en la etapa Datos."),
+    ]);
+
+    this.infoContainer.append(el("div", { class: "flex flex-wrap items-start gap-[22px]" }, [leftCard, rightCard]));
 
     if (showStatement) {
       updateSelectionBar();
