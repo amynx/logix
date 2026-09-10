@@ -24,25 +24,26 @@ function truncate(text, max = 40) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-// Botón en línea de la barra (escritorio): fantasma o primario (índigo sólido).
+// Estilos base de la barra (tokens del rediseño): botón de 34px, radio 9px.
+const BAR_BTN_BASE = "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] px-3 text-[13.5px] font-medium";
+const BAR_GHOST = `${BAR_BTN_BASE} border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]`;
+const BAR_PRIMARY = `${BAR_BTN_BASE} bg-[var(--lx-violet)] text-white hover:bg-[var(--lx-violet-hover)]`;
+
+// Botón en línea de la barra (escritorio): fantasma o primario (violeta sólido).
 function barButton(label, onClick, iconName, { primary = false } = {}) {
-  const base = "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium";
-  const variant = primary
-    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-    : "border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
-  return el("button", { type: "button", class: `${base} ${variant}`, onclick: onClick }, [
+  return el("button", { type: "button", class: primary ? BAR_PRIMARY : BAR_GHOST, onclick: onClick }, [
     iconName ? icon(iconName, "h-4 w-4") : null,
     label,
   ]);
 }
 
-// Botón solo-icono de la barra (p. ej. Tema).
+// Botón cuadrado solo-icono de la barra (p. ej. Tema).
 function iconBarButton(iconName, label, onClick) {
   return el(
     "button",
     {
       type: "button",
-      class: "inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700",
+      class: "inline-flex h-[34px] w-[34px] items-center justify-center rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]",
       title: label,
       "aria-label": label,
       onclick: onClick,
@@ -57,7 +58,7 @@ function menuItem(label, onClick, iconName) {
     "button",
     {
       type: "button",
-      class: "inline-flex w-full items-center justify-start gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700",
+      class: "inline-flex w-full items-center justify-start gap-1.5 rounded-[var(--lx-r-control)] px-3 py-1.5 text-[13.5px] font-medium text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)] hover:text-[var(--lx-violet)]",
       onclick: onClick,
     },
     [iconName ? icon(iconName, "h-4 w-4") : null, label],
@@ -70,7 +71,7 @@ function dropdownMenu(trigger, items, { align = "right" } = {}) {
   const panel = el(
     "div",
     {
-      class: `absolute ${align === "left" ? "left-0" : "right-0"} top-full z-30 mt-1 hidden w-56 flex-col gap-1 rounded-lg border border-slate-200 bg-white p-2 shadow-lg`,
+      class: `absolute ${align === "left" ? "left-0" : "right-0"} top-full z-30 mt-1 hidden w-56 flex-col gap-1 rounded-[var(--lx-r-panel)] border border-[var(--lx-border)] bg-[var(--lx-surface)] p-2 shadow-[var(--lx-shadow-pop)]`,
       onclick: (event) => {
         if (event.target.closest("button")) close();
       },
@@ -97,7 +98,7 @@ function historyButton(iconName, label, onClick) {
     "button",
     {
       type: "button",
-      class: "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-300 disabled:hover:bg-white disabled:hover:text-slate-600",
+      class: "inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[8px] border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)] disabled:cursor-not-allowed disabled:border-transparent disabled:bg-transparent disabled:text-[var(--lx-ink-ghost)]",
       title: label,
       "aria-label": label,
       onclick: onClick,
@@ -108,14 +109,14 @@ function historyButton(iconName, label, onClick) {
 
 const SAVE_STATUS = {
   idle: { text: "", pill: "text-transparent", icon: () => null },
-  saving: { text: "Guardando…", pill: "bg-slate-100 text-slate-500", icon: spinner },
-  saved: { text: "Guardado", pill: "bg-emerald-50 text-emerald-600", icon: () => icon("check", "h-3.5 w-3.5") },
-  error: { text: "Sin guardar", pill: "bg-red-50 text-red-600", icon: dot },
+  saving: { text: "Guardando…", pill: "bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-muted)]", icon: spinner },
+  saved: { text: "Guardado", pill: "border border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)] text-[var(--lx-resultante-fg)]", icon: () => icon("check", "h-3.5 w-3.5") },
+  error: { text: "Sin guardar", pill: "border border-[oklch(0.90_0.05_25)] bg-[oklch(0.96_0.02_25)] text-[oklch(0.55_0.15_25)]", icon: dot },
 };
 
 // Pequeño anillo giratorio para el estado "Guardando…".
 function spinner() {
-  return el("span", { class: "h-3 w-3 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500" });
+  return el("span", { class: "h-3 w-3 animate-spin rounded-full border-2 border-[var(--lx-border)] border-t-[var(--lx-ink-muted)]" });
 }
 
 // Punto sólido para el estado de error.
@@ -169,7 +170,7 @@ export class AnalysisView {
     // acciones clave quedan a la vista.
     const archivoTrigger = el(
       "button",
-      { type: "button", class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700" },
+      { type: "button", class: BAR_GHOST },
       [icon("folder", "h-4 w-4"), "Archivo", icon("chevron", "h-3.5 w-3.5")],
     );
     const archivo = dropdownMenu(
@@ -193,7 +194,7 @@ export class AnalysisView {
     // Menú móvil: una hamburguesa con todas las acciones en una lista plana.
     const hamburger = el(
       "button",
-      { type: "button", class: "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50", "aria-label": "Abrir menú" },
+      { type: "button", class: BAR_GHOST, "aria-label": "Abrir menú" },
       [icon("menu", "h-4 w-4"), "Menú"],
     );
     const mobileMenu = dropdownMenu(hamburger, [
