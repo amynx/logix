@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 const OUT = "/tmp/claude-1000/-home-andres-course-projects-logix/b2b16ed3-008d-4ccc-b714-b4870679e51e/scratchpad";
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+const page = await browser.newPage({ viewport: { width: 1200, height: 760 } });
 await page.goto("http://localhost:8099/index.html", { waitUntil: "networkidle" });
 await page.waitForTimeout(700);
 await page.getByRole("button", { name: /Ejemplo guiado/ }).first().click();
@@ -9,12 +9,8 @@ await page.waitForTimeout(600);
 const close = page.locator('button[aria-label="Cerrar guía"]');
 if (await close.count()) await close.first().click();
 await page.waitForTimeout(300);
-await page.getByRole("button", { name: /Construcción/ }).first().click();
+await page.getByRole("button", { name: /Problema/ }).first().click();
 await page.waitForTimeout(400);
-// open the "+ Agregar dato" picker in the inputs zone
-const add = page.locator('[data-workspace-row] button', { hasText: /Agregar dato/ }).first();
-if (await add.count()) await add.click();
-await page.waitForTimeout(300);
-await page.screenshot({ path: `${OUT}/f5b-datos-popover.png`, clip: { x: 320, y: 400, width: 700, height: 420 } });
+await page.screenshot({ path: `${OUT}/f3c-enunciado.png`, clip: { x: 560, y: 380, width: 620, height: 340 } });
 await browser.close();
 console.log("done");

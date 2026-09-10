@@ -295,6 +295,7 @@ export class AnalysisController {
 
   removeInput(dataId) {
     removeData(this.analysis, dataId);
+    this.renderInfo(); // refresca los fragmentos resaltados del enunciado y el recuento
     this.renderInputs();
     this.renderTable();
     this.#afterChange();
@@ -378,6 +379,7 @@ export class AnalysisController {
       onDescriptionChange: (description) => this.updateInfo({ description }),
       onStatementChange: (statement) => this.updateInfo({ statement }),
       onAddDataFromSelection: (fragment) => this.addDataFromSelection(fragment),
+      onRemoveFragment: (dataId) => this.removeInput(dataId),
       isFragmentAdded: (fragment) => this.analysis.data.some((entry) => (entry.source ?? "").trim() === fragment),
       showStatement: this.showStatement,
       onToggleStatement: () => this.toggleStatement(),
@@ -400,6 +402,7 @@ export class AnalysisController {
     if (!text) return;
     addInput(this.analysis, { source: text, value: valueFromFragment(text) });
     this.editingInputs = true;
+    this.renderInfo(); // el fragmento pasa a estar resaltado en el enunciado
     this.renderInputs();
     this.renderTable();
     this.#afterChange();

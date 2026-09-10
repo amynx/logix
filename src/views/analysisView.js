@@ -27,6 +27,46 @@ function truncate(text, max = 40) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
+// Divide el enunciado en nodos: los fragmentos ya identificados como datos se
+// resaltan como chips pulsables (al pulsarlos se quita el dato); el resto es texto.
+function highlightFragments(text, added, onRemove) {
+  const sources = added.filter((entry) => entry.source).sort((a, b) => b.source.length - a.source.length);
+  const nodes = [];
+  let buffer = "";
+  let i = 0;
+  while (i < text.length) {
+    const match = sources.find((entry) => text.startsWith(entry.source, i));
+    if (match) {
+      if (buffer) {
+        nodes.push(buffer);
+        buffer = "";
+      }
+      nodes.push(fragmentChip(match.source, () => onRemove?.(match.id)));
+      i += match.source.length;
+    } else {
+      buffer += text[i];
+      i += 1;
+    }
+  }
+  if (buffer) nodes.push(buffer);
+  return nodes;
+}
+
+function fragmentChip(source, onRemove) {
+  return el(
+    "span",
+    {
+      class: "cursor-pointer rounded-[7px] border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] px-1.5 py-0.5 text-[var(--lx-entrada-fg)] hover:brightness-95",
+      title: "Quitar este dato de entrada",
+      onclick: (event) => {
+        event.stopPropagation();
+        onRemove();
+      },
+    },
+    source,
+  );
+}
+
 // Estilos base de la barra (tokens del rediseño): botón de 34px, radio 9px.
 const BAR_BTN_BASE = "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] px-3 text-[13.5px] font-medium";
 const BAR_GHOST = `${BAR_BTN_BASE} border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]`;
@@ -238,7 +278,7 @@ export class AnalysisView {
       `inline-flex min-w-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium transition-colors md:min-w-[6.5rem] md:px-2.5 ${status.pill}`;
   }
 
-  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, isFragmentAdded, showStatement, onToggleStatement, getDataMentions }) {
+  renderInfo(analysis, { onTitleChange, onDescriptionChange, onStatementChange, onAddDataFromSelection, onRemoveFragment, isFragmentAdded, showStatement, onToggleStatement, getDataMentions }) {
     clear(this.infoContainer);
 
     const title = el("input", {
@@ -280,9 +320,9 @@ export class AnalysisView {
         onStatementChange(event.target.value);
         autoGrow();
       },
-      onmouseup: () => updateSelectionBar(),
-      onkeyup: () => updateSelectionBar(),
-      onselect: () => updateSelectionBar(),
+      onmouseup: () => updateSelectionBar(selectedFragment()),
+      onkeyup: () => updateSelectionBar(selectedFragment()),
+      onselect: () => updateSelectionBar(selectedFragment()),
     });
     const autoGrow = () => {
       statement.style.height = "auto";
@@ -292,11 +332,12 @@ export class AnalysisView {
     const selectionBar = el("div", { class: "mt-2 flex min-h-[2rem] items-center" });
     const selectedFragment = () => statement.value.substring(statement.selectionStart, statement.selectionEnd).trim();
 
-    const updateSelectionBar = () => {
+    // Barra de acción de la selección: agregar el fragmento seleccionado como dato.
+    // El fragmento llega del textarea (edición) o de la selección del panel (lectura).
+    const updateSelectionBar = (fragment = "") => {
       clear(selectionBar);
-      const fragment = selectedFragment();
       if (!fragment) {
-        selectionBar.append(el("span", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, "Selecciona un fragmento del enunciado para agregarlo como dato de entrada."));
+        selectionBar.append(el("span", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, "Toca un fragmento resaltado para quitarlo, o selecciona texto para convertirlo en un dato."));
         return;
       }
       if (isFragmentAdded(fragment)) {
@@ -309,17 +350,49 @@ export class AnalysisView {
           {
             type: "button",
             class: "inline-flex items-center gap-1.5 rounded-[var(--lx-r-control)] border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] px-2.5 py-1 text-[13px] font-medium text-[var(--lx-entrada-fg)] hover:brightness-95",
-            // Evita que el botón robe el foco y pierda la selección del textarea.
+            // Evita que el botón robe el foco y pierda la selección.
             onmousedown: (event) => event.preventDefault(),
-            onclick: () => {
-              onAddDataFromSelection(selectedFragment());
-              updateSelectionBar();
-            },
+            onclick: () => onAddDataFromSelection(fragment),
           },
           [icon("data", "h-4 w-4"), `Agregar «${truncate(fragment)}» como dato de entrada`],
         ),
       );
     };
+
+    // Panel de lectura del enunciado: el texto con los fragmentos ya identificados
+    // resaltados (violeta) y pulsables para quitarlos; seleccionar texto nuevo lo
+    // ofrece como dato. Es la vista principal; el textarea aparece al «Editar texto».
+    const added = analysis.data
+      .filter((entry) => (entry.source ?? "").trim())
+      .map((entry) => ({ id: entry.id, source: entry.source.trim() }));
+    const statementView = el("div", {
+      class: "min-h-[7rem] cursor-text whitespace-pre-wrap rounded-[var(--lx-r-panel)] border border-[var(--lx-border)] bg-[oklch(0.985_0.004_285)] px-3.5 py-3 text-[15px] leading-[2.05] text-[var(--lx-ink-body)]",
+      onmouseup: () => updateSelectionBar((window.getSelection?.()?.toString() ?? "").trim()),
+    });
+    const paintPanel = () => {
+      clear(statementView);
+      const text = statement.value;
+      if (text.trim()) statementView.append(...highlightFragments(text, added, onRemoveFragment));
+      else statementView.append(el("span", { class: "italic text-[var(--lx-ink-ghost)]" }, "Pega aquí el enunciado y luego «Editar texto» para ajustarlo."));
+    };
+
+    // Alterna entre el panel resaltado (lectura) y el textarea (edición).
+    const setEditing = (editing) => {
+      statement.hidden = !editing;
+      statementView.hidden = editing;
+      editToggle.textContent = editing ? "Listo" : "Editar texto";
+      if (editing) {
+        statement.focus();
+        autoGrow();
+      } else {
+        paintPanel();
+      }
+    };
+    const editToggle = el("button", {
+      type: "button",
+      class: "text-[12.5px] font-medium text-[var(--lx-violet)] hover:underline",
+      onclick: () => setEditing(statement.hidden),
+    });
 
     // Casilla-botón "Tengo el enunciado del problema": una fila completa con un
     // cuadro que se rellena de violeta y muestra ✓ cuando está activa.
@@ -371,15 +444,26 @@ export class AnalysisView {
       cardTitle(2, "El enunciado"),
       statementToggle,
       showStatement
-        ? el("div", { class: "mt-3 space-y-2" }, [statement, selectionBar, statementFooter])
+        ? el("div", { class: "mt-3 space-y-2" }, [
+            el("div", { class: "flex items-center justify-between gap-2" }, [
+              el("p", { class: "text-[12.5px] text-[var(--lx-ink-muted)]" }, "Toca un fragmento resaltado para convertirlo en un dato de entrada."),
+              editToggle,
+            ]),
+            statementView,
+            statement,
+            selectionBar,
+            statementFooter,
+          ])
         : el("p", { class: HELP_CLASS + " mt-3" }, "Si lo activas, podrás pegar el enunciado y seleccionar fragmentos para convertirlos en datos de entrada. Si no, los declararás a mano en la etapa Datos."),
     ]);
 
     this.infoContainer.append(el("div", { class: "flex flex-wrap items-start gap-[22px]" }, [leftCard, rightCard]));
 
     if (showStatement) {
+      // Modo inicial: si hay enunciado, se muestra el panel resaltado; si está vacío,
+      // el textarea para pegarlo.
+      setEditing(!(analysis.statement ?? "").trim());
       updateSelectionBar();
-      autoGrow();
     }
   }
 }
