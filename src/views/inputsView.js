@@ -1,37 +1,39 @@
-// Vista de la sección "Datos de entrada": declara una vez los datos que recibe el
-// programa. Se presentan como una tabla alineada con columnas descriptivas
-// (Dato identificado · Valor · Tipo · Nombre). Tiene dos modos: edición (con
-// controles) y visualización (solo lectura), para que la sección quede limpia al
-// terminar. Solo se ocupa del DOM.
+// Vista de la etapa "Datos de entrada": declara una vez los datos que recibe el
+// programa. Refuerza la transformación enunciado → dato identificado → nombre, y
+// muestra aparte, de solo lectura, los datos que producen las actividades. La
+// tabla tiene dos modos (edición con controles, visualización de solo lectura).
+// Solo se ocupa del DOM.
 
 import { el, clear } from "../utils/dom.js";
 import { DATA_TYPES, optionsOf } from "../models/dataTypes.js";
 import { NAME_CONVENTIONS } from "../models/nameConventions.js";
 import { normalizeFieldOnBlur } from "./rowEditor.js";
-import { sectionHeader, emptyState } from "./sectionHeader.js";
+import { emptyState } from "./sectionHeader.js";
 import { helpButton } from "./helpView.js";
 import { typeBadge } from "./badges.js";
 import { icon } from "./icons.js";
 
 const CONTROL_CLASS =
-  "rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 " +
-  "outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200";
+  "rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-2.5 py-1.5 text-[13.5px] text-[var(--lx-ink)] " +
+  "outline-none placeholder:text-[var(--lx-ink-ghost)] focus:border-[oklch(0.72_0.09_300)] focus:ring-2 focus:ring-[oklch(0.90_0.05_300)]";
 
 const GHOST_BUTTON_CLASS =
-  "inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 " +
-  "text-sm font-medium text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700";
+  "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-3 " +
+  "text-[13.5px] font-medium text-[var(--lx-ink-body)] hover:bg-[var(--lx-bg)]";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700";
+  "inline-flex h-[34px] items-center gap-1.5 rounded-[var(--lx-r-control)] bg-[var(--lx-violet)] px-3.5 text-[13.5px] font-medium text-white hover:bg-[var(--lx-violet-hover)]";
 
-const TH_CLASS = "border-b border-slate-200 bg-slate-50 px-3 py-2 text-left align-top";
-const TD_CLASS = "border-b border-slate-100 px-3 py-2 align-top";
+const CARD_CLASS = "rounded-[var(--lx-r-card)] border border-[var(--lx-border)] bg-[var(--lx-surface)] p-5 shadow-[var(--lx-shadow-card)]";
+const TH_CLASS = "border-b border-[var(--lx-border)] bg-[var(--lx-surface-sunken)] px-3 py-2.5 text-left align-top";
+const TD_CLASS = "border-b border-[var(--lx-border-soft)] px-3 py-3 align-top";
+const MONO = "[font-family:var(--lx-font-mono)]";
 
 // Columnas de la tabla: nombre + una nota de qué va en cada una.
 const IDENTIFIED_COLUMN = { label: "Dato identificado", help: "Fragmento del enunciado", width: "min-w-[14rem]" };
-const VALUE_COLUMN = { label: "Valor", help: "Opcional (si el ejercicio lo indica)", width: "min-w-[8rem]" };
+const VALUE_COLUMN = { label: "Valor", help: "Opcional", width: "min-w-[6rem]" };
 const TYPE_COLUMN = { label: "Tipo", help: "Numérico, Lógico o Texto", width: "min-w-[9rem]" };
-const NAME_COLUMN = { label: "Nombre", help: "Nombre en el algoritmo", width: "min-w-[12rem]" };
+const NAME_COLUMN = { label: "Nombre", help: "Nombre en el algoritmo", width: "min-w-[10rem]" };
 
 // La estructura se adapta al modo de trabajo: con enunciado se muestra el fragmento
 // identificado; sin enunciado (entrada manual) se omite y el nombre va al frente.
@@ -46,56 +48,96 @@ export class InputsView {
     this.container = container;
   }
 
-  render(inputs, editing, handlers, usingStatement = false, nameConvention = "") {
+  render(inputs, editing, handlers, usingStatement = false, nameConvention = "", produced = []) {
     clear(this.container);
+    this.container.append(
+      el("div", { class: "mx-auto max-w-[1000px] space-y-4" }, [
+        usingStatement ? transformationLegend() : null,
+        this.#inputsCard(inputs, editing, handlers, usingStatement, nameConvention),
+        this.#producedCard(produced),
+      ].filter(Boolean)),
+    );
+  }
 
+  #inputsCard(inputs, editing, handlers, usingStatement, nameConvention) {
     const addButton = el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onAddInput() }, "+ Agregar dato");
 
     let body;
-    let actions;
+    let footer = null;
     if (inputs.length === 0 && !editing) {
-      body = emptyState("data", "Aún no hay datos de entrada. Agrégalos aquí para usarlos en las actividades.");
-      actions = [addButton];
+      body = emptyState("data", "Aún no hay datos de entrada. Agrégalos aquí o selecciónalos en el enunciado.");
     } else if (editing) {
       body =
         inputs.length > 0
           ? inputsTable(inputs, true, handlers, usingStatement)
-          : el("p", { class: "text-sm text-slate-400" }, "Agrega el primer dato de entrada.");
-      const done = el("button", { type: "button", class: PRIMARY_BUTTON_CLASS, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]);
-      actions = inputs.length > 0 ? [addButton, conventionSelect(nameConvention, handlers.onSetNameConvention), done] : [addButton, done];
+          : el("p", { class: "text-[13.5px] text-[var(--lx-ink-muted)]" }, "Agrega el primer dato de entrada.");
+      footer = el("div", { class: "mt-4 flex flex-wrap items-center gap-2" }, [
+        addButton,
+        inputs.length > 0 ? conventionSelect(nameConvention, handlers.onSetNameConvention) : null,
+        el("button", { type: "button", class: `${PRIMARY_BUTTON_CLASS} ml-auto`, onclick: () => handlers.onDoneInputs() }, [icon("check", "h-4 w-4"), "Listo"]),
+      ].filter(Boolean));
     } else {
       body = inputsTable(inputs, false, handlers, usingStatement);
-      actions = [el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditInputs() }, [icon("edit", "h-4 w-4"), "Editar datos"])];
     }
 
-    this.container.append(
-      el("section", { class: "rounded-xl border border-slate-200 bg-white p-4 shadow-sm" }, [
-        sectionHeader({
-          title: "Datos de entrada",
-          subtitle: "Transforma lo que dice el enunciado en datos con nombre y tipo; en las actividades solo se reutilizan estos.",
-          iconName: "data",
-          help: helpButton(1), // pestaña "Datos y operaciones" (cómo nombrar los datos)
-        }),
-        usingStatement ? transformationLegend() : null,
-        body,
-        el("div", { class: "mt-3 flex flex-wrap gap-2" }, actions),
-      ]),
-    );
+    const headerAction = editing
+      ? null
+      : inputs.length > 0
+        ? el("button", { type: "button", class: GHOST_BUTTON_CLASS, onclick: () => handlers.onEditInputs() }, [icon("edit", "h-4 w-4"), "Editar datos"])
+        : addButton;
+
+    return el("section", { class: CARD_CLASS }, [
+      cardHeader("data", "text-[var(--lx-violet)]", "Datos de entrada", inputs.length > 0 ? `${inputs.length} ${inputs.length === 1 ? "dato" : "datos"}` : null, headerAction, helpButton(1)),
+      body,
+      footer,
+    ].filter(Boolean));
   }
+
+  // Datos resultantes: solo lectura, aparecen cuando una actividad produce un dato.
+  #producedCard(produced) {
+    const rows =
+      produced.length > 0
+        ? el("div", { class: "space-y-2" }, produced.map((item) =>
+            el("div", { class: "flex min-w-[240px] flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--lx-r-control)] border border-[var(--lx-border)] bg-[var(--lx-surface)] px-3 py-2" }, [
+              el("span", { class: `${MONO} text-[13px] font-medium text-[var(--lx-resultante-fg)]` }, item.datum.name || "(sin nombre)"),
+              item.datum.type ? typeBadge(item.datum.type) : null,
+              el("span", { class: "ml-auto text-[12.5px] text-[var(--lx-ink-muted)]" }, item.activity),
+            ].filter(Boolean)),
+          ))
+        : el("div", { class: "rounded-[var(--lx-r-panel)] border border-dashed border-[var(--lx-resultante-border)] bg-[var(--lx-resultante-bg)]/40 px-4 py-5 text-center text-[13px] text-[var(--lx-ink-muted)]" }, "Aparecerán aquí en cuanto una actividad produzca un dato.");
+
+    return el("section", { class: `${CARD_CLASS} bg-[var(--lx-surface-muted)]` }, [
+      cardHeader("reuse", "text-[var(--lx-green)]", "Datos resultantes", null, null),
+      el("p", { class: "mb-3 -mt-2 text-[12.5px] text-[var(--lx-ink-muted)]" }, "No los escribes aquí: aparecen cuando una actividad produce un dato nuevo."),
+      rows,
+    ]);
+  }
+}
+
+// Cabecera de tarjeta: icono + título (Outfit) + recuento opcional, y una acción a
+// la derecha.
+function cardHeader(iconName, iconTone, title, count, action, help = null) {
+  return el("div", { class: "mb-4 flex items-center gap-2.5" }, [
+    icon(iconName, `h-5 w-5 ${iconTone}`),
+    el("h2", { class: "[font-family:var(--lx-font-display)] text-[17px] font-semibold tracking-[-0.01em] text-[var(--lx-ink)]" }, title),
+    count ? el("span", { class: "text-[13px] text-[var(--lx-ink-muted)]" }, `· ${count}`) : null,
+    help ? el("span", { class: "shrink-0" }, [help]) : null,
+    action ? el("div", { class: "ml-auto" }, [action]) : null,
+  ].filter(Boolean));
 }
 
 // Refuerza el concepto pedagógico: identificar un dato es transformar lo que dice
 // el enunciado (lenguaje natural) en una representación con nombre para el análisis.
 function transformationLegend() {
-  const step = (text, tone) => el("span", { class: `rounded-md px-2 py-0.5 ${tone}` }, text);
-  const arrowEl = () => el("span", { class: "text-slate-300" }, "→");
-  return el("div", { class: "mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-xs" }, [
-    step("Enunciado", "bg-white text-slate-500 border border-slate-200"),
+  const step = (text, tone) => el("span", { class: `rounded-[var(--lx-r-chip)] px-2 py-0.5 ${tone}` }, text);
+  const arrowEl = () => el("span", { class: "text-[var(--lx-border-dashed)]" }, "→");
+  return el("div", { class: "flex flex-wrap items-center gap-2 rounded-[var(--lx-r-panel)] border border-dashed border-[var(--lx-border-dashed)] px-3.5 py-2.5 text-[12.5px]" }, [
+    step("Enunciado", "border border-[var(--lx-border)] bg-[var(--lx-surface)] text-[var(--lx-ink-muted)]"),
     arrowEl(),
-    step("Dato identificado", "bg-slate-100 text-slate-600"),
+    step("Dato identificado", "bg-[var(--lx-surface-sunken)] text-[var(--lx-ink-body)]"),
     arrowEl(),
-    step("Nombre en el análisis", "bg-blue-100 text-blue-700"),
-    el("span", { class: "text-slate-400" }, "· p. ej. «4 en el primer parcial» → nota1"),
+    step("Nombre en el análisis", `${MONO} border border-[var(--lx-entrada-border)] bg-[var(--lx-entrada-bg)] text-[var(--lx-entrada-fg)]`),
+    el("span", { class: "text-[var(--lx-ink-muted)]" }, "· p. ej. «4 en el primer parcial» → nota1"),
   ]);
 }
 
@@ -105,16 +147,16 @@ function inputsTable(inputs, editing, handlers, usingStatement) {
   const columns = columnsFor(usingStatement);
   const headCells = columns.map((column) =>
     el("th", { class: `${TH_CLASS} ${column.width}`, scope: "col" }, [
-      el("div", { class: "font-semibold text-slate-700" }, column.label),
-      el("div", { class: "mt-0.5 text-xs font-normal text-slate-400" }, column.help),
+      el("div", { class: "text-[11.5px] font-semibold text-[var(--lx-ink-body)]" }, column.label),
+      el("div", { class: "mt-0.5 text-[11.5px] font-normal text-[var(--lx-ink-muted)]" }, column.help),
     ]),
   );
   if (editing) headCells.push(el("th", { class: `${TH_CLASS} w-10` }, el("span", { class: "sr-only" }, "Acciones")));
 
   const rows = inputs.map((entry) => (editing ? editRow(entry, handlers, usingStatement) : viewRow(entry, usingStatement)));
 
-  return el("div", { class: "overflow-x-auto rounded-lg border border-slate-200" }, [
-    el("table", { class: "w-full border-collapse text-sm" }, [
+  return el("div", { class: "overflow-x-auto rounded-[var(--lx-r-panel)] border border-[var(--lx-border)]" }, [
+    el("table", { class: "w-full min-w-[640px] border-collapse text-[13.5px]" }, [
       el("thead", {}, [el("tr", {}, headCells)]),
       el("tbody", {}, rows),
     ]),
@@ -123,9 +165,9 @@ function inputsTable(inputs, editing, handlers, usingStatement) {
 
 function editRow(entry, handlers, usingStatement) {
   const change = (changes) => handlers.onInputChange(entry.id, changes);
-  const nameCell = el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }), { normalize: handlers.formatName })]);
+  const nameCell = el("td", { class: TD_CLASS }, [textField("nombre", entry.name, (value) => change({ name: value }), { normalize: handlers.formatName, mono: true })]);
   const typeCell = el("td", { class: TD_CLASS }, [typeSelect(entry, handlers)]);
-  const valueCell = el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }))]);
+  const valueCell = el("td", { class: TD_CLASS }, [textField("opcional", entry.value, (value) => change({ value }), { mono: true })]);
   const cells = usingStatement
     ? [el("td", { class: TD_CLASS }, [sourceCell(entry.source)]), valueCell, typeCell, nameCell]
     : [nameCell, typeCell, valueCell];
@@ -135,12 +177,12 @@ function editRow(entry, handlers, usingStatement) {
         "button",
         {
           type: "button",
-          class: "rounded px-2 py-1 text-slate-400 hover:bg-red-50 hover:text-red-600",
+          class: "inline-flex h-7 w-7 items-center justify-center rounded-[var(--lx-r-control)] text-[var(--lx-ink-muted)] hover:bg-[oklch(0.96_0.02_25)] hover:text-[oklch(0.55_0.15_25)]",
           title: "Eliminar dato de entrada",
           "aria-label": "Eliminar dato de entrada",
           onclick: () => handlers.onRemoveInput(entry.id),
         },
-        "🗑",
+        "✕",
       ),
     ]),
   );
@@ -148,9 +190,9 @@ function editRow(entry, handlers, usingStatement) {
 }
 
 function viewRow(entry, usingStatement) {
-  const nameCell = el("td", { class: TD_CLASS }, entry.name ? el("span", { class: "font-medium text-slate-700" }, entry.name) : dash());
+  const nameCell = el("td", { class: TD_CLASS }, entry.name ? el("span", { class: `${MONO} font-medium text-[var(--lx-entrada-fg)]` }, entry.name) : dash());
   const typeCell = el("td", { class: TD_CLASS }, entry.type ? typeBadge(entry.type) : dash());
-  const valueCell = el("td", { class: TD_CLASS }, entry.value ? el("span", { class: "text-slate-700" }, entry.value) : dash());
+  const valueCell = el("td", { class: TD_CLASS }, entry.value ? el("span", { class: `${MONO} text-[var(--lx-ink-body)]` }, entry.value) : dash());
   const cells = usingStatement
     ? [el("td", { class: TD_CLASS }, [sourceCell(entry.source)]), valueCell, typeCell, nameCell]
     : [nameCell, typeCell, valueCell];
@@ -161,24 +203,24 @@ function viewRow(entry, usingStatement) {
 function sourceCell(source) {
   const text = (source ?? "").trim();
   if (!text) return dash();
-  return el("span", { class: "inline-flex items-start gap-1.5 text-slate-600", title: "Fragmento del enunciado" }, [
-    icon("data", "h-3.5 w-3.5 mt-0.5 shrink-0 text-slate-400"),
+  return el("span", { class: "inline-flex items-start gap-1.5 text-[var(--lx-ink-body)]", title: "Fragmento del enunciado" }, [
+    icon("data", "h-3.5 w-3.5 mt-0.5 shrink-0 text-[var(--lx-ink-ghost)]"),
     el("span", {}, text),
   ]);
 }
 
 function dash() {
-  return el("span", { class: "text-slate-300" }, "—");
+  return el("span", { class: "text-[var(--lx-ink-ghost)]" }, "—");
 }
 
 // `normalize` reformatea el campo al desenfocar (p. ej. la convención de nombres),
-// sin interrumpir mientras se escribe.
-function textField(placeholder, value, onInput, { normalize } = {}) {
+// sin interrumpir mientras se escribe. `mono` usa la tipografía de datos.
+function textField(placeholder, value, onInput, { normalize, mono } = {}) {
   return el("input", {
     type: "text",
     value: value ?? "",
     placeholder,
-    class: `${CONTROL_CLASS} w-full`,
+    class: `${CONTROL_CLASS} w-full${mono ? ` ${MONO}` : ""}`,
     oninput: (event) => onInput(event.target.value),
     onblur: normalize ? (event) => normalizeFieldOnBlur(event, normalize, onInput) : null,
   });
@@ -207,7 +249,7 @@ function conventionSelect(nameConvention, onSetNameConvention) {
   const select = el(
     "select",
     {
-      class: `${CONTROL_CLASS} text-sm`,
+      class: `${CONTROL_CLASS}`,
       title: "Convención de nombres del análisis (se aplica a entradas y resultados)",
       onchange: (event) => onSetNameConvention(event.target.value),
     },

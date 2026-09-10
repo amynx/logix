@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: oklch(0.975 0.004 265); font-family: "Instrument Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: oklch(0.30 0.02 275); }
+  button { font: inherit; color: inherit; }
+  a { color: oklch(0.50 0.15 300); text-decoration: none; }
+  a:hover { color: oklch(0.42 0.16 300); }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; flex-direction:column; background:oklch(0.975 0.004 265)">
+
+  <header style="display:flex; align-items:center; gap:16px; padding:14px 28px; background:oklch(1 0 0); border-bottom:1px solid oklch(0.92 0.006 275)">
+    <div style="display:flex; align-items:center; gap:10px; min-width:0">
+      <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex-shrink:0; border-radius:8px; background:oklch(0.50 0.15 300)">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" aria-hidden="true">
+          <g stroke="#ffffff" stroke-width="1.5" stroke-linecap="round">
+            <line x1="6.2" y1="7" x2="12" y2="12"></line>
+            <line x1="12" y1="12" x2="17.8" y2="17"></line>
+          </g>
+          <g fill="#ffffff">
+            <circle cx="6.2" cy="7" r="2.1"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <circle cx="17.8" cy="17" r="2.1"></circle>
+          </g>
+        </svg>
+      </span>
+      <span style="font-family:'Outfit',sans-serif; font-weight:600; font-size:17px; letter-spacing:-0.01em; color:oklch(0.25 0.02 275)">Logix</span>
+      <span style="font-size:13.5px; color:oklch(0.50 0.015 275)">· Análisis de problemas</span>
+      <span style="display:inline-flex; align-items:center; gap:5px; margin-left:6px; padding:3px 9px; border-radius:999px; background:oklch(0.955 0.035 158); border:1px solid oklch(0.90 0.055 158); font-size:12px; font-weight:500; color:oklch(0.42 0.10 158)">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        Guardado
+      </span>
+      <span style="display:flex; align-items:center; gap:2px; margin-left:6px">
+        <button type="button" title="Deshacer" style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1px solid transparent; background:transparent; color:oklch(0.48 0.015 275); cursor:pointer" style-hover="background:oklch(0.965 0.004 265); color:oklch(0.35 0.02 275)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h11a5 5 0 0 1 0 10h-4"></path></svg>
+        </button>
+        <button type="button" title="Rehacer" style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; border:1px solid transparent; background:transparent; color:oklch(0.72 0.015 275); cursor:pointer" style-hover="background:oklch(0.965 0.004 265); color:oklch(0.35 0.02 275)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"></path><path d="M20 9H9a5 5 0 0 0 0 10h4"></path></svg>
+        </button>
+      </span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; margin-left:auto">
+      <button type="button" style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; border:1px solid oklch(0.91 0.006 275); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.40 0.02 275); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 8.1 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"></path></svg>
+        Archivo
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <button type="button" style="display:flex; align-items:center; gap:7px; height:34px; padding:0 15px; border-radius:9px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:13.5px; font-weight:500; color:#fff; cursor:pointer" style-hover="background:oklch(0.44 0.16 300)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v5h5"></path><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+        Exportar PDF
+      </button>
+      <button type="button" style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; border:1px solid oklch(0.91 0.006 275); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.40 0.02 275); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5A5 5 0 1 0 8 8c0 1.4.5 2.5 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line></svg>
+        Ejemplo guiado
+      </button>
+      <button type="button" style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; border:1px solid oklch(0.91 0.006 275); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.40 0.02 275); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h7z"></path></svg>
+        Guía
+      </button>
+      <button type="button" style="display:flex; align-items:center; gap:7px; height:34px; padding:0 13px; border-radius:9px; border:1px solid oklch(0.91 0.006 275); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.40 0.02 275); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>
+        Ayuda
+      </button>
+      <button type="button" title="Cambiar contraste" style="display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px; border:1px solid oklch(0.91 0.006 275); background:oklch(1 0 0); color:oklch(0.42 0.02 275); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <div style="background:oklch(1 0 0); border-bottom:1px solid oklch(0.92 0.006 275)">
+    <div style="max-width:1320px; margin:0 auto; padding:10px 28px 11px">
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:2px">
+        <sc-for list="{{ stages }}" as="stage" hint-placeholder-count="4">
+          <span style="display:flex; align-items:center">
+            <sc-if value="{{ stage.hasConnector }}" hint-placeholder-val="{{ false }}">
+              <span style="width:30px; height:1px; margin:0 6px; background:oklch(0.90 0.006 275)"></span>
+            </sc-if>
+            <button type="button" onClick="{{ stage.go }}" style="display:flex; align-items:center; gap:8px; padding:6px 11px; border-radius:9px; border:1px solid {{ stage.pillBorder }}; background:{{ stage.pillBg }}; cursor:pointer" style-hover="background:oklch(0.965 0.004 265)">
+              <span style="display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; font-size:11px; font-weight:600; background:{{ stage.dotBg }}; color:{{ stage.dotFg }}; border:1.5px solid {{ stage.dotBorder }}">{{ stage.mark }}</span>
+              <span style="font-size:14px; font-weight:{{ stage.weight }}; color:{{ stage.fg }}; letter-spacing:-0.005em">{{ stage.label }}</span>
+            </button>
+          </span>
+        </sc-for>
+      </div>
+      <p style="margin:6px 0 0 2px; font-size:12.5px; color:oklch(0.50 0.015 275)">{{ stageHint }}</p>
+    </div>
+  </div>
+
+  <main style="flex:1; width:100%; max-width:1320px; margin:0 auto; padding:26px 28px 40px">
+
+    <div style="margin-bottom:18px; min-width:0">
+      <div style="font-size:11.5px; font-weight:600; letter-spacing:0.09em; text-transform:uppercase; color:oklch(0.50 0.15 300); margin-bottom:5px">{{ pageEyebrow }}</div>
+      <h1 style="margin:0; font-family:'Outfit',sans-serif; font-size:26px; font-weight:600; letter-spacing:-0.02em; color:oklch(0.24 0.02 275)">{{ pageTitle }}</h1>
+      <p style="margin:6px 0 0; font-size:14px; color:oklch(0.48 0.015 275); max-width:62ch; text-wrap:pretty">{{ pageLead }}</p>
+    </div>
+
+    <sc-if value="{{ isActividades }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:22px">
+
+      <sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+        <aside style="flex:0 0 268px; min-width:230px; position:sticky; top:20px">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:0 2px 10px">
+            <span style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.50 0.015 275)">El flujo</span>
+            <span style="font-size:12px; color:oklch(0.50 0.015 275)">{{ activityCount }} pasos</span>
+          </div>
+
+          <div style="position:relative; display:flex; flex-direction:column">
+            <sc-for list="{{ rail }}" as="item" hint-placeholder-count="3">
+              <div style="position:relative">
+                <button type="button" onClick="{{ item.go }}" style="position:relative; z-index:1; width:100%; display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:12px; border:1px solid {{ item.border }}; background:{{ item.bg }}; box-shadow:{{ item.shadow }}; text-align:left; cursor:pointer; transition:border-color .15s ease, background .15s ease">
+                  <span style="display:flex; align-items:center; justify-content:center; width:24px; height:24px; flex-shrink:0; border-radius:8px; font-size:12px; font-weight:600; font-family:'Outfit',sans-serif; background:{{ item.numBg }}; color:{{ item.numFg }}">{{ item.n }}</span>
+                  <span style="min-width:0; flex:1">
+                    <span style="display:block; font-size:13.5px; font-weight:{{ item.weight }}; color:{{ item.fg }}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ item.title }}</span>
+                    <span style="display:block; font-size:11.5px; color:{{ item.kindFg }}; margin-top:1px">{{ item.kindLabel }}</span>
+                  </span>
+                  <span style="width:7px; height:7px; flex-shrink:0; border-radius:50%; background:{{ item.dot }}"></span>
+                </button>
+                <sc-if value="{{ item.carries }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex; align-items:center; gap:8px; padding:5px 0 5px 24px">
+                    <span style="width:1px; height:22px; background:oklch(0.88 0.01 285)"></span>
+                    <span style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px; background:oklch(0.955 0.02 285); border:1px solid oklch(0.90 0.03 290); font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.44 0.10 290)">{{ item.carries }}</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:7px; margin-top:14px">
+            <button type="button" onClick="{{ onAddOperation }}" style="display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:11px; border:1px dashed oklch(0.86 0.02 285); background:oklch(1 0 0); font-size:13px; color:oklch(0.42 0.02 275); cursor:pointer; text-align:left" style-hover="border-color:oklch(0.70 0.10 300); color:oklch(0.44 0.14 300)">
+              <span style="width:18px; height:18px; border-radius:6px; background:oklch(0.95 0.025 300); color:oklch(0.48 0.14 300); font-size:13px; line-height:18px; text-align:center">+</span>
+              Agregar operación
+            </button>
+            <button type="button" onClick="{{ onAddCondition }}" style="display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:11px; border:1px dashed oklch(0.86 0.02 285); background:oklch(1 0 0); font-size:13px; color:oklch(0.42 0.02 275); cursor:pointer; text-align:left" style-hover="border-color:oklch(0.78 0.09 70); color:oklch(0.50 0.11 70)">
+              <span style="width:18px; height:18px; border-radius:6px; background:oklch(0.96 0.035 80); color:oklch(0.53 0.12 70); font-size:13px; line-height:18px; text-align:center">+</span>
+              Agregar condición
+            </button>
+          </div>
+        </aside>
+      </sc-if>
+
+      <section style="flex:1 1 560px; min-width:0; display:flex; flex-direction:column; gap:14px">
+
+        <sc-if value="{{ showFlow }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px 14px; border-radius:12px; background:oklch(0.955 0.012 290); border:1px solid oklch(0.92 0.014 290); font-size:12.5px; color:oklch(0.50 0.02 285)">
+            <span>{{ flowBefore }}</span>
+            <span style="color:oklch(0.72 0.02 285)">→</span>
+            <span style="font-weight:600; color:oklch(0.34 0.02 280)">{{ flowHere }}</span>
+            <span style="color:oklch(0.72 0.02 285)">→</span>
+            <span>{{ flowAfter }}</span>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasActivities }}" hint-placeholder-val="{{ true }}">
+        <article style="border-radius:18px; border:1px solid oklch(0.92 0.008 280); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.30 0.02 275 / 0.04), 0 12px 28px -22px oklch(0.30 0.02 275 / 0.35); overflow:hidden">
+
+          <div style="display:flex; align-items:flex-start; gap:13px; padding:20px 24px 18px; border-bottom:1px solid oklch(0.945 0.006 280); background:{{ headerBg }}">
+            <span style="display:flex; align-items:center; justify-content:center; width:30px; height:30px; flex-shrink:0; border-radius:10px; font-family:'Outfit',sans-serif; font-weight:600; font-size:14px; background:{{ kindSolid }}; color:#fff">{{ current.n }}</span>
+            <div style="min-width:0; flex:1">
+              <div style="display:flex; align-items:center; gap:9px; margin-bottom:3px">
+                <span style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:{{ kindSolid }}">{{ current.kindLabel }}</span>
+              </div>
+              <h2 style="margin:0; font-family:'Outfit',sans-serif; font-size:21px; font-weight:600; letter-spacing:-0.015em; color:oklch(0.24 0.02 275); text-wrap:pretty">{{ current.title }}</h2>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:6px 0 0; font-size:13.5px; color:oklch(0.48 0.015 275); max-width:60ch; text-wrap:pretty">{{ current.hint }}</p>
+              </sc-if>
+            </div>
+            <button type="button" style="flex-shrink:0; width:32px; height:32px; border-radius:9px; border:1px solid transparent; background:transparent; color:oklch(0.66 0.015 275); font-size:15px; cursor:pointer" style-hover="background:oklch(0.96 0.02 25); color:oklch(0.55 0.15 25); border-color:oklch(0.90 0.04 25)" title="Eliminar actividad">✕</button>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; align-items:stretch; gap:0; padding:22px 24px 6px">
+
+            <div style="flex:1 1 240px; min-width:0; display:flex; flex-direction:column; gap:9px; padding-right:20px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.94 0.012 285); font-size:10.5px; font-weight:700; color:oklch(0.48 0.02 280)">1</span>
+                <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">Qué necesitas</span>
+              </div>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">Los datos que entran en este paso.</p>
+              </sc-if>
+              <div style="display:flex; flex-direction:column; gap:6px">
+                <sc-for list="{{ current.inputs }}" as="input" hint-placeholder-count="3">
+                  <div style="display:flex; align-items:center; gap:8px; padding:9px 11px; border-radius:10px; border:1px solid {{ input.border }}; background:{{ input.bg }}">
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:{{ input.fg }}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ input.name }}</span>
+                    <span style="margin-left:auto; flex-shrink:0; padding:1px 6px; border-radius:5px; background:{{ input.badgeBg }}; font-size:10.5px; font-weight:600; color:{{ input.badgeFg }}">{{ input.type }}</span>
+                    <sc-if value="{{ input.produced }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex-shrink:0; font-size:10.5px; color:oklch(0.55 0.10 290)" title="Producido en un paso anterior">↩</span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+                <button type="button" onClick="{{ onOpenInputPicker }}" style="padding:9px 11px; border-radius:10px; border:1px dashed oklch(0.87 0.012 285); background:transparent; font-size:12.5px; color:oklch(0.48 0.015 275); cursor:pointer; text-align:left" style-hover="border-color:oklch(0.72 0.09 300); color:oklch(0.46 0.13 300)">+ Agregar dato</button>
+
+                <sc-if value="{{ showPickerInputs }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:13px; border-radius:13px; border:1px solid oklch(0.89 0.04 300); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.3 0.02 275 / 0.05), 0 16px 32px -24px oklch(0.3 0.02 275 / 0.6)">
+                    <div style="font-size:12px; font-weight:600; color:oklch(0.38 0.02 278); margin-bottom:9px">¿De dónde sale el dato?</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px">
+                      <sc-for list="{{ pickerCats }}" as="cat" hint-placeholder-count="2">
+                        <button type="button" onClick="{{ cat.go }}" style="padding:6px 11px; border-radius:8px; border:1px solid {{ cat.border }}; background:{{ cat.bg }}; font-size:12.5px; font-weight:{{ cat.weight }}; color:{{ cat.fg }}; cursor:pointer">{{ cat.label }}</button>
+                      </sc-for>
+                    </div>
+                    <p style="margin:9px 0 10px; font-size:12px; color:oklch(0.50 0.015 275)">{{ pickerHint }}</p>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px">
+                      <sc-for list="{{ pickerItems }}" as="item" hint-placeholder-count="4">
+                        <button type="button" onClick="{{ item.go }}" style="display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:9px; border:1px solid {{ item.border }}; background:{{ item.bg }}; cursor:pointer">
+                          <span style="font-family:{{ item.mono }}; font-size:13px; color:{{ item.fg }}">{{ item.name }}</span>
+                          <span style="font-size:10.5px; color:oklch(0.50 0.015 275)">{{ item.meta }}</span>
+                        </button>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid oklch(0.95 0.006 285)">
+                      <span style="font-size:11.5px; color:oklch(0.50 0.015 275)">Puedes agregar varios.</span>
+                      <button type="button" onClick="{{ onClosePicker }}" style="margin-left:auto; padding:6px 14px; border-radius:8px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:12.5px; font-weight:500; color:#fff; cursor:pointer">Listo</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+
+            <sc-if value="{{ sideBySide }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:0 0 40px; display:flex; align-items:center; justify-content:center; align-self:stretch">
+                <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:oklch(0.96 0.008 285); border:1px solid oklch(0.92 0.01 285); color:oklch(0.55 0.02 280); font-size:12px">→</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ stacked }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:0 0 100%; display:flex; align-items:center; gap:10px; padding:14px 0">
+                <span style="flex:1; height:1px; background:oklch(0.93 0.008 285)"></span>
+                <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:oklch(0.96 0.008 285); border:1px solid oklch(0.92 0.01 285); color:oklch(0.55 0.02 280); font-size:12px">↓</span>
+                <span style="flex:1; height:1px; background:oklch(0.93 0.008 285)"></span>
+              </div>
+            </sc-if>
+
+            <div style="flex:1.25 1 280px; min-width:0; display:flex; flex-direction:column; gap:9px; padding-right:20px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.94 0.012 285); font-size:10.5px; font-weight:700; color:oklch(0.48 0.02 280)">2</span>
+                <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">{{ current.middleLabel }}</span>
+              </div>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">{{ current.middleHint }}</p>
+              </sc-if>
+
+              <sc-if value="{{ current.question }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:11px 13px; border-radius:11px; background:oklch(0.975 0.02 80); border:1px solid oklch(0.92 0.035 80); font-size:13.5px; color:oklch(0.38 0.04 70); text-wrap:pretty">{{ current.question }}</div>
+              </sc-if>
+
+              <div style="padding:12px 13px; border-radius:12px; background:oklch(0.978 0.006 285); border:1px solid oklch(0.93 0.008 285)">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px">
+                  <sc-for list="{{ current.expr }}" as="part" hint-placeholder-count="5">
+                    <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:8px; background:{{ part.bg }}; border:1px solid {{ part.border }}; font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:{{ part.fg }}">{{ part.text }}</span>
+                  </sc-for>
+                  <button type="button" onClick="{{ onOpenExprPicker }}" style="padding:4px 11px; border-radius:8px; border:1px dashed oklch(0.85 0.012 285); background:transparent; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:oklch(0.50 0.015 275); cursor:pointer" style-hover="border-color:oklch(0.72 0.09 300); color:oklch(0.46 0.13 300)">+ elemento</button>
+                </div>
+              </div>
+
+              <sc-if value="{{ showPickerExpr }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:13px; border-radius:13px; border:1px solid oklch(0.89 0.04 300); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.3 0.02 275 / 0.05), 0 16px 32px -24px oklch(0.3 0.02 275 / 0.6)">
+                  <div style="font-size:12px; font-weight:600; color:oklch(0.38 0.02 278); margin-bottom:9px">¿Qué agregas a la expresión?</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px">
+                    <sc-for list="{{ pickerCats }}" as="cat" hint-placeholder-count="5">
+                      <button type="button" onClick="{{ cat.go }}" style="padding:6px 11px; border-radius:8px; border:1px solid {{ cat.border }}; background:{{ cat.bg }}; font-size:12.5px; font-weight:{{ cat.weight }}; color:{{ cat.fg }}; cursor:pointer">{{ cat.label }}</button>
+                    </sc-for>
+                  </div>
+                  <p style="margin:9px 0 10px; font-size:12px; color:oklch(0.50 0.015 275)">{{ pickerHint }}</p>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px">
+                    <sc-for list="{{ pickerItems }}" as="item" hint-placeholder-count="4">
+                      <button type="button" onClick="{{ item.go }}" style="display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border-radius:9px; border:1px solid {{ item.border }}; background:{{ item.bg }}; cursor:pointer">
+                        <span style="font-family:{{ item.mono }}; font-size:13px; color:{{ item.fg }}">{{ item.name }}</span>
+                        <span style="font-size:10.5px; color:oklch(0.50 0.015 275)">{{ item.meta }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ isValueCat }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:7px; align-items:center">
+                      <input type="text" value="{{ valueDraft }}" onChange="{{ onValueInput }}" placeholder="por ejemplo: 3" style="flex:1; min-width:0; padding:8px 11px; border-radius:9px; border:1px solid oklch(0.90 0.008 285); background:oklch(0.99 0.002 285); font-family:'JetBrains Mono',monospace; font-size:13px; color:oklch(0.30 0.02 278); outline:none" style-focus="border-color:oklch(0.72 0.09 300)" />
+                      <button type="button" onClick="{{ onAddValue }}" style="padding:8px 13px; border-radius:9px; border:1px solid oklch(0.91 0.008 285); background:oklch(1 0 0); font-size:12.5px; color:oklch(0.40 0.02 278); cursor:pointer" style-hover="background:oklch(0.97 0.004 280)">Agregar</button>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid oklch(0.95 0.006 285)">
+                    <span style="font-size:11.5px; color:oklch(0.50 0.015 275)">Agrega los elementos en el orden en que se leen.</span>
+                    <button type="button" onClick="{{ onClosePicker }}" style="margin-left:auto; padding:6px 14px; border-radius:8px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:12.5px; font-weight:500; color:#fff; cursor:pointer">Listo</button>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ sideBySide }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:0 0 40px; display:flex; align-items:center; justify-content:center; align-self:stretch">
+                <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:oklch(0.96 0.008 285); border:1px solid oklch(0.92 0.01 285); color:oklch(0.55 0.02 280); font-size:12px">→</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ stacked }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:0 0 100%; display:flex; align-items:center; gap:10px; padding:14px 0">
+                <span style="flex:1; height:1px; background:oklch(0.93 0.008 285)"></span>
+                <span style="display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%; background:oklch(0.96 0.008 285); border:1px solid oklch(0.92 0.01 285); color:oklch(0.55 0.02 280); font-size:12px">↓</span>
+                <span style="flex:1; height:1px; background:oklch(0.93 0.008 285)"></span>
+              </div>
+            </sc-if>
+
+            <div style="flex:1 1 220px; min-width:0; display:flex; flex-direction:column; gap:9px">
+              <div style="display:flex; align-items:center; gap:8px">
+                <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.94 0.012 285); font-size:10.5px; font-weight:700; color:oklch(0.48 0.02 280)">3</span>
+                <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">Qué obtienes</span>
+              </div>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">El dato nuevo que produce este paso.</p>
+              </sc-if>
+              <div style="padding:13px 14px; border-radius:12px; background:{{ resultBg }}; border:1px solid {{ resultBorder }}">
+                <div style="font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:500; color:{{ resultFg }}; overflow:hidden; text-overflow:ellipsis">{{ current.result.name }}</div>
+                <div style="display:flex; align-items:center; gap:6px; margin-top:7px">
+                  <span style="padding:1.5px 7px; border-radius:6px; background:oklch(1 0 0 / 0.7); border:1px solid {{ resultBorder }}; font-size:11px; font-weight:600; color:{{ resultFg }}">{{ current.result.type }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ isCondition }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:16px 24px 0; padding:16px 18px; border-radius:14px; background:oklch(0.985 0.012 80); border:1px solid oklch(0.93 0.03 80)">
+              <div style="font-size:12.5px; font-weight:600; color:oklch(0.47 0.08 70); margin-bottom:11px">Entonces, ¿qué pasa en cada caso?</div>
+              <div style="display:flex; flex-wrap:wrap; gap:10px">
+                <sc-for list="{{ branches }}" as="branch" hint-placeholder-count="2">
+                  <div style="flex:1 1 200px; display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:11px; background:oklch(1 0 0); border:1px solid oklch(0.93 0.02 80)">
+                    <span style="display:flex; align-items:center; justify-content:center; min-width:34px; height:24px; padding:0 8px; border-radius:7px; background:{{ branch.bg }}; font-size:12px; font-weight:600; color:{{ branch.fg }}">{{ branch.label }}</span>
+                    <span style="color:oklch(0.72 0.02 285); font-size:12px">→</span>
+                    <span style="font-size:13.5px; color:oklch(0.34 0.02 278)">{{ branch.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="margin-top:18px; padding:18px 24px 20px; border-top:1px solid oklch(0.945 0.006 280); background:oklch(0.988 0.004 280)">
+            <div style="display:flex; align-items:baseline; gap:9px; margin-bottom:12px">
+              <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">¿Y después?</span>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">Qué harás con {{ current.result.name }}.</span>
+              </sc-if>
+            </div>
+
+            <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start">
+              <div style="flex:1 1 340px; min-width:0; display:flex; flex-direction:column; gap:8px">
+                <div style="display:flex; flex-wrap:wrap; gap:6px; padding:4px; border-radius:11px; background:oklch(0.955 0.006 285); border:1px solid oklch(0.93 0.008 285)">
+                  <sc-for list="{{ purposes }}" as="option" hint-placeholder-count="3">
+                    <button type="button" onClick="{{ option.go }}" style="flex:1 1 auto; padding:8px 12px; border-radius:8px; border:1px solid {{ option.border }}; background:{{ option.bg }}; box-shadow:{{ option.shadow }}; font-size:12.5px; font-weight:{{ option.weight }}; color:{{ option.fg }}; cursor:pointer; white-space:nowrap">{{ option.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:11px; border:1px solid oklch(0.92 0.008 285); background:oklch(1 0 0)">
+                  <span style="font-size:12.5px; color:oklch(0.50 0.015 275); flex-shrink:0">Se usa en</span>
+                  <span style="font-size:13.5px; color:oklch(0.32 0.02 278); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ current.usedIn }}</span>
+                  <span style="margin-left:auto; color:oklch(0.68 0.015 275); font-size:11px">▾</span>
+                </div>
+              </div>
+
+              <div style="flex:1 1 300px; min-width:0; display:flex; flex-direction:column; gap:8px">
+                <div style="font-size:12px; color:oklch(0.50 0.015 275)">Comentario</div>
+                <div style="padding:11px 13px; border-radius:11px; border:1px solid oklch(0.92 0.008 285); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.36 0.02 278); min-height:64px; text-wrap:pretty">{{ current.comment }}</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <div style="display:flex; align-items:center; gap:12px; padding:4px 2px">
+          <button type="button" onClick="{{ onPrev }}" style="display:flex; align-items:center; gap:7px; height:38px; padding:0 14px; border-radius:10px; border:1px solid oklch(0.91 0.008 280); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.42 0.02 278); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">← Paso anterior</button>
+          <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">{{ progressText }}</span>
+          <button type="button" onClick="{{ onNext }}" style="margin-left:auto; display:flex; align-items:center; gap:7px; height:38px; padding:0 18px; border-radius:10px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:13.5px; font-weight:500; color:#fff; cursor:pointer" style-hover="background:oklch(0.44 0.16 300)">{{ nextLabel }} →</button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ noActivities }}" hint-placeholder-val="{{ false }}">
+          <div style="border-radius:18px; border:1px dashed oklch(0.86 0.012 285); background:oklch(1 0 0); padding:26px 24px 28px">
+            <div style="display:flex; flex-wrap:wrap; align-items:stretch; gap:12px">
+              <sc-for list="{{ emptyZones }}" as="zone" hint-placeholder-count="3">
+                <div style="flex:1 1 180px; min-width:0; display:flex; flex-direction:column; gap:7px; padding:16px 15px 20px; border-radius:14px; border:1px dashed oklch(0.89 0.012 285); background:oklch(0.988 0.004 285)">
+                  <div style="display:flex; align-items:center; gap:8px">
+                    <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.94 0.012 285); font-size:10.5px; font-weight:700; color:oklch(0.55 0.02 280)">{{ zone.n }}</span>
+                    <span style="font-size:13px; font-weight:600; color:oklch(0.46 0.02 278)">{{ zone.label }}</span>
+                  </div>
+                  <p style="margin:0; font-size:12.5px; color:oklch(0.60 0.015 275); text-wrap:pretty">{{ zone.hint }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin:22px auto 14px; max-width:44ch; text-align:center; font-size:13.5px; color:oklch(0.44 0.02 278); text-wrap:pretty">Empieza por el primer paso del proceso: algo que calcule un dato nuevo o que compruebe una condición.</p>
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px">
+              <button type="button" onClick="{{ onAddOperation }}" style="display:flex; align-items:center; gap:8px; height:40px; padding:0 18px; border-radius:11px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:13.5px; font-weight:500; color:#fff; cursor:pointer" style-hover="background:oklch(0.44 0.16 300)">+ Agregar operación</button>
+              <button type="button" onClick="{{ onAddCondition }}" style="display:flex; align-items:center; gap:8px; height:40px; padding:0 18px; border-radius:11px; border:1px solid oklch(0.88 0.05 75); background:oklch(0.985 0.018 80); font-size:13.5px; font-weight:500; color:oklch(0.47 0.10 68); cursor:pointer" style-hover="background:oklch(0.97 0.03 80)">+ Agregar condición</button>
+            </div>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isProblema }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:22px">
+        <section style="flex:1 1 380px; min-width:0; border-radius:18px; border:1px solid oklch(0.92 0.008 280); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.30 0.02 275 / 0.04), 0 12px 28px -22px oklch(0.30 0.02 275 / 0.35); padding:20px 22px 22px">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px">
+            <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.94 0.012 285); font-size:10.5px; font-weight:700; color:oklch(0.48 0.02 280)">1</span>
+            <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">De qué trata</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px">
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <span style="font-size:12.5px; font-weight:600; color:oklch(0.38 0.02 278)">Título del análisis</span>
+              <div style="padding:10px 13px; border-radius:11px; border:1px solid oklch(0.91 0.008 285); background:oklch(1 0 0); font-size:14.5px; color:{{ probFieldFg }}; text-wrap:pretty">{{ probTitle }}</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px">
+              <span style="font-size:12.5px; font-weight:600; color:oklch(0.38 0.02 278)">Descripción del problema</span>
+              <div style="padding:11px 13px; border-radius:11px; border:1px solid oklch(0.91 0.008 285); background:oklch(1 0 0); font-size:13.5px; line-height:1.55; color:{{ probFieldFg }}; min-height:78px; text-wrap:pretty">{{ probDesc }}</div>
+              <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+                <p style="margin:0; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">Contexto general: qué necesidad debe resolver el programa.</p>
+              </sc-if>
+            </div>
+          </div>
+        </section>
+
+        <section style="flex:1.3 1 440px; min-width:0; border-radius:18px; border:1px solid oklch(0.90 0.03 300); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.30 0.02 275 / 0.04), 0 12px 28px -22px oklch(0.30 0.02 275 / 0.35); padding:20px 22px 18px">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+            <span style="display:flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:6px; background:oklch(0.95 0.025 300); font-size:10.5px; font-weight:700; color:oklch(0.45 0.13 300)">2</span>
+            <span style="font-size:13px; font-weight:600; color:oklch(0.34 0.02 278)">El enunciado</span>
+          </div>
+          <button type="button" onClick="{{ onToggleStatement }}" style="display:flex; align-items:center; gap:10px; width:100%; margin:6px 0 0; padding:11px 13px; border-radius:11px; border:1px solid oklch(0.92 0.008 285); background:oklch(1 0 0); text-align:left; cursor:pointer" style-hover="border-color:oklch(0.80 0.07 300)">
+            <span style="display:flex; align-items:center; justify-content:center; width:17px; height:17px; flex-shrink:0; border-radius:5px; border:1.5px solid {{ stmtBoxBorder }}; background:{{ stmtBoxBg }}; color:#fff; font-size:11px">{{ stmtBoxMark }}</span>
+            <span style="font-size:13px; color:oklch(0.36 0.02 278)">Tengo el enunciado del problema</span>
+          </button>
+          <sc-if value="{{ statementOff }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:9px 0 0; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">Si lo activas, podrás pegar el enunciado y seleccionar fragmentos para convertirlos en datos de entrada. Si no, los declararás a mano en la etapa Datos.</p>
+          </sc-if>
+          <sc-if value="{{ statementOn }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:11px 0 12px; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">Toca un fragmento resaltado para convertirlo en un dato de entrada.</p>
+          </sc-if>
+          <div style="padding:16px 18px; border-radius:14px; background:oklch(0.985 0.004 285); border:1px solid oklch(0.93 0.008 285); font-size:15px; line-height:2.05; color:oklch(0.32 0.02 278)">
+            <sc-for list="{{ statementParts }}" as="part" hint-placeholder-count="6">
+              <span onClick="{{ part.go }}" style="padding:{{ part.pad }}; border-radius:7px; background:{{ part.bg }}; border:1px solid {{ part.border }}; color:{{ part.fg }}; cursor:{{ part.cursor }}">{{ part.text }}</span>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid oklch(0.95 0.006 285)">
+            <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">{{ fragmentProgress }}</span>
+            <button type="button" onClick="{{ onGoDatos }}" style="margin-left:auto; padding:7px 14px; border-radius:9px; border:1px solid oklch(0.91 0.008 285); background:oklch(1 0 0); font-size:12.5px; color:oklch(0.40 0.02 278); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">Ver los datos →</button>
+          </div>
+          </sc-if>
+        </section>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isDatos }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; flex-direction:column; gap:16px; max-width:1000px">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px dashed oklch(0.88 0.01 285); background:oklch(0.985 0.004 285); font-size:12px; color:oklch(0.50 0.015 275)">
+          <span style="padding:2.5px 9px; border-radius:7px; background:oklch(1 0 0); border:1px solid oklch(0.92 0.008 285)">Enunciado</span>
+          <span style="color:oklch(0.75 0.015 285)">→</span>
+          <span style="padding:2.5px 9px; border-radius:7px; background:oklch(0.96 0.006 285); color:oklch(0.42 0.02 280)">Dato identificado</span>
+          <span style="color:oklch(0.75 0.015 285)">→</span>
+          <span style="padding:2.5px 9px; border-radius:7px; background:oklch(0.955 0.03 292); color:oklch(0.42 0.11 292); font-family:'JetBrains Mono',monospace">Nombre en el análisis</span>
+          <span style="color:oklch(0.58 0.015 275)">· p. ej. «4 en el primer parcial» → nota1</span>
+        </div>
+
+        <article style="border-radius:18px; border:1px solid oklch(0.92 0.008 280); background:oklch(1 0 0); box-shadow:0 1px 2px oklch(0.30 0.02 275 / 0.04), 0 12px 28px -22px oklch(0.30 0.02 275 / 0.35); overflow:hidden">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:17px 22px 15px; border-bottom:1px solid oklch(0.945 0.006 280)">
+            <h2 style="margin:0; font-family:'Outfit',sans-serif; font-size:17px; font-weight:600; letter-spacing:-0.01em; color:oklch(0.24 0.02 275)">Datos de entrada</h2>
+            <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">{{ inputCountLabel }}</span>
+            <button type="button" style="margin-left:auto; padding:7px 13px; border-radius:9px; border:1px solid oklch(0.91 0.008 285); background:oklch(1 0 0); font-size:12.5px; color:oklch(0.40 0.02 278); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">+ Agregar dato</button>
+          </div>
+          <div style="overflow-x:auto">
+            <div style="min-width:640px">
+              <div style="display:flex; gap:14px; padding:9px 22px; background:oklch(0.978 0.004 285); border-bottom:1px solid oklch(0.945 0.006 280)">
+                <span style="flex:2 1 200px; min-width:0; font-size:11.5px; font-weight:600; color:oklch(0.42 0.02 280)">Dato identificado<span style="display:block; font-weight:400; color:oklch(0.60 0.015 275)">Fragmento del enunciado</span></span>
+                <span style="flex:0 0 74px; font-size:11.5px; font-weight:600; color:oklch(0.42 0.02 280)">Valor<span style="display:block; font-weight:400; color:oklch(0.60 0.015 275)">Opcional</span></span>
+                <span style="flex:0 0 104px; font-size:11.5px; font-weight:600; color:oklch(0.42 0.02 280)">Tipo<span style="display:block; font-weight:400; color:oklch(0.60 0.015 275)">Numérico, Lógico, Texto</span></span>
+                <span style="flex:1 1 150px; min-width:0; font-size:11.5px; font-weight:600; color:oklch(0.42 0.02 280)">Nombre<span style="display:block; font-weight:400; color:oklch(0.60 0.015 275)">Nombre en el algoritmo</span></span>
+                <span style="flex:0 0 30px"></span>
+              </div>
+              <sc-for list="{{ inputRows }}" as="row" hint-placeholder-count="4">
+                <div style="display:flex; gap:14px; align-items:center; padding:12px 22px; border-bottom:1px solid oklch(0.965 0.004 285)">
+                  <span style="flex:2 1 200px; min-width:0; font-size:13.5px; color:oklch(0.42 0.02 280); text-wrap:pretty">{{ row.source }}</span>
+                  <span style="flex:0 0 74px; font-family:'JetBrains Mono',monospace; font-size:13px; color:oklch(0.34 0.02 278)">{{ row.value }}</span>
+                  <span style="flex:0 0 104px"><span style="padding:2px 8px; border-radius:6px; background:oklch(0.96 0.006 285); border:1px solid oklch(0.93 0.008 285); font-size:11px; font-weight:600; color:oklch(0.45 0.02 280)">{{ row.type }}</span></span>
+                  <span style="flex:1 1 150px; min-width:0; font-family:'JetBrains Mono',monospace; font-size:13.5px; color:oklch(0.40 0.11 292); overflow:hidden; text-overflow:ellipsis">{{ row.name }}</span>
+                  <button type="button" onClick="{{ row.remove }}" title="Eliminar dato" style="flex:0 0 30px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent; color:oklch(0.68 0.015 275); font-size:13px; cursor:pointer" style-hover="background:oklch(0.96 0.02 25); color:oklch(0.55 0.15 25); border-color:oklch(0.90 0.04 25)">✕</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noInputs }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:14px; align-items:center; padding:12px 22px; border-bottom:1px solid oklch(0.965 0.004 285); color:oklch(0.68 0.012 275)">
+                  <span style="flex:2 1 200px; min-width:0; font-size:13.5px; font-style:italic">«4 en el primer parcial»</span>
+                  <span style="flex:0 0 74px; font-family:'JetBrains Mono',monospace; font-size:13px">4</span>
+                  <span style="flex:0 0 104px"><span style="padding:2px 8px; border-radius:6px; border:1px dashed oklch(0.88 0.008 285); font-size:11px">Numérico</span></span>
+                  <span style="flex:1 1 150px; min-width:0; font-family:'JetBrains Mono',monospace; font-size:13.5px">nota1</span>
+                  <span style="flex:0 0 30px"></span>
+                </div>
+                <div style="padding:14px 22px 16px; font-size:12.5px; color:oklch(0.50 0.015 275)">Así se verá cada dato. Agrégalos aquí o selecciónalos en el enunciado.</div>
+              </sc-if>
+            </div>
+          </div>
+        </article>
+
+        <article style="border-radius:18px; border:1px solid oklch(0.92 0.008 280); background:oklch(0.988 0.004 280); padding:17px 22px 19px">
+          <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:4px">
+            <h2 style="margin:0; font-family:'Outfit',sans-serif; font-size:16px; font-weight:600; letter-spacing:-0.01em; color:oklch(0.24 0.02 275)">Datos resultantes</h2>
+            <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">Los produce cada actividad</span>
+          </div>
+          <sc-if value="{{ showHints }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:0 0 12px; font-size:12.5px; color:oklch(0.50 0.015 275); text-wrap:pretty">No los escribes aquí: aparecen cuando una actividad produce un dato nuevo.</p>
+          </sc-if>
+          <div style="display:flex; flex-wrap:wrap; gap:9px">
+            <sc-for list="{{ producedRows }}" as="row" hint-placeholder-count="3">
+              <div style="flex:1 1 240px; display:flex; align-items:center; gap:9px; padding:11px 13px; border-radius:12px; background:oklch(1 0 0); border:1px solid oklch(0.92 0.03 158)">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:13.5px; color:oklch(0.38 0.10 158)">{{ row.name }}</span>
+                <span style="padding:1.5px 7px; border-radius:6px; background:oklch(0.965 0.03 158); font-size:11px; font-weight:600; color:oklch(0.40 0.10 158)">{{ row.type }}</span>
+                <span style="margin-left:auto; font-size:11.5px; color:oklch(0.52 0.015 275); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ row.from }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noProduced }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1 1 240px; padding:13px; border-radius:12px; border:1px dashed oklch(0.88 0.02 158); font-size:12.5px; color:oklch(0.52 0.02 160)">Aparecerán aquí en cuanto una actividad produzca un dato.</div>
+            </sc-if>
+          </div>
+        </article>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isCadena }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:720px; margin:0 auto; width:100%">
+        <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:20px">
+          <sc-for list="{{ chainStats }}" as="stat" hint-placeholder-count="4">
+            <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; border:1px solid {{ stat.border }}; background:{{ stat.bg }}; font-size:12px; font-weight:500; color:{{ stat.fg }}">
+              <span style="width:7px; height:7px; border-radius:50%; background:{{ stat.dot }}"></span>
+              {{ stat.text }}
+            </span>
+          </sc-for>
+        </div>
+
+        <div style="padding:15px 17px; border-radius:14px; border:1px solid oklch(0.91 0.035 292); background:oklch(0.982 0.014 292)">
+          <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.44 0.11 292); margin-bottom:10px">Entradas</div>
+          <div style="display:flex; flex-wrap:wrap; gap:7px">
+            <sc-for list="{{ chainInputs }}" as="datum" hint-placeholder-count="4">
+              <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 10px; border-radius:9px; background:oklch(1 0 0); border:1px solid oklch(0.92 0.03 292)">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:oklch(0.40 0.11 292)">{{ datum.name }}</span>
+                <span style="font-size:10.5px; color:oklch(0.52 0.015 275)">{{ datum.type }}</span>
+              </span>
+            </sc-for>
+            <sc-if value="{{ noInputs }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ onGoDatos }}" style="padding:7px 12px; border-radius:9px; border:1px dashed oklch(0.88 0.03 292); background:transparent; font-size:12.5px; color:oklch(0.48 0.06 292); cursor:pointer" style-hover="border-color:oklch(0.75 0.08 300)">Aquí irán tus datos de entrada · Ir a Datos →</button>
+            </sc-if>
+          </div>
+        </div>
+
+        <sc-for list="{{ chainSteps }}" as="step" hint-placeholder-count="3">
+          <div>
+            <div style="display:flex; justify-content:center; padding:7px 0"><span style="color:oklch(0.75 0.015 285); font-size:14px">↓</span></div>
+            <div style="padding:15px 17px; border-radius:14px; border:1px solid {{ step.border }}; background:{{ step.bg }}">
+              <div style="display:flex; align-items:center; gap:9px; margin-bottom:10px">
+                <span style="display:flex; align-items:center; justify-content:center; width:22px; height:22px; flex-shrink:0; border-radius:7px; font-family:'Outfit',sans-serif; font-size:12px; font-weight:600; background:{{ step.numBg }}; color:#fff">{{ step.n }}</span>
+                <span style="font-size:14px; font-weight:600; color:{{ step.titleFg }}; text-wrap:pretty">{{ step.title }}</span>
+                <span style="margin-left:auto; font-size:11px; font-weight:500; color:{{ step.titleFg }}">{{ step.kindLabel }}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:9px; padding-left:31px">
+                <sc-if value="{{ step.question }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:13px; font-style:italic; color:oklch(0.44 0.04 70)">{{ step.question }}</span>
+                </sc-if>
+                <div style="display:flex; flex-wrap:wrap; align-items:center; gap:7px">
+                  <span style="display:inline-flex; flex-wrap:wrap; align-items:center; gap:5px; padding:7px 11px; border-radius:10px; background:oklch(1 0 0); border:1px solid oklch(0.93 0.008 285)">
+                    <sc-for list="{{ step.expr }}" as="part" hint-placeholder-count="3">
+                      <span style="font-family:'JetBrains Mono',monospace; font-size:12.5px; padding:{{ part.pad }}; border-radius:6px; background:{{ part.bg }}; color:{{ part.fg }}">{{ part.text }}</span>
+                    </sc-for>
+                  </span>
+                  <span style="color:oklch(0.72 0.02 285); font-size:13px">→</span>
+                  <span style="display:inline-flex; align-items:center; gap:7px; padding:5px 10px; border-radius:9px; background:oklch(0.968 0.03 158); border:1px solid oklch(0.92 0.04 158)">
+                    <span style="font-family:'JetBrains Mono',monospace; font-size:13px; color:oklch(0.38 0.10 158)">{{ step.resultName }}</span>
+                    <span style="font-size:10.5px; color:oklch(0.45 0.06 158)">{{ step.resultType }}</span>
+                  </span>
+                </div>
+                <sc-if value="{{ step.hasBranches }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:8px">
+                    <sc-for list="{{ step.branches }}" as="branch" hint-placeholder-count="2">
+                      <span style="display:inline-flex; align-items:center; gap:9px; padding:6px 11px; border-radius:9px; background:oklch(1 0 0); border:1px solid oklch(0.93 0.02 80)">
+                        <span style="padding:1.5px 8px; border-radius:999px; background:{{ branch.bg }}; font-size:11px; font-weight:600; color:{{ branch.fg }}">{{ branch.label }}</span>
+                        <span style="color:oklch(0.72 0.02 285); font-size:12px">→</span>
+                        <span style="font-size:13px; color:oklch(0.34 0.02 278)">{{ branch.value }}</span>
+                      </span>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ noActivities }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; justify-content:center; padding:7px 0"><span style="color:oklch(0.80 0.015 285); font-size:14px">↓</span></div>
+          <button type="button" onClick="{{ onGoActividades }}" style="display:block; width:100%; padding:22px 17px; border-radius:14px; border:1px dashed oklch(0.87 0.012 285); background:transparent; font-size:13px; color:oklch(0.52 0.015 275); cursor:pointer; text-align:center" style-hover="border-color:oklch(0.75 0.08 300); color:oklch(0.46 0.13 300)">Aquí irán tus actividades · Ir a Construcción →</button>
+        </sc-if>
+
+        <div style="display:flex; justify-content:center; padding:7px 0"><span style="color:oklch(0.75 0.015 285); font-size:14px">↓</span></div>
+        <div style="padding:17px 19px; border-radius:16px; border:2px solid oklch(0.86 0.07 158); background:oklch(0.968 0.035 158)">
+          <div style="font-size:11.5px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.40 0.10 158); margin-bottom:11px">Información final</div>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ chainOutputs }}" as="output" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:11px; background:oklch(1 0 0); border:1px solid oklch(0.91 0.04 158)">
+                <span style="padding:1.5px 8px; border-radius:999px; background:{{ output.bg }}; font-size:11px; font-weight:600; color:{{ output.fg }}">{{ output.label }}</span>
+                <span style="font-size:13.5px; font-weight:500; color:oklch(0.30 0.06 158)">{{ output.value }}</span>
+                <span style="font-size:11.5px; color:oklch(0.48 0.03 158); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ output.when }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noOutputs }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:11px 13px; border-radius:11px; border:1px dashed oklch(0.88 0.04 158); font-size:12.5px; color:oklch(0.44 0.05 158); text-wrap:pretty">Aquí irá la respuesta del análisis: el propósito «Generar la información final» o un camino de respuesta de una condición.</div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showStageNav }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; align-items:center; gap:12px; max-width:1000px; margin-top:20px; padding:4px 2px">
+        <sc-if value="{{ hasPrevStage }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ onPrevStage }}" style="display:flex; align-items:center; gap:7px; height:38px; padding:0 14px; border-radius:10px; border:1px solid oklch(0.91 0.008 280); background:oklch(1 0 0); font-size:13.5px; color:oklch(0.42 0.02 278); cursor:pointer" style-hover="background:oklch(0.975 0.004 265)">← {{ prevStageLabel }}</button>
+        </sc-if>
+        <span style="font-size:12.5px; color:oklch(0.50 0.015 275)">{{ stageProgress }}</span>
+        <sc-if value="{{ hasNextStage }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ onNextStage }}" style="margin-left:auto; display:flex; align-items:center; gap:7px; height:38px; padding:0 18px; border-radius:10px; border:1px solid oklch(0.50 0.15 300); background:oklch(0.50 0.15 300); font-size:13.5px; font-weight:500; color:#fff; cursor:pointer" style-hover="background:oklch(0.44 0.16 300)">{{ nextStageLabel }} →</button>
+        </sc-if>
+      </div>
+    </sc-if>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;estado&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ejemplo&quot;,&quot;vacío&quot;],&quot;default&quot;:&quot;ejemplo&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Contenido&quot;},&quot;ayudas&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;completas&quot;,&quot;mínimas&quot;],&quot;default&quot;:&quot;completas&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Guía&quot;},&quot;flujoLateral&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Diseño&quot;},&quot;resaltarFlujo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Diseño&quot;}}">
+const VIOLET = "oklch(0.50 0.15 300)";
+const AMBER = "oklch(0.55 0.12 70)";
+
+const ACTIVITIES = [
+  {
+    n: 1, kind: "op", title: "Sumar las tres notas",
+    hint: "Una operación calcula o transforma datos para obtener uno nuevo.",
+    middleLabel: "Qué haces", middleHint: "Escribe la expresión que combina esos datos.",
+    inputs: [
+      { name: "nota1", type: "Numérico", produced: false },
+      { name: "nota2", type: "Numérico", produced: false },
+      { name: "nota3", type: "Numérico", produced: false },
+    ],
+    expr: [
+      { t: "ref", text: "nota1" }, { t: "op", text: "+" }, { t: "ref", text: "nota2" },
+      { t: "op", text: "+" }, { t: "ref", text: "nota3" },
+    ],
+    result: { name: "sumaNotas", type: "Numérico" },
+    purpose: 0,
+    usedIn: "Actividad 2 · Calcular el promedio",
+    comment: "Se usará para calcular el promedio.",
+    status: "done",
+  },
+  {
+    n: 2, kind: "op", title: "Calcular el promedio",
+    hint: "Una operación calcula o transforma datos para obtener uno nuevo.",
+    middleLabel: "Qué haces", middleHint: "Escribe la expresión que combina esos datos.",
+    inputs: [{ name: "sumaNotas", type: "Numérico", produced: true }],
+    expr: [{ t: "ref", text: "sumaNotas" }, { t: "op", text: "÷" }, { t: "lit", text: "3" }],
+    result: { name: "promedio", type: "Numérico" },
+    purpose: 1,
+    usedIn: "Actividad 3 · cumpleNotaAprobatoria",
+    comment: "Se comparará con la nota aprobatoria.",
+    status: "done",
+  },
+  {
+    n: 3, kind: "cond", title: "cumpleNotaAprobatoria",
+    hint: "Una condición comprueba algo: una pregunta que se responde Sí o No.",
+    middleLabel: "Qué compruebas", middleHint: "La pregunta y la comparación que la resuelve.",
+    question: "¿El promedio es mayor o igual a la nota aprobatoria?",
+    inputs: [
+      { name: "promedio", type: "Numérico", produced: true },
+      { name: "notaAprobatoria", type: "Numérico", produced: false },
+    ],
+    expr: [{ t: "ref", text: "promedio" }, { t: "op", text: "≥" }, { t: "ref", text: "notaAprobatoria" }],
+    result: { name: "aprobado", type: "Lógico" },
+    purpose: 2,
+    usedIn: "Genera la información final",
+    comment: "Determina si el estudiante aprueba o reprueba.",
+    branches: [
+      { label: "Sí", value: "Aprueba" },
+      { label: "No", value: "Reprueba" },
+    ],
+    status: "active",
+  },
+];
+
+const PURPOSES = ["Usar en una nueva operación", "Usar para tomar una decisión", "Generar la información final"];
+
+const CATALOG = {
+  entrada: [
+    { name: "nota1", type: "Numérico" },
+    { name: "nota2", type: "Numérico" },
+    { name: "nota3", type: "Numérico" },
+    { name: "notaAprobatoria", type: "Numérico" },
+  ],
+  resultante: [
+    { name: "sumaNotas", type: "Numérico" },
+    { name: "promedio", type: "Numérico" },
+    { name: "aprobado", type: "Lógico" },
+  ],
+  condicion: [{ name: "cumpleNotaAprobatoria", type: "Lógico" }],
+  operador: [
+    { name: "+", label: "sumar" }, { name: "−", label: "restar" }, { name: "×", label: "multiplicar" },
+    { name: "÷", label: "dividir" }, { name: "≥", label: "mayor o igual" }, { name: "≤", label: "menor o igual" },
+    { name: ">", label: "mayor que" }, { name: "<", label: "menor que" }, { name: "=", label: "igual a" },
+    { name: "≠", label: "distinto de" }, { name: "y", label: "y (ambas)" }, { name: "o", label: "o (alguna)" },
+  ],
+};
+
+const CAT_META = {
+  entrada: { label: "Dato de entrada", hint: "Los que declaraste en el paso Datos." },
+  resultante: { label: "Dato resultante", hint: "Los que produjo otra actividad." },
+  condicion: { label: "Condición", hint: "El resultado de una comprobación anterior." },
+  valor: { label: "Valor fijo", hint: "Un número o texto que escribes tú." },
+  operador: { label: "Operador", hint: "Qué relación hay entre los elementos." },
+};
+
+const INPUT_DATA = [
+  { name: "nota1", type: "Numérico", value: "4", source: "4 en el primer parcial" },
+  { name: "nota2", type: "Numérico", value: "3", source: "3 en el segundo" },
+  { name: "nota3", type: "Numérico", value: "5", source: "5 en el tercero" },
+  { name: "notaAprobatoria", type: "Numérico", value: "3", source: "La nota aprobatoria de la asignatura es 3" },
+];
+
+const STATEMENT = [
+  { text: "Un estudiante obtuvo " },
+  { text: "4 en el primer parcial", f: 0 },
+  { text: ", " },
+  { text: "3 en el segundo", f: 1 },
+  { text: " y " },
+  { text: "5 en el tercero", f: 2 },
+  { text: ". " },
+  { text: "La nota aprobatoria de la asignatura es 3", f: 3 },
+  { text: ". Calcule el promedio de las tres notas y determine si el estudiante aprueba." },
+];
+
+const STAGE_PAGES = [
+  { label: "Problema", hint: "Entiende el problema y quién lo resuelve.", title: "El problema", lead: "Escribe de qué trata. Si tienes el enunciado, úsalo para identificar los datos." },
+  { label: "Datos", hint: "Identifica los datos que recibe el programa.", title: "Datos de entrada", lead: "Transforma lo que dice el enunciado en datos con nombre y tipo. En las actividades solo se reutilizan estos." },
+  { label: "Construcción", hint: "Descompón el proceso paso a paso.", title: "Actividades", lead: "Descompón el proceso en pasos. Cada paso toma unos datos, hace algo con ellos y produce uno nuevo." },
+  { label: "Cadena", hint: "Observa cómo fluye tu razonamiento.", title: "Cadena del análisis", lead: "Cómo fluye tu razonamiento: de los datos a la información final." },
+];
+
+const clone = (list) => list.map((a) => ({ ...a, inputs: a.inputs.map((d) => ({ ...d })), expr: a.expr.map((p) => ({ ...p })) }));
+
+class Component extends DCLogic {
+  state = { stage: 2, dataAdded: [0, 1, 2, 3], dataAddedVacio: [], showStatement: false, selected: 0, purpose: null, list: clone(ACTIVITIES), picker: null, valueDraft: "", stacked: false };
+
+  goStage(idx) { this.setState({ stage: Math.max(0, Math.min(3, idx)), picker: null }); }
+
+  get vacio() { return (this.props.estado ?? "ejemplo") === "vacío"; }
+
+  toggleFragment(f) {
+    const key = this.vacio ? "dataAddedVacio" : "dataAdded";
+    this.setState((s) => {
+      const cur = s[key];
+      return { [key]: cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f].sort((a, b) => a - b) };
+    });
+  }
+
+  get activities() { return this.state.list; }
+
+  componentDidMount() {
+    this._onResize = () => {
+      const stacked = window.innerWidth < 1010;
+      if (stacked !== this.state.stacked) this.setState({ stacked });
+    };
+    this._onResize();
+    window.addEventListener("resize", this._onResize);
+  }
+
+  componentWillUnmount() { window.removeEventListener("resize", this._onResize); }
+
+  select(i) { this.setState({ selected: i, purpose: null, picker: null }); }
+
+  openPicker(target) {
+    const cat = target === "inputs" ? "entrada" : "entrada";
+    this.setState((s) => ({ picker: s.picker && s.picker.target === target ? null : { target, cat }, valueDraft: "" }));
+  }
+
+  setCat(cat) { this.setState((s) => ({ picker: { ...s.picker, cat } })); }
+
+  closePicker() { this.setState({ picker: null }); }
+
+  addElement(item, kind) {
+    const { target } = this.state.picker;
+    this.setState((s) => {
+      const list = clone(s.list);
+      const row = list[Math.min(s.selected, list.length - 1)];
+      if (target === "inputs") {
+        row.inputs = [...row.inputs, { name: item.name, type: item.type ?? "Numérico", produced: kind === "resultante" }];
+      } else {
+        const t = kind === "operador" ? "op" : kind === "valor" ? "lit" : kind === "condicion" ? "cond" : "ref";
+        row.expr = [...row.expr, { t, text: item.name }];
+      }
+      return { list, valueDraft: "" };
+    });
+  }
+
+  renderVals() {
+    const ayudas = this.props.ayudas ?? "completas";
+    const showHints = ayudas === "completas";
+    const showRail = this.props.flujoLateral ?? true;
+    const showFlow = this.props.resaltarFlujo ?? true;
+
+    const vacio = this.vacio;
+    const list = vacio ? [] : this.activities;
+    const hasActivities = list.length > 0;
+    const i = Math.max(0, Math.min(this.state.selected, list.length - 1));
+    const current = list[i] ?? { n: 1, kind: "op", title: "", hint: "", middleLabel: "Qué haces", middleHint: "", inputs: [], expr: [], result: { name: "—", type: "" }, usedIn: "", comment: "", purpose: null };
+    const isCondition = current.kind === "cond";
+    const kindSolid = isCondition ? AMBER : VIOLET;
+
+    const tokenStyle = (t) => {
+      if (t === "ref") return { bg: "oklch(0.955 0.025 290)", border: "oklch(0.90 0.04 292)", fg: "oklch(0.42 0.11 292)" };
+      if (t === "op") return { bg: "transparent", border: "transparent", fg: "oklch(0.55 0.02 280)" };
+      if (t === "cond") return { bg: "oklch(0.965 0.035 80)", border: "oklch(0.91 0.05 78)", fg: "oklch(0.45 0.10 68)" };
+      return { bg: "oklch(0.96 0.006 285)", border: "oklch(0.92 0.008 285)", fg: "oklch(0.40 0.02 280)" };
+    };
+
+    const rail = list.map((a, idx) => {
+      const active = idx === i;
+      const cond = a.kind === "cond";
+      return {
+        n: a.n,
+        title: a.title,
+        kindLabel: cond ? "Condición" : "Operación",
+        kindFg: cond ? "oklch(0.47 0.10 68)" : "oklch(0.48 0.08 295)",
+        border: active ? (cond ? "oklch(0.86 0.06 75)" : "oklch(0.84 0.06 300)") : "oklch(0.93 0.008 285)",
+        bg: active ? (cond ? "oklch(0.985 0.018 80)" : "oklch(0.983 0.014 300)") : "oklch(1 0 0)",
+        shadow: active ? "0 1px 2px oklch(0.3 0.02 275 / 0.06)" : "none",
+        numBg: active ? (cond ? AMBER : VIOLET) : "oklch(0.95 0.008 285)",
+        numFg: active ? "#fff" : "oklch(0.50 0.02 280)",
+        weight: active ? 600 : 500,
+        fg: active ? "oklch(0.24 0.02 275)" : "oklch(0.42 0.02 278)",
+        dot: a.status === "done" ? "oklch(0.66 0.13 160)" : a.status === "active" ? VIOLET : "oklch(0.86 0.008 285)",
+        carries: idx < list.length - 1 ? a.result.name : null,
+        go: () => this.select(idx),
+      };
+    });
+
+    const stage = this.state.stage;
+    const stageDefs = STAGE_PAGES.map((s, idx) => ({ ...s, done: true, current: idx === stage }));
+    const stages = stageDefs.map((s, idx) => ({
+      label: s.label,
+      hasConnector: idx > 0,
+      mark: s.done ? "✓" : String(idx + 1),
+      dotBg: s.done ? "oklch(0.72 0.14 158)" : "oklch(1 0 0)",
+      dotFg: s.done ? "#fff" : "oklch(0.50 0.015 275)",
+      dotBorder: s.done ? "oklch(0.72 0.14 158)" : "oklch(0.88 0.008 280)",
+      fg: s.current ? "oklch(0.24 0.02 275)" : s.done ? "oklch(0.48 0.015 275)" : "oklch(0.65 0.015 275)",
+      weight: s.current ? 600 : 500,
+      pillBg: s.current ? "oklch(0.972 0.018 300)" : "transparent",
+      pillBorder: s.current ? "oklch(0.90 0.04 300)" : "transparent",
+      go: () => this.goStage(idx),
+    }));
+    const stageHint = stageDefs[stage].hint;
+
+    const purposeIndex = this.state.purpose ?? current.purpose;
+    const purposes = PURPOSES.map((label, idx) => {
+      const on = idx === purposeIndex;
+      return {
+        label,
+        bg: on ? "oklch(1 0 0)" : "transparent",
+        border: on ? (isCondition ? "oklch(0.88 0.05 75)" : "oklch(0.86 0.05 300)") : "transparent",
+        shadow: on ? "0 1px 2px oklch(0.3 0.02 275 / 0.08)" : "none",
+        fg: on ? "oklch(0.26 0.02 278)" : "oklch(0.52 0.015 275)",
+        weight: on ? 600 : 500,
+        go: () => this.setState({ purpose: idx }),
+      };
+    });
+
+    const prev = list[i - 1];
+    const next = list[i + 1];
+
+    const picker = this.state.picker;
+    const catKeys = picker ? (picker.target === "inputs" ? ["entrada", "resultante"] : ["entrada", "resultante", "condicion", "valor", "operador"]) : [];
+    const activeCat = picker ? picker.cat : "entrada";
+    const catTone = {
+      entrada: { bg: "oklch(0.968 0.02 292)", border: "oklch(0.90 0.04 292)", fg: "oklch(0.40 0.11 292)" },
+      resultante: { bg: "oklch(0.965 0.035 158)", border: "oklch(0.89 0.06 158)", fg: "oklch(0.40 0.10 158)" },
+      condicion: { bg: "oklch(0.968 0.035 80)", border: "oklch(0.91 0.05 78)", fg: "oklch(0.45 0.10 68)" },
+      valor: { bg: "oklch(0.965 0.006 285)", border: "oklch(0.91 0.008 285)", fg: "oklch(0.38 0.02 280)" },
+      operador: { bg: "oklch(1 0 0)", border: "oklch(0.91 0.008 285)", fg: "oklch(0.36 0.02 280)" },
+    };
+    const usedNames = new Set(
+      picker && picker.target === "inputs" ? current.inputs.map((d) => d.name) : current.expr.map((p) => p.text),
+    );
+    const pickerCats = catKeys.map((key) => {
+      const on = key === activeCat;
+      const tone = catTone[key];
+      return {
+        key,
+        label: CAT_META[key].label,
+        bg: on ? tone.bg : "oklch(1 0 0)",
+        border: on ? tone.border : "oklch(0.92 0.008 285)",
+        fg: on ? tone.fg : "oklch(0.50 0.015 275)",
+        weight: on ? 600 : 500,
+        go: () => this.setCat(key),
+      };
+    });
+    const tone = catTone[activeCat];
+    const pickerItems = activeCat === "valor" ? [] : (CATALOG[activeCat] ?? []).map((item) => {
+      const used = usedNames.has(item.name);
+      return {
+        name: item.name,
+        meta: item.type ?? item.label ?? "",
+        bg: used ? "oklch(0.975 0.004 285)" : tone.bg,
+        border: used ? "oklch(0.93 0.008 285)" : tone.border,
+        fg: used ? "oklch(0.52 0.015 275)" : tone.fg,
+        mono: activeCat === "operador" ? "'Instrument Sans', sans-serif" : "'JetBrains Mono', monospace",
+        go: () => this.addElement(item, activeCat),
+      };
+    });
+
+    const added = vacio ? this.state.dataAddedVacio : this.state.dataAdded;
+    const statementOn = vacio ? this.state.showStatement : true;
+    const statementParts = STATEMENT.map((p) => {
+      const isFrag = p.f != null;
+      const on = isFrag && added.includes(p.f);
+      return {
+        text: p.text,
+        pad: isFrag ? "2px 6px" : "0",
+        bg: on ? "oklch(0.955 0.025 292)" : isFrag ? "oklch(0.975 0.004 285)" : "transparent",
+        border: on ? "oklch(0.90 0.04 292)" : isFrag ? "oklch(0.91 0.01 285)" : "transparent",
+        fg: on ? "oklch(0.40 0.11 292)" : "oklch(0.32 0.02 278)",
+        cursor: isFrag ? "pointer" : "text",
+        go: isFrag ? () => this.toggleFragment(p.f) : undefined,
+      };
+    });
+    const inputRows = added.map((f) => ({
+      ...INPUT_DATA[f],
+      remove: () => this.toggleFragment(f),
+    }));
+    const producedRows = list.map((a) => ({ name: a.result.name, type: a.result.type, from: `Actividad ${a.n} · ${a.title}` }));
+
+    const chainTone = (cond) => ({
+      border: cond ? "oklch(0.91 0.04 78)" : "oklch(0.92 0.008 285)",
+      bg: cond ? "oklch(0.988 0.014 80)" : "oklch(1 0 0)",
+      numBg: cond ? AMBER : VIOLET,
+      titleFg: cond ? "oklch(0.45 0.09 68)" : "oklch(0.40 0.11 296)",
+    });
+    const chainSteps = list.map((a) => {
+      const cond = a.kind === "cond";
+      return {
+        n: a.n,
+        title: a.title,
+        kindLabel: cond ? "Condición" : "Operación",
+        question: a.question ?? null,
+        expr: a.expr.map((p) => ({ text: p.text, pad: p.t === "op" ? "0 2px" : "2px 6px", ...tokenStyle(p.t) })),
+        resultName: a.result.name,
+        resultType: a.result.type,
+        hasBranches: (a.branches ?? []).length > 0,
+        branches: (a.branches ?? []).map((b) => ({
+          ...b,
+          bg: b.label === "Sí" ? "oklch(0.95 0.04 160)" : "oklch(0.96 0.03 25)",
+          fg: b.label === "Sí" ? "oklch(0.40 0.10 160)" : "oklch(0.46 0.12 25)",
+        })),
+        ...chainTone(cond),
+      };
+    });
+    const decisionCount = list.filter((a) => a.kind === "cond").length;
+    const outputs = list.flatMap((a) => (a.branches ?? []).map((b) => ({
+      label: b.label,
+      value: b.value,
+      when: `cuando ${a.title}`,
+      bg: b.label === "Sí" ? "oklch(0.55 0.13 160)" : "oklch(0.60 0.16 25)",
+      fg: "#fff",
+    })));
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const chainStats = [
+      { text: plural(inputRows.length, "dato de entrada", "datos de entrada"), tone: "oklch(0.55 0.15 300)" },
+      { text: plural(list.length - decisionCount, "operación", "operaciones"), tone: "oklch(0.50 0.13 296)" },
+      { text: plural(decisionCount, "decisión", "decisiones"), tone: AMBER },
+      { text: plural(outputs.length, "respuesta final", "respuestas finales"), tone: "oklch(0.58 0.12 158)" },
+    ].map((s) => ({ text: s.text, dot: s.tone, fg: "oklch(0.42 0.02 280)", bg: "oklch(1 0 0)", border: "oklch(0.92 0.008 285)" }));
+
+    return {
+      analysisTitle: "¿El estudiante aprueba la asignatura?",
+      pageEyebrow: `Paso ${stage + 1} de 4 · ${STAGE_PAGES[stage].label}`,
+      pageTitle: STAGE_PAGES[stage].title,
+      pageLead: STAGE_PAGES[stage].lead,
+      isProblema: stage === 0,
+      isDatos: stage === 1,
+      isActividades: stage === 2,
+      isCadena: stage === 3,
+      showStageNav: stage !== 2,
+      hasPrevStage: stage > 0,
+      hasNextStage: stage < 3,
+      prevStageLabel: stage > 0 ? STAGE_PAGES[stage - 1].label : "",
+      nextStageLabel: stage < 3 ? `Continuar a ${STAGE_PAGES[stage + 1].label}` : "",
+      stageProgress: `Etapa ${stage + 1} de 4`,
+      onPrevStage: () => this.goStage(stage - 1),
+      onNextStage: () => this.goStage(stage + 1),
+      onGoDatos: () => this.goStage(1),
+      hasActivities,
+      noActivities: !hasActivities,
+      noInputs: inputRows.length === 0,
+      noProduced: producedRows.length === 0,
+      noOutputs: outputs.length === 0,
+      probTitle: vacio ? "Ej.: Determinar si un estudiante aprueba" : "¿El estudiante aprueba la asignatura?",
+      probDesc: vacio ? "Describe el problema del mundo real que se quiere resolver" : "A partir de tres notas, calcular el promedio y decidir si el estudiante aprueba según la nota aprobatoria.",
+      probFieldFg: vacio ? "oklch(0.68 0.012 275)" : "oklch(0.30 0.02 278)",
+      statementOn,
+      statementOff: !statementOn,
+      stmtBoxBg: statementOn ? VIOLET : "oklch(1 0 0)",
+      stmtBoxBorder: statementOn ? VIOLET : "oklch(0.84 0.01 285)",
+      stmtBoxMark: statementOn ? "✓" : "",
+      onToggleStatement: () => this.setState((s) => ({ showStatement: !s.showStatement })),
+      onGoActividades: () => this.goStage(2),
+      emptyZones: [
+        { n: "1", label: "Qué necesitas", hint: "Los datos que entran en este paso." },
+        { n: "2", label: "Qué haces", hint: "La expresión o la comprobación." },
+        { n: "3", label: "Qué obtienes", hint: "El dato nuevo que produce." },
+      ],
+      statementParts,
+      fragmentProgress: `${added.length} de ${INPUT_DATA.length} fragmentos agregados como datos`,
+      inputRows,
+      inputCountLabel: plural(inputRows.length, "dato", "datos"),
+      producedRows,
+      chainInputs: inputRows.map((d) => ({ name: d.name, type: d.type })),
+      chainSteps,
+      chainOutputs: outputs,
+      chainStats,
+      stages,
+      stageHint,
+      rail,
+      showRail, showHints, showFlow: showFlow && hasActivities,
+      stacked: this.state.stacked,
+      sideBySide: !this.state.stacked,
+      activityCount: list.length,
+      current: {
+        ...current,
+        kindLabel: isCondition ? "Condición" : "Operación",
+        inputs: current.inputs.map((d) => ({
+          ...d,
+          bg: d.produced ? "oklch(0.978 0.014 292)" : "oklch(0.985 0.004 285)",
+          border: d.produced ? "oklch(0.92 0.03 292)" : "oklch(0.93 0.008 285)",
+          fg: d.produced ? "oklch(0.40 0.10 292)" : "oklch(0.32 0.02 278)",
+          badgeBg: "oklch(0.96 0.006 285)",
+          badgeFg: "oklch(0.52 0.02 280)",
+        })),
+        expr: current.expr.map((p) => ({ text: p.text, ...tokenStyle(p.t) })),
+        question: current.question ?? null,
+      },
+      isCondition,
+      kindSolid,
+      headerBg: isCondition ? "oklch(0.992 0.008 80)" : "oklch(1 0 0)",
+      resultBg: isCondition ? "oklch(0.978 0.02 80)" : "oklch(0.972 0.022 292)",
+      resultBorder: isCondition ? "oklch(0.92 0.04 78)" : "oklch(0.91 0.04 292)",
+      resultFg: isCondition ? "oklch(0.42 0.09 68)" : "oklch(0.38 0.11 292)",
+      branches: (current.branches ?? []).map((b) => ({
+        ...b,
+        bg: b.label === "Sí" ? "oklch(0.95 0.04 160)" : "oklch(0.96 0.03 25)",
+        fg: b.label === "Sí" ? "oklch(0.42 0.10 160)" : "oklch(0.48 0.12 25)",
+      })),
+      purposes,
+      flowBefore: prev ? `Actividad ${prev.n} · ${prev.title}` : "Datos de entrada",
+      flowHere: `Actividad ${current.n} · ${current.title}`,
+      flowAfter: next ? `Actividad ${next.n} · ${next.title}` : "Cadena · información final",
+      progressText: `Actividad ${current.n} de ${list.length}`,
+      nextLabel: next ? "Siguiente actividad" : "Continuar a Cadena",
+      onPrev: () => this.select(Math.max(0, i - 1)),
+      onNext: () => (next ? this.select(i + 1) : this.goStage(3)),
+      onAddOperation: () => {},
+      onAddCondition: () => {},
+      pickerCats,
+      pickerItems,
+      pickerHint: CAT_META[activeCat].hint,
+      isValueCat: activeCat === "valor",
+      valueDraft: this.state.valueDraft,
+      showPickerInputs: picker != null && picker.target === "inputs",
+      showPickerExpr: picker != null && picker.target === "expr",
+      onOpenInputPicker: () => this.openPicker("inputs"),
+      onOpenExprPicker: () => this.openPicker("expr"),
+      onClosePicker: () => this.closePicker(),
+      onValueInput: (e) => this.setState({ valueDraft: e.target.value }),
+      onAddValue: () => {
+        const v = (this.state.valueDraft ?? "").trim();
+        if (v) this.addElement({ name: v }, "valor");
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

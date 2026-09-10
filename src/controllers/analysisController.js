@@ -242,7 +242,21 @@ export class AnalysisController {
       onDoneInputs: () => this.setEditingInputs(false),
       onSetNameConvention: (convention) => this.setNameConvention(convention),
       formatName: (name) => conventionalName(this.analysis, name),
-    }, this.showStatement, this.analysis.nameConvention);
+    }, this.showStatement, this.analysis.nameConvention, this.#producedData());
+  }
+
+  // Datos que produce cada actividad (para la tarjeta "Datos resultantes" de solo
+  // lectura): el dato y la actividad que lo genera.
+  #producedData() {
+    const dataById = new Map(this.analysis.data.map((entry) => [entry.id, entry]));
+    return this.analysis.rows
+      .map((row, index) => {
+        const datum = row.resultId ? dataById.get(row.resultId) : null;
+        if (!datum) return null;
+        const detail = (row.problem ?? "").trim() || (row.kind === "condition" ? conditionLabel(this.analysis, row.id) : "");
+        return { datum, activity: `Actividad ${index + 1}${detail ? ` · ${detail}` : ""}` };
+      })
+      .filter(Boolean);
   }
 
   // Fija la convención de nombres como regla del análisis y la aplica a todos los

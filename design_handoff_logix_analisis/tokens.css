@@ -1,0 +1,59 @@
+/* Tokens del rediseño de Logix — análisis de problemas.
+   Se declaran como variables CSS para poder usarlas desde Tailwind
+   (bg-[var(--lx-violet)]) o desde app.css sin duplicar valores.
+   Todos los colores están en oklch: la paleta se construyó variando
+   luminosidad y croma sobre tres tonos (violeta 300, ámbar 70, verde 158). */
+
+:root {
+  /* Marca y acentos --------------------------------------------------- */
+  --lx-violet: oklch(0.50 0.15 300);        /* acción primaria, marca, operaciones */
+  --lx-violet-hover: oklch(0.44 0.16 300);
+  --lx-amber: oklch(0.55 0.12 70);          /* condiciones */
+  --lx-green: oklch(0.66 0.13 160);         /* completado, datos resultantes */
+
+  /* Superficies -------------------------------------------------------- */
+  --lx-bg: oklch(0.975 0.004 265);          /* fondo de la aplicación */
+  --lx-surface: oklch(1 0 0);               /* tarjetas, barra superior */
+  --lx-surface-muted: oklch(0.988 0.004 280); /* pie de tarjeta, zonas secundarias */
+  --lx-surface-sunken: oklch(0.978 0.006 285); /* caja de expresión, cabecera de tabla */
+
+  /* Bordes ------------------------------------------------------------- */
+  --lx-border: oklch(0.92 0.008 280);       /* borde de tarjeta */
+  --lx-border-soft: oklch(0.945 0.006 280); /* separadores internos */
+  --lx-border-dashed: oklch(0.86 0.012 285);/* zonas por completar */
+
+  /* Texto -------------------------------------------------------------- */
+  --lx-ink: oklch(0.24 0.02 275);           /* títulos */
+  --lx-ink-body: oklch(0.34 0.02 278);      /* texto principal */
+  --lx-ink-muted: oklch(0.50 0.015 275);    /* ayudas y metadatos */
+  --lx-ink-ghost: oklch(0.68 0.012 275);    /* placeholders, filas fantasma */
+
+  /* Familias semánticas de datos --------------------------------------- */
+  --lx-entrada-bg: oklch(0.968 0.02 292);
+  --lx-entrada-border: oklch(0.90 0.04 292);
+  --lx-entrada-fg: oklch(0.40 0.11 292);
+
+  --lx-resultante-bg: oklch(0.965 0.035 158);
+  --lx-resultante-border: oklch(0.89 0.06 158);
+  --lx-resultante-fg: oklch(0.40 0.10 158);
+
+  --lx-condicion-bg: oklch(0.968 0.035 80);
+  --lx-condicion-border: oklch(0.91 0.05 78);
+  --lx-condicion-fg: oklch(0.45 0.10 68);
+
+  /* Radios -------------------------------------------------------------- */
+  --lx-r-chip: 8px;
+  --lx-r-control: 9px;
+  --lx-r-field: 11px;
+  --lx-r-panel: 14px;
+  --lx-r-card: 18px;
+
+  /* Sombras ------------------------------------------------------------- */
+  --lx-shadow-card: 0 1px 2px oklch(0.30 0.02 275 / 0.04), 0 12px 28px -22px oklch(0.30 0.02 275 / 0.35);
+  --lx-shadow-pop: 0 1px 2px oklch(0.30 0.02 275 / 0.05), 0 16px 32px -24px oklch(0.30 0.02 275 / 0.60);
+
+  /* Tipografía ----------------------------------------------------------- */
+  --lx-font-display: "Outfit", system-ui, sans-serif;  /* títulos y numeración */
+  --lx-font-ui: "Instrument Sans", system-ui, sans-serif; /* interfaz y texto */
+  --lx-font-mono: "JetBrains Mono", ui-monospace, monospace; /* nombres de datos y expresiones */
+}
